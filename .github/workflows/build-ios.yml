@@ -14,8 +14,9 @@ jobs:
 
       - name: Setup Xcode 16
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.app || true
+          sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode.app || sudo xcode-select -s /Applications/Xcode_16.1.app || true
           xcodebuild -version
+          swift --version
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -28,18 +29,25 @@ jobs:
       - name: Generate Native iOS Project (Expo Prebuild)
         run: npx expo prebuild --platform ios --no-install --clean
 
-      - name: Configure Xcode Environment
+      - name: Configure Xcode Environment & Patch Swift Tools
         run: |
           NODE_PATH=$(which node)
           echo "Configuring Node for Xcode build phases: $NODE_PATH"
           echo "export NODE_BINARY=$NODE_PATH" > ios/.xcode.env.local
           echo "export PATH=\"$(dirname "$NODE_PATH"):$PATH:/opt/homebrew/bin:/usr/local/bin\"" >> ios/.xcode.env.local
           cat ios/.xcode.env.local
+          
+          # Patch any Swift Package requesting tools 6.2.0 to 6.0.0 for maximum compatibility
+          find ios -name "Package.swift" -exec sed -i '' 's/swift-tools-version: 6.2.0/swift-tools-version: 6.0.0/g' {} + 2>/dev/null || true
+          find node_modules -name "Package.swift" -exec sed -i '' 's/swift-tools-version: 6.2.0/swift-tools-version: 6.0.0/g' {} + 2>/dev/null || true
 
       - name: Install CocoaPods
         run: |
           cd ios
           pod install || (pod repo update && pod install)
+          
+          # Patch any Pods cloned Package.swift files
+          find ios/Pods -name "Package.swift" -exec sed -i '' 's/swift-tools-version: 6.2.0/swift-tools-version: 6.0.0/g' {} + 2>/dev/null || true
 
       - name: Compile iOS App with Xcode
         run: |

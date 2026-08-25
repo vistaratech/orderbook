@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Order, orderTotal, orderBalance } from '../types/order';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
 import { formatCurrency, formatDate } from '../utils/format';
@@ -7,18 +8,55 @@ import { formatCurrency, formatDate } from '../utils/format';
 interface Props {
   order: Order;
   onPress: () => void;
+  onTogglePin?: (orderId: string) => void;
 }
 
-export default function OrderCard({ order, onPress }: Props) {
+export default function OrderCard({ order, onPress, onTogglePin }: Props) {
   const total = orderTotal(order);
   const balance = orderBalance(order);
+  const isPinned = !!order.isPinned;
 
   return (
-    <Pressable style={({ pressed }) => [styles.card, pressed && styles.pressed]} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [
+        styles.card,
+        isPinned && styles.pinnedCard,
+        pressed && styles.pressed,
+      ]}
+      onPress={onPress}
+    >
       <View style={styles.topRow}>
-        <Text style={styles.orderNumber}>{order.orderNumber}</Text>
-        <View style={[styles.badge, { backgroundColor: statusColor[order.status] }]}>
-          <Text style={styles.badgeText}>{order.status}</Text>
+        <View style={styles.orderNoRow}>
+          <Text style={styles.orderNumber}>{order.orderNumber}</Text>
+          {isPinned && (
+            <View style={styles.pinnedTag}>
+              <Ionicons name="pin" size={10} color={colors.clayDeep} />
+              <Text style={styles.pinnedTagText}>PINNED</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.topRightActions}>
+          <View style={[styles.badge, { backgroundColor: statusColor[order.status] }]}>
+            <Text style={styles.badgeText}>{order.status}</Text>
+          </View>
+
+          {onTogglePin && (
+            <Pressable
+              style={styles.pinBtn}
+              hitSlop={10}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                onTogglePin(order.id);
+              }}
+            >
+              <Ionicons
+                name={isPinned ? 'pin' : 'pin-outline'}
+                size={16}
+                color={isPinned ? colors.clayDeep : colors.inkSoft}
+              />
+            </Pressable>
+          )}
         </View>
       </View>
 
@@ -47,6 +85,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     ...shadow.card,
   },
+  pinnedCard: {
+    backgroundColor: '#FFFDF6',
+    borderColor: colors.clayDeep,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.clayDeep,
+  },
   pressed: {
     opacity: 0.85,
   },
@@ -55,10 +99,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  orderNoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   orderNumber: {
     fontFamily: fonts.display,
     fontSize: 22,
     color: colors.clayDeep,
+  },
+  pinnedTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.clayLight,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
+  pinnedTagText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9,
+    color: colors.clayDeep,
+    letterSpacing: 0.5,
+  },
+  topRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pinBtn: {
+    padding: 4,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
   badge: {
     borderRadius: radius.sm,

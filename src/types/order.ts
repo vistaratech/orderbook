@@ -34,6 +34,7 @@ export interface Order {
   advance: number;
 
   status: OrderStatus;
+  isPinned?: boolean;
 
   createdAt: string;
   updatedAt: string;

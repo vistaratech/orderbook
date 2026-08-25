@@ -116,3 +116,21 @@ export async function setOrderStatus(id: string, status: Order['status']): Promi
     syncItemToCloud('orders', orders[idx]).catch(() => {});
   }
 }
+
+export async function togglePinOrder(id: string): Promise<Order | undefined> {
+  const orders = await readAll();
+  const idx = orders.findIndex((o) => o.id === id);
+  if (idx >= 0) {
+    const updated: Order = {
+      ...orders[idx],
+      isPinned: !orders[idx].isPinned,
+      updatedAt: todayIso(),
+    };
+    orders[idx] = updated;
+    await writeAll(orders);
+    syncItemToCloud('orders', updated).catch(() => {});
+    return updated;
+  }
+  return undefined;
+}
+

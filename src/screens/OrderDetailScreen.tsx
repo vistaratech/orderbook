@@ -17,7 +17,13 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
 import { Order, PaymentEntry, orderTotal, orderBalance } from '../types/order';
-import { getOrder, deleteOrder, setOrderStatus, saveOrder } from '../storage/orderStorage';
+import {
+  getOrder,
+  deleteOrder,
+  setOrderStatus,
+  saveOrder,
+  togglePinOrder,
+} from '../storage/orderStorage';
 import { getPaymentsForOrder, addPayment } from '../storage/paymentStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
@@ -172,6 +178,27 @@ Thank you for your business!`;
 
       {/* Share / Action Bar */}
       <View style={styles.quickBar}>
+        <Pressable
+          style={[
+            styles.quickBtn,
+            order.isPinned && {
+              backgroundColor: colors.clayLight,
+              borderColor: colors.clayDeep,
+            },
+          ]}
+          onPress={async () => {
+            const updated = await togglePinOrder(order.id);
+            if (updated) setOrder(updated);
+          }}
+        >
+          <Ionicons
+            name={order.isPinned ? 'pin' : 'pin-outline'}
+            size={16}
+            color={colors.clayDeep}
+          />
+          <Text style={styles.quickBtnText}>{order.isPinned ? 'Pinned' : 'Pin'}</Text>
+        </Pressable>
+
         <Pressable style={styles.quickBtn} onPress={shareInvoice}>
           <Ionicons name="share-social-outline" size={16} color={colors.clayDeep} />
           <Text style={styles.quickBtnText}>Share Bill</Text>

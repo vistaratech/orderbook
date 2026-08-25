@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
 import { Order, OrderStatus, PaymentStatus, orderBalance, orderTotal } from '../types/order';
-import { getOrders } from '../storage/orderStorage';
+import { getOrders, togglePinOrder } from '../storage/orderStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import OrderCard from '../components/OrderCard';
 import EmptyState from '../components/EmptyState';
@@ -68,6 +68,15 @@ export default function OrderListScreen() {
     loadOrders(true);
   };
 
+  const handleTogglePin = async (orderId: string) => {
+    const updated = await togglePinOrder(orderId);
+    if (updated) {
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? updated : o))
+      );
+    }
+  };
+
   const filteredOrders = useMemo(() => {
     let result = [...orders];
 
@@ -93,8 +102,11 @@ export default function OrderListScreen() {
       result = result.filter((o) => o.paymentStatus === paymentFilter);
     }
 
-    // Sort
+    // Sort: Pinned orders always stay at the top
     result.sort((a, b) => {
+      const pinDiff = Number(b.isPinned || 0) - Number(a.isPinned || 0);
+      if (pinDiff !== 0) return pinDiff;
+
       if (sortBy === 'newest') {
         return a.createdAt < b.createdAt ? 1 : -1;
       }
@@ -119,6 +131,8 @@ export default function OrderListScreen() {
     0
   );
 
+  const pinnedCount = orders.filter((o) => o.isPinned).length;
+
   const hasActiveFilters =
     statusFilter !== 'All' || paymentFilter !== 'All' || sortBy !== 'newest';
 
@@ -133,7 +147,7 @@ export default function OrderListScreen() {
               ? 'Loading…'
               : `${filteredOrders.length} of ${orders.length} order${
                   orders.length === 1 ? '' : 's'
-                }`}
+                }${pinnedCount > 0 ? ` • 📌 ${pinnedCount} pinned` : ''}`}
           </Text>
         </View>
       </View>
@@ -265,6 +279,7 @@ export default function OrderListScreen() {
           <OrderCard
             order={item}
             onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
+            onTogglePin={handleTogglePin}
           />
         )}
         ListEmptyComponent={

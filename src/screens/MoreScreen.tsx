@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
+import AppLogo from '../components/AppLogo';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -41,8 +42,13 @@ export default function MoreScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>More Tools</Text>
-          <Text style={styles.subtitle}>Business management & data administration</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <AppLogo size={42} variant="icon" />
+            <View>
+              <Text style={styles.title}>More Tools</Text>
+              <Text style={styles.subtitle}>Business management & data administration</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.menuList}>
@@ -62,8 +68,10 @@ export default function MoreScreen() {
 
         {/* Business Guide Note */}
         <View style={styles.infoCard}>
-          <Ionicons name="book-outline" size={20} color={colors.clayDeep} style={{ marginBottom: 6 }} />
-          <Text style={styles.infoTitle}>About Order Book & Outflow</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <AppLogo size={28} variant="icon" />
+            <Text style={styles.infoTitle}>About Order Book & Outflow</Text>
+          </View>
           <Text style={styles.infoText}>
             All order data, outflow records, customer profiles, and catalog entries are stored on your device and synced to the cloud when signed in. Use the Backup tool in Settings to export a copy of your records.
           </Text>

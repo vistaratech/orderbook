@@ -23,6 +23,7 @@ import {
   resetPassword,
 } from '../storage/authStorage';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
+import AppLogo from '../components/AppLogo';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
@@ -146,13 +147,11 @@ export default function LoginScreen({ navigation }: Props) {
         >
           {/* ── Logo & Brand ─────────────────────────────── */}
           <View style={styles.brandHeader}>
-            <View style={styles.logoBadge}>
-              <Ionicons name="book" size={30} color={colors.white} />
-            </View>
-            <Text style={styles.brandTitle}>Order Book</Text>
-            <Text style={styles.brandSubtitle}>
-              Business Order & Expense Management
-            </Text>
+            <AppLogo
+              size={84}
+              variant="vertical"
+              taglineText="Business Order & Expense Management"
+            />
           </View>
 
           {/* ── Mode Switcher ────────────────────────────── */}

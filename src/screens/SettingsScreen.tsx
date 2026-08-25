@@ -25,6 +25,7 @@ import {
 } from '../storage/backupStorage';
 import { getAuthState, logout, setPinCode, UserAccount } from '../storage/authStorage';
 import { confirmAction } from '../utils/dialog';
+import AppLogo from '../components/AppLogo';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -424,6 +425,16 @@ export default function SettingsScreen() {
           <Ionicons name="trash" size={16} color={colors.danger} />
           <Text style={styles.clearBtnText}>Reset / Clear All Records</Text>
         </Pressable>
+      </View>
+
+      {/* Brand Footer */}
+      <View style={{ alignItems: 'center', marginTop: 16, marginBottom: 20 }}>
+        <AppLogo
+          size={50}
+          variant="vertical"
+          showTagline
+          taglineText="Order Book v1.0.0 • Handcrafted for Small Businesses"
+        />
       </View>
     </ScrollView>
   );

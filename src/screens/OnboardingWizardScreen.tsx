@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
 import { registerUser, loginAsGuest } from '../storage/authStorage';
+import AppLogo from '../components/AppLogo';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingWizard'>;
@@ -178,11 +179,15 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
                 { backgroundColor: SLIDES[currentStep].accent },
               ]}
             >
-              <Ionicons
-                name={SLIDES[currentStep].icon}
-                size={70}
-                color={SLIDES[currentStep].color}
-              />
+              {currentStep === 0 ? (
+                <AppLogo size={90} variant="icon" />
+              ) : (
+                <Ionicons
+                  name={SLIDES[currentStep].icon}
+                  size={70}
+                  color={SLIDES[currentStep].color}
+                />
+              )}
             </View>
 
             <Text style={styles.slideTitle}>{SLIDES[currentStep].title}</Text>
@@ -221,6 +226,9 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.formHeader}>
+              <View style={{ alignItems: 'center', marginBottom: 10 }}>
+                <AppLogo size={52} variant="icon" />
+              </View>
               <Text style={styles.formTitle}>Store & Security Setup</Text>
               <Text style={styles.formSubtitle}>
                 Set up your business notebook and 4-digit unlock passcode.

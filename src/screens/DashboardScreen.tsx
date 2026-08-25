@@ -29,6 +29,7 @@ import { getExpenses } from '../storage/expenseStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
 import { formatCurrency, formatDate } from '../utils/format';
+import AppLogo from '../components/AppLogo';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -127,16 +128,19 @@ export default function DashboardScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Business Pulse</Text>
-            <Text style={styles.subtitle}>
-              {new Date().toLocaleDateString('en-IN', {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              })}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <AppLogo size={36} variant="icon" />
+            <View>
+              <Text style={styles.title}>Business Pulse</Text>
+              <Text style={styles.subtitle}>
+                {new Date().toLocaleDateString('en-IN', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </Text>
+            </View>
           </View>
           <Pressable
             style={styles.settingsIconBtn}

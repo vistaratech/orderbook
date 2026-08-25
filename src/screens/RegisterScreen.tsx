@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../navigation/types';
 import { registerUser } from '../storage/authStorage';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
+import AppLogo from '../components/AppLogo';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
@@ -110,6 +111,9 @@ export default function RegisterScreen({ navigation }: Props) {
         >
           {/* Header */}
           <View style={styles.header}>
+            <View style={{ alignItems: 'center', marginBottom: 12 }}>
+              <AppLogo size={56} variant="icon" />
+            </View>
             <Text style={styles.title}>Create Store Account</Text>
             <Text style={styles.subtitle}>
               Set up your business order book and secure passcode

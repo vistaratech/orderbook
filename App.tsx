@@ -90,6 +90,15 @@ export default function App() {
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       document.title = 'Order Book — Business Outflow & Order Management';
+
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = '/favicon.png';
+
       const style = document.createElement('style');
       style.innerHTML = `
         html, body, #root {

@@ -92,12 +92,16 @@ export default function App() {
       document.title = 'Order Book — Business Outflow & Order Management';
       const style = document.createElement('style');
       style.innerHTML = `
-        body {
+        html, body, #root {
+          height: 100%;
+          height: 100dvh;
+          min-height: 100dvh;
           background-color: #EFE7DA;
           margin: 0;
           padding: 0;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           user-select: none;
+          overflow: hidden;
         }
         ::-webkit-scrollbar {
           width: 6px;
@@ -243,12 +247,16 @@ const styles = {
   },
   webOuterContainer: {
     flex: 1,
+    height: '100dvh' as any,
+    maxHeight: '100dvh' as any,
     backgroundColor: '#EAE2D3',
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
   webInnerFrame: {
     flex: 1,
+    height: '100%' as any,
+    maxHeight: '100dvh' as any,
     width: '100%' as const,
     maxWidth: 720,
     backgroundColor: colors.paper,

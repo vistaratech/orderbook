@@ -5,7 +5,6 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "backgroundColor": "#F6F1E7",
     "ios": {
       "supportsTablet": true,
@@ -27,6 +26,10 @@
       "eas": {
         "projectId": "e1c80afb-8af4-483c-89fe-8f6f624e4cd0"
       }
-    }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-status-bar"
+    ]
   }
 }

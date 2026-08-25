@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Order Book",
+    "slug": "order-book",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "backgroundColor": "#F6F1E7",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.orderbook.app"
+    },
+    "android": {
+      "package": "com.orderbook.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#F6F1E7"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

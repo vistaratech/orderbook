@@ -28,6 +28,14 @@ jobs:
       - name: Generate Native iOS Project (Expo Prebuild)
         run: npx expo prebuild --platform ios --no-install --clean
 
+      - name: Configure Xcode Environment
+        run: |
+          NODE_PATH=$(which node)
+          echo "Configuring Node for Xcode build phases: $NODE_PATH"
+          echo "export NODE_BINARY=$NODE_PATH" > ios/.xcode.env.local
+          echo "export PATH=\"$(dirname "$NODE_PATH"):$PATH:/opt/homebrew/bin:/usr/local/bin\"" >> ios/.xcode.env.local
+          cat ios/.xcode.env.local
+
       - name: Install CocoaPods
         run: |
           cd ios

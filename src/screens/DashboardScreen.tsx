@@ -7,6 +7,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -14,8 +16,15 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
-import { Order, orderBalance, orderTotal, Expense } from '../types/order';
-import { getOrders } from '../storage/orderStorage';
+import {
+  Order,
+  OrderStatus,
+  ORDER_STATUS_STEPS,
+  orderBalance,
+  orderTotal,
+  Expense,
+} from '../types/order';
+import { getOrders, setOrderStatus } from '../storage/orderStorage';
 import { getExpenses } from '../storage/expenseStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
@@ -29,6 +38,10 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  // Pipeline Status Quick-Update Modal State
+  const [activePipelineStatus, setActivePipelineStatus] = useState<OrderStatus | null>(null);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
   const loadData = useCallback(async (forceSync = false) => {
     try {
@@ -60,6 +73,19 @@ export default function DashboardScreen() {
     loadData(true);
   };
 
+  // Status update handler for Pipeline
+  const handleQuickStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    setUpdatingOrderId(orderId);
+    try {
+      await setOrderStatus(orderId, newStatus);
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+      );
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
   // Calculations
   const totalSales = orders.reduce((sum, o) => sum + orderTotal(o), 0);
   const totalOutflow = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -72,7 +98,7 @@ export default function DashboardScreen() {
   const netProfit = totalSales - totalOutflow;
 
   // Status breakdown
-  const statusCounts: Record<string, number> = {
+  const statusCounts: Record<OrderStatus, number> = {
     Placed: 0,
     Packed: 0,
     Dispatched: 0,
@@ -85,6 +111,11 @@ export default function DashboardScreen() {
   });
 
   const recentOrders = orders.slice(0, 4);
+
+  // Orders filtered by the currently active pipeline status
+  const pipelineFilteredOrders = activePipelineStatus
+    ? orders.filter((o) => o.status === activePipelineStatus)
+    : [];
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -210,22 +241,34 @@ export default function DashboardScreen() {
               </Pressable>
             </View>
 
-            {/* Order Pipeline Status */}
+            {/* Interactive Order Pipeline Status */}
             <View style={styles.card}>
-              <Text style={styles.sectionHeading}>Order Pipeline</Text>
+              <View style={styles.pipelineHeaderRow}>
+                <Text style={styles.sectionHeading}>Order Pipeline</Text>
+                <Text style={styles.pipelineHint}>Tap to update status ⚡</Text>
+              </View>
               <View style={styles.statusGrid}>
-                {Object.entries(statusCounts).map(([st, cnt]) => (
-                  <View key={st} style={styles.statusBox}>
-                    <View
-                      style={[
-                        styles.statusDot,
-                        { backgroundColor: statusColor[st] || colors.clay },
+                {ORDER_STATUS_STEPS.map((st) => {
+                  const cnt = statusCounts[st] || 0;
+                  const color = statusColor[st] || colors.clay;
+                  return (
+                    <Pressable
+                      key={st}
+                      style={({ pressed }) => [
+                        styles.statusBox,
+                        pressed && styles.statusBoxPressed,
+                        cnt > 0 && { borderColor: color, backgroundColor: '#FFFDF9' },
                       ]}
-                    />
-                    <Text style={styles.statusNumber}>{cnt}</Text>
-                    <Text style={styles.statusName}>{st}</Text>
-                  </View>
-                ))}
+                      onPress={() => setActivePipelineStatus(st)}
+                    >
+                      <View style={[styles.statusDot, { backgroundColor: color }]} />
+                      <Text style={[styles.statusNumber, cnt > 0 && { color }]}>
+                        {cnt}
+                      </Text>
+                      <Text style={styles.statusName}>{st}</Text>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
 
@@ -299,6 +342,161 @@ export default function DashboardScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* ─── Pipeline Quick Status Update Modal ─── */}
+      <Modal
+        visible={!!activePipelineStatus}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setActivePipelineStatus(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderTitleRow}>
+                <View
+                  style={[
+                    styles.modalStatusBadge,
+                    activePipelineStatus
+                      ? { backgroundColor: statusColor[activePipelineStatus] }
+                      : null,
+                  ]}
+                >
+                  <Text style={styles.modalStatusBadgeText}>
+                    {activePipelineStatus} ({pipelineFilteredOrders.length})
+                  </Text>
+                </View>
+                <Text style={styles.modalSubtitle}>Tap any status below to update</Text>
+              </View>
+              <Pressable
+                onPress={() => setActivePipelineStatus(null)}
+                style={styles.modalCloseBtn}
+                hitSlop={12}
+              >
+                <Ionicons name="close-circle" size={26} color={colors.inkSoft} />
+              </Pressable>
+            </View>
+
+            {/* Status Switcher Tabs inside modal */}
+            <View style={styles.modalStatusTabs}>
+              {ORDER_STATUS_STEPS.map((st) => {
+                const isActive = activePipelineStatus === st;
+                const count = statusCounts[st] || 0;
+                return (
+                  <Pressable
+                    key={st}
+                    style={[
+                      styles.modalStatusTab,
+                      isActive && { backgroundColor: statusColor[st], borderColor: statusColor[st] },
+                    ]}
+                    onPress={() => setActivePipelineStatus(st)}
+                  >
+                    <Text
+                      style={[
+                        styles.modalStatusTabText,
+                        isActive && styles.modalStatusTabTextActive,
+                      ]}
+                    >
+                      {st} ({count})
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Orders List for Active Status */}
+            {pipelineFilteredOrders.length === 0 ? (
+              <View style={styles.modalEmptyState}>
+                <Ionicons
+                  name="checkmark-done-circle-outline"
+                  size={48}
+                  color={colors.statusDelivered}
+                />
+                <Text style={styles.modalEmptyTitle}>No {activePipelineStatus} Orders</Text>
+                <Text style={styles.modalEmptyDesc}>
+                  All orders in this stage have been moved to the next step.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={pipelineFilteredOrders}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.modalListContent}
+                renderItem={({ item }) => {
+                  const bal = orderBalance(item);
+                  const isUpdating = updatingOrderId === item.id;
+                  return (
+                    <View style={styles.pipelineOrderCard}>
+                      {/* Top Order Info */}
+                      <View style={styles.pipelineCardTop}>
+                        <View>
+                          <Text style={styles.pipelineOrderNo}>{item.orderNumber}</Text>
+                          <Text style={styles.pipelineCustomerName}>
+                            {item.customerName || 'Customer'}
+                          </Text>
+                          <Text style={styles.pipelineOrderDate}>
+                            {formatDate(item.orderDate)} • {formatCurrency(orderTotal(item))}
+                            {bal > 0 ? ` (Due ${formatCurrency(bal)})` : ' (Paid)'}
+                          </Text>
+                        </View>
+                        <Pressable
+                          style={styles.viewDetailBtn}
+                          onPress={() => {
+                            setActivePipelineStatus(null);
+                            navigation.navigate('OrderDetail', { orderId: item.id });
+                          }}
+                        >
+                          <Text style={styles.viewDetailText}>Details</Text>
+                          <Ionicons name="chevron-forward" size={14} color={colors.clayDeep} />
+                        </Pressable>
+                      </View>
+
+                      {/* Quick Status Selector Pills */}
+                      <View style={styles.statusUpdateRow}>
+                        <Text style={styles.updateStatusLabel}>Move to:</Text>
+                        <View style={styles.statusPillsWrap}>
+                          {ORDER_STATUS_STEPS.map((step) => {
+                            const isCurrent = item.status === step;
+                            const stepColor = statusColor[step];
+                            return (
+                              <Pressable
+                                key={step}
+                                disabled={isUpdating}
+                                style={[
+                                  styles.statusPillBtn,
+                                  isCurrent && {
+                                    backgroundColor: stepColor,
+                                    borderColor: stepColor,
+                                  },
+                                ]}
+                                onPress={() => handleQuickStatusChange(item.id, step)}
+                              >
+                                {isUpdating && isCurrent ? (
+                                  <ActivityIndicator size="small" color={colors.white} />
+                                ) : (
+                                  <Text
+                                    style={[
+                                      styles.statusPillText,
+                                      isCurrent && styles.statusPillTextActive,
+                                    ]}
+                                  >
+                                    {step}
+                                  </Text>
+                                )}
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    </View>
+                  );
+                }}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -443,11 +641,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.white,
   },
+  pipelineHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   sectionHeading: {
     fontFamily: fonts.display,
     fontSize: 22,
     color: colors.clayDeep,
-    marginBottom: 10,
+  },
+  pipelineHint: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.clayDeep,
   },
   cardHeaderWithLink: {
     flexDirection: 'row',
@@ -468,11 +676,15 @@ const styles = StyleSheet.create({
   statusBox: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
     backgroundColor: colors.paper,
     borderRadius: radius.sm,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.line,
+  },
+  statusBoxPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.97 }],
   },
   statusDot: {
     width: 8,
@@ -580,5 +792,185 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.inkSoft,
     marginTop: 2,
+  },
+
+  // ─── Modal Styles ───
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: colors.paperCard,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    maxHeight: '82%',
+    minHeight: '45%',
+    paddingTop: 16,
+    paddingBottom: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+    ...shadow.card,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  modalHeaderTitleRow: {
+    flex: 1,
+  },
+  modalStatusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+    marginBottom: 4,
+  },
+  modalStatusBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.white,
+  },
+  modalSubtitle: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  modalStatusTabs: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  modalStatusTab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  modalStatusTabText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  modalStatusTabTextActive: {
+    color: colors.white,
+    fontFamily: fonts.bodyBold,
+  },
+  modalListContent: {
+    padding: 16,
+    gap: 12,
+  },
+  modalEmptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  modalEmptyTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    color: colors.ink,
+    marginTop: 10,
+  },
+  modalEmptyDesc: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  pipelineOrderCard: {
+    backgroundColor: colors.paper,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 12,
+  },
+  pipelineCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  pipelineOrderNo: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+    color: colors.clayDeep,
+  },
+  pipelineCustomerName: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.ink,
+    marginTop: 1,
+  },
+  pipelineOrderDate: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 2,
+  },
+  viewDetailBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+  },
+  viewDetailText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.clayDeep,
+  },
+  statusUpdateRow: {
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingTop: 8,
+  },
+  updateStatusLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.inkSoft,
+    marginBottom: 6,
+  },
+  statusPillsWrap: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  statusPillBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 7,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  statusPillText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.ink,
+  },
+  statusPillTextActive: {
+    color: colors.white,
+    fontFamily: fonts.bodyBold,
   },
 });

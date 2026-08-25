@@ -16,24 +16,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
 
-      - name: Expo Prebuild (Generate Native iOS Project)
-        run: npx expo prebuild --platform ios --clean
+      - name: Generate Native iOS Project (Expo Prebuild)
+        run: npx expo prebuild --platform ios --no-install --clean
 
       - name: Install CocoaPods
         run: |
           cd ios
-          pod install --repo-update
+          pod install
 
-      - name: Build iOS App (.app)
+      - name: Compile iOS App with Xcode
         run: |
           WORKSPACE=$(find ios -name "*.xcworkspace" | head -n 1)
           SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | awk '/Schemes:/{flag=1;next}/^$/{flag=0}flag' | tr -d ' ' | head -n 1)
-          echo "Building Workspace: $WORKSPACE with Scheme: $SCHEME"
+          echo "Using Workspace: $WORKSPACE and Scheme: $SCHEME"
           
           mkdir -p build/Release-iphoneos
           xcodebuild clean build \
@@ -52,7 +51,7 @@ jobs:
         run: |
           mkdir -p build/Payload
           APP_PATH=$(find build/Release-iphoneos -name "*.app" -maxdepth 1 | head -n 1)
-          echo "Found App: $APP_PATH"
+          echo "Found App Bundle: $APP_PATH"
           cp -r "$APP_PATH" build/Payload/
           cd build
           zip -r OrderBook.ipa Payload

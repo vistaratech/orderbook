@@ -41,7 +41,7 @@ jobs:
           cd ios
           pod install || (pod repo update && pod install)
 
-      - name: Compile iOS App with Xcode Archive
+      - name: Compile iOS App with Xcode
         run: |
           set -o pipefail
           WORKSPACE=$(find ios -name "*.xcworkspace" | head -n 1)
@@ -54,33 +54,34 @@ jobs:
           
           SCHEME="$PROJECT_NAME"
           
-          # Create archive with unsigned build settings
-          xcodebuild archive \
+          # Build with ad-hoc signing to satisfy framework signing in Xcode 16
+          xcodebuild build \
             -workspace "$WORKSPACE" \
             -scheme "$SCHEME" \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath "build/OrderBook.xcarchive" \
-            CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_ALLOWED=YES \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            CODE_SIGN_STYLE="Manual" \
+            DEVELOPMENT_TEAM="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
             COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee xcodebuild.log || {
-              echo "❌ Xcode build failed! Showing error summary:"
-              grep -i "error:" xcodebuild.log || true
-              echo "--- Last 60 lines of build log ---"
-              tail -n 60 xcodebuild.log
+              echo "❌ Xcode build failed! Full error context:"
+              grep -n -C 5 -i "error:" xcodebuild.log || true
               exit 1
             }
 
       - name: Package into .ipa
         run: |
           mkdir -p build/Payload
-          APP_PATH=$(find build/OrderBook.xcarchive/Products/Applications -name "*.app" | head -n 1)
+          APP_PATH=$(find build/Build/Products -name "*.app" -not -path "*/Pods-*" -not -path "*/EX*" | head -n 1)
           echo "Found App Bundle: $APP_PATH"
           if [ -z "$APP_PATH" ]; then
-            echo "Error: No .app bundle found in build/OrderBook.xcarchive"
-            find build/ -name "*.app" || true
+            echo "Error: No .app bundle found in build/Build/Products"
+            find build -name "*.app" || true
             exit 1
           fi
           cp -r "$APP_PATH" build/Payload/

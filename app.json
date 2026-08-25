@@ -2,7 +2,6 @@
   "expo": {
     "name": "Order Book",
     "slug": "order-book",
-    "scheme": "orderbook",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",

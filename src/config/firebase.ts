@@ -1,8 +1,5 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { initializeAuth, getAuth, Auth } from 'firebase/auth';
-// @ts-ignore
-import { getReactNativePersistence } from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuth, Auth } from 'firebase/auth';
 import { getDatabase, Database } from 'firebase/database';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
@@ -23,19 +20,8 @@ export const firebaseConfig = {
 // Initialize Firebase App (prevent re-initializing on hot reload)
 export const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Auth with AsyncStorage persistence for native platforms
-export const auth: Auth = (() => {
-  if (Platform.OS === 'web') {
-    return getAuth(app);
-  }
-  try {
-    return initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
-    });
-  } catch {
-    return getAuth(app);
-  }
-})();
+// Initialize Auth
+export const auth: Auth = getAuth(app);
 
 // Initialize Realtime Database & Firestore & Storage
 export const rtdb: Database = getDatabase(app);

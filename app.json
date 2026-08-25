@@ -9,7 +9,10 @@
     "backgroundColor": "#F6F1E7",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.orderbook.app"
+      "bundleIdentifier": "com.orderbook.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.orderbook.app",
@@ -19,6 +22,11 @@
     },
     "web": {
       "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e1c80afb-8af4-483c-89fe-8f6f624e4cd0"
+      }
     }
   }
 }

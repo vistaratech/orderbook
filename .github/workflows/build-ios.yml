@@ -1,0 +1,66 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-ipa:
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Expo Prebuild (Generate Native iOS Project)
+        run: npx expo prebuild --platform ios --clean
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Build iOS App (.app)
+        run: |
+          WORKSPACE=$(find ios -name "*.xcworkspace" | head -n 1)
+          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | awk '/Schemes:/{flag=1;next}/^$/{flag=0}flag' | tr -d ' ' | head -n 1)
+          echo "Building Workspace: $WORKSPACE with Scheme: $SCHEME"
+          
+          mkdir -p build/Release-iphoneos
+          xcodebuild clean build \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            CONFIGURATION_BUILD_DIR="$PWD/build/Release-iphoneos"
+
+      - name: Package into .ipa
+        run: |
+          mkdir -p build/Payload
+          APP_PATH=$(find build/Release-iphoneos -name "*.app" -maxdepth 1 | head -n 1)
+          echo "Found App: $APP_PATH"
+          cp -r "$APP_PATH" build/Payload/
+          cd build
+          zip -r OrderBook.ipa Payload
+          ls -lh OrderBook.ipa
+
+      - name: Upload .ipa Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OrderBook-iOS-IPA
+          path: build/OrderBook.ipa
+          retention-days: 14

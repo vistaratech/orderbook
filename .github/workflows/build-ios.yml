@@ -37,11 +37,15 @@ jobs:
         run: |
           set -o pipefail
           WORKSPACE=$(find ios -name "*.xcworkspace" | head -n 1)
-          echo "Found Workspace: $WORKSPACE"
+          PROJECT_FILE=$(find ios -maxdepth 1 -name "*.xcodeproj" | head -n 1)
+          PROJECT_NAME=$(basename "$PROJECT_FILE" .xcodeproj)
           
-          # Extract first scheme, trimming leading/trailing whitespace
-          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | awk '/Schemes:/{flag=1;next}/^$/{flag=0}flag' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | grep -v '^$' | head -n 1)
-          echo "Building with Scheme: '$SCHEME'"
+          echo "Found Workspace: $WORKSPACE"
+          echo "Found Project: $PROJECT_FILE"
+          echo "Determined Main App Scheme: $PROJECT_NAME"
+          
+          # Target the primary App Scheme (not CocoaPods sub-libraries like EXApplication)
+          SCHEME="$PROJECT_NAME"
           
           # Build with ad-hoc signing (CODE_SIGN_IDENTITY="-") which satisfies Xcode 16 framework requirements without Apple Team certificate
           xcodebuild build \

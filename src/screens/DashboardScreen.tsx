@@ -191,47 +191,50 @@ export default function DashboardScreen() {
           <>
             {/* ─── Hero Financial Card ─── */}
             <View style={styles.heroCard}>
+              {/* Top Row: Label + Profit Percentage Pill */}
               <View style={styles.heroTopRow}>
-                <View>
-                  <Text style={styles.heroLabel}>Net Business Balance</Text>
+                <Text style={styles.heroLabel}>Net Business Balance</Text>
+                <View
+                  style={[
+                    styles.profitPill,
+                    {
+                      backgroundColor: netProfit >= 0 ? '#E8F5E9' : '#FFEBEE',
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={netProfit >= 0 ? 'trending-up' : 'trending-down'}
+                    size={13}
+                    color={netProfit >= 0 ? colors.inflow : colors.outflow}
+                  />
                   <Text
                     style={[
-                      styles.heroAmount,
+                      styles.profitPillText,
                       { color: netProfit >= 0 ? colors.inflow : colors.outflow },
                     ]}
                   >
-                    {formatCurrency(netProfit)}
+                    {netProfit >= 0 ? `Profit (${profitMargin}%)` : `Deficit (${profitMargin}%)`}
                   </Text>
                 </View>
-                <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <View
-                    style={[
-                      styles.profitPill,
-                      {
-                        backgroundColor: netProfit >= 0 ? '#E8F5E9' : '#FFEBEE',
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name={netProfit >= 0 ? 'trending-up' : 'trending-down'}
-                      size={14}
-                      color={netProfit >= 0 ? colors.inflow : colors.outflow}
-                    />
-                    <Text
-                      style={[
-                        styles.profitPillText,
-                        { color: netProfit >= 0 ? colors.inflow : colors.outflow },
-                      ]}
-                    >
-                      {netProfit >= 0 ? `Profit (${profitMargin}%)` : `Deficit (${profitMargin}%)`}
-                    </Text>
-                  </View>
-                  <View style={styles.liquidBadge}>
-                    <Ionicons name="cash-outline" size={11} color={colors.clayDeep} />
-                    <Text style={styles.liquidBadgeText}>
-                      Liquid Cash: {formatCurrency(liquidCash)}
-                    </Text>
-                  </View>
+              </View>
+
+              {/* Main Balance Display */}
+              <View style={styles.heroAmountRow}>
+                <Text
+                  style={[
+                    styles.heroAmount,
+                    { color: netProfit >= 0 ? colors.inflow : colors.outflow },
+                  ]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
+                  {formatCurrency(netProfit)}
+                </Text>
+                <View style={styles.liquidBadge}>
+                  <Ionicons name="cash-outline" size={12} color={colors.clayDeep} />
+                  <Text style={styles.liquidBadgeText}>
+                    Liquid Cash: {formatCurrency(liquidCash)}
+                  </Text>
                 </View>
               </View>
 
@@ -853,8 +856,9 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontFamily: fonts.display,
-    fontSize: 28,
+    fontSize: 22,
     color: colors.ink,
+    paddingRight: 6,
     lineHeight: 32,
   },
   headerDate: {
@@ -890,26 +894,34 @@ const styles = StyleSheet.create({
   heroTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  heroAmountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 16,
   },
   heroLabel: {
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
     color: colors.inkSoft,
-    marginBottom: 4,
   },
   heroAmount: {
     fontFamily: fonts.display,
-    fontSize: 40,
+    fontSize: 38,
     lineHeight: 44,
+    paddingRight: 10,
   },
   profitPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 4,
     borderRadius: 20,
   },
   profitPillText: {
@@ -919,10 +931,10 @@ const styles = StyleSheet.create({
   liquidBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: colors.paper,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.line,
@@ -1099,6 +1111,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: 22,
     color: colors.clayDeep,
+    paddingRight: 8,
   },
   sectionHint: {
     fontFamily: fonts.bodyMedium,

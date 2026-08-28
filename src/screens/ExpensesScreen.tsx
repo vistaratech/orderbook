@@ -45,7 +45,7 @@ export default function ExpensesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadExpenses(false);
+      loadExpenses(true);
     }, [loadExpenses])
   );
 
@@ -275,6 +275,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: colors.ink,
     lineHeight: 36,
+    paddingRight: 10,
   },
   subtitle: {
     fontFamily: fonts.body,
@@ -330,6 +331,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: 36,
     color: colors.outflow,
+    paddingRight: 8,
   },
   searchBar: {
     flexDirection: 'row',

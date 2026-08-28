@@ -112,6 +112,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: 22,
     color: colors.clayDeep,
+    paddingRight: 8,
   },
   pinnedTag: {
     flexDirection: 'row',

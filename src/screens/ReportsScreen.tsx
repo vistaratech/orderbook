@@ -42,7 +42,7 @@ export default function ReportsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadData(false);
+      loadData(true);
     }, [loadData])
   );
 
@@ -224,7 +224,7 @@ Generated from Order Book App`;
               <View style={styles.pnlRow}>
                 <View style={styles.pnlLabelRow}>
                   <Ionicons name="arrow-down-circle" size={18} color={colors.inflow} />
-                  <Text style={styles.pnlLabel}>Sales Revenue (Inflow)</Text>
+                  <Text style={styles.pnlLabel} numberOfLines={1}>Sales Revenue</Text>
                 </View>
                 <Text style={[styles.pnlValue, { color: colors.inflow }]}>
                   +{formatCurrency(totalInflow)}
@@ -234,7 +234,7 @@ Generated from Order Book App`;
               <View style={styles.pnlRow}>
                 <View style={styles.pnlLabelRow}>
                   <Ionicons name="arrow-up-circle" size={18} color={colors.outflow} />
-                  <Text style={styles.pnlLabel}>Total Expenses (Outflow)</Text>
+                  <Text style={styles.pnlLabel} numberOfLines={1}>Total Expenses</Text>
                 </View>
                 <Text style={[styles.pnlValue, { color: colors.outflow }]}>
                   -{formatCurrency(totalOutflow)}
@@ -386,6 +386,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: colors.ink,
     lineHeight: 36,
+    paddingRight: 10,
   },
   subtitle: {
     fontFamily: fonts.body,
@@ -456,6 +457,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: 20,
     color: colors.clayDeep,
+    paddingRight: 8,
   },
   pnlRow: {
     flexDirection: 'row',
@@ -464,11 +466,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   pnlLabelRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginRight: 8,
   },
   pnlLabel: {
+    flex: 1,
     fontFamily: fonts.bodyMedium,
     fontSize: 14,
     color: colors.ink,
@@ -497,6 +502,7 @@ const styles = StyleSheet.create({
   netProfitValue: {
     fontFamily: fonts.display,
     fontSize: 28,
+    paddingRight: 8,
   },
   subStatsBox: {
     flexDirection: 'row',

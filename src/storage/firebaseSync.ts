@@ -32,8 +32,7 @@ export function getCurrentUid(): string {
 }
 
 export function isCloudUser(): boolean {
-  const uid = getCurrentUid();
-  return uid !== 'local_guest' && !!uid;
+  return !!auth.currentUser && auth.currentUser.uid !== 'local_guest';
 }
 
 // ─── Realtime Listener & Event Emitter ──────────────────────────────

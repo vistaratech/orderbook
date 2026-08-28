@@ -10,7 +10,7 @@ import {
   Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Order, Expense, orderTotal, orderBalance } from '../types/order';
@@ -23,7 +23,6 @@ import { formatCurrency } from '../utils/format';
 type Period = 'this_month' | 'last_30_days' | 'this_week' | 'all_time';
 
 export default function ReportsScreen() {
-  const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<Period>('this_month');

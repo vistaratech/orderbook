@@ -46,7 +46,7 @@ export default function CustomerListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadData(false);
+      loadData(true);
     }, [loadData])
   );
 
@@ -276,6 +276,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: colors.ink,
     lineHeight: 36,
+    paddingRight: 10,
   },
   subtitle: {
     fontFamily: fonts.body,

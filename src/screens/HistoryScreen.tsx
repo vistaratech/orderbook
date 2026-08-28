@@ -62,9 +62,9 @@ export default function HistoryScreen() {
       }
 
       const [orders, expenses, payments] = await Promise.all([
-        getOrders(),
-        getExpenses(),
-        getAllPayments(),
+        getOrders(forceSync),
+        getExpenses(forceSync),
+        getAllPayments(forceSync),
       ]);
 
       const timeline: ActivityEvent[] = [];
@@ -137,7 +137,7 @@ export default function HistoryScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadHistoryData(false);
+      loadHistoryData(true);
     }, [loadHistoryData])
   );
 
@@ -193,10 +193,14 @@ export default function HistoryScreen() {
     // Sorting
     list.sort((a, b) => {
       if (sortBy === 'newest') {
-        return a.date < b.date ? 1 : -1;
+        const timeA = new Date(a.date).getTime() || 0;
+        const timeB = new Date(b.date).getTime() || 0;
+        return timeB - timeA;
       }
       if (sortBy === 'oldest') {
-        return a.date > b.date ? 1 : -1;
+        const timeA = new Date(a.date).getTime() || 0;
+        const timeB = new Date(b.date).getTime() || 0;
+        return timeA - timeB;
       }
       if (sortBy === 'highest') {
         return (b.amount || 0) - (a.amount || 0);

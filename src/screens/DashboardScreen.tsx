@@ -74,7 +74,7 @@ export default function DashboardScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadData(false);
+      loadData(true);
     }, [loadData])
   );
 

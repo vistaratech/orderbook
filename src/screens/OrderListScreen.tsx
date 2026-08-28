@@ -62,7 +62,7 @@ export default function OrderListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadOrders(false);
+      loadOrders(true);
     }, [loadOrders])
   );
 

@@ -34,6 +34,8 @@ import { getAuthState } from './src/storage/authStorage';
 import {
   setupRealtimeSync,
   stopRealtimeSync,
+  setCurrentUidCache,
+  pullAllCloudDataToLocal,
 } from './src/storage/firebaseSync';
 import { colors, fonts } from './src/theme/theme';
 
@@ -70,6 +72,11 @@ export default function App() {
       } else if (!state.isLoggedIn) {
         setInitialRoute('Login');
       } else {
+        if (state.user?.uid) {
+          setCurrentUidCache(state.user.uid);
+          setupRealtimeSync(state.user.uid);
+          pullAllCloudDataToLocal();
+        }
         setInitialRoute('MainTabs');
       }
     });
@@ -77,12 +84,9 @@ export default function App() {
     // Listen to Firebase live auth state -> activate real-time RTDB sync
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
       if (fbUser) {
+        setCurrentUidCache(fbUser.uid);
         setupRealtimeSync(fbUser.uid);
-        // Note: pullAllCloudDataToLocal is already called during login flow
-        // (setupUserFromFirebase). Calling it again here would race with the
-        // realtime listener and potentially overwrite data.
-      } else {
-        stopRealtimeSync();
+        pullAllCloudDataToLocal();
       }
     });
 

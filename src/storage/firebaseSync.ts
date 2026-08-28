@@ -21,12 +21,19 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 
+let cachedUid: string | null = null;
+
+export function setCurrentUidCache(uid: string | null): void {
+  cachedUid = uid;
+}
+
 export function getCurrentUid(): string {
-  return auth.currentUser?.uid || 'local_guest';
+  return auth.currentUser?.uid || cachedUid || 'local_guest';
 }
 
 export function isCloudUser(): boolean {
-  return !!auth.currentUser;
+  const uid = getCurrentUid();
+  return uid !== 'local_guest' && !!uid;
 }
 
 // ─── Realtime Listener & Event Emitter ──────────────────────────────

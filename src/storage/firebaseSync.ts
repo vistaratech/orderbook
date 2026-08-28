@@ -109,35 +109,51 @@ let activeUnsubscribers: Unsubscribe[] = [];
 /**
  * 2-Way Union Merge helper to prevent local data loss.
  * Combines local items with cloud items by ID.
- * Returns merged array and any local items missing in cloud so they can be uploaded.
+ * Returns merged array and any local items that need to be uploaded to cloud
+ * (both missing items and items with newer local updatedAt timestamp).
  */
 export function mergeItemLists<T extends { id: string; updatedAt?: string }>(
   localItems: T[],
   cloudItems: T[]
-): { merged: T[]; missingInCloud: T[] } {
+): { merged: T[]; needsCloudUpload: T[] } {
   const itemMap = new Map<string, T>();
-  const cloudIds = new Set(cloudItems.map((c) => c.id));
-  const missingInCloud: T[] = [];
+  const cloudMap = new Map<string, T>();
+  const needsCloudUpload: T[] = [];
 
-  for (const item of localItems) {
-    if (item && item.id) {
-      itemMap.set(item.id, item);
-      if (!cloudIds.has(item.id)) {
-        missingInCloud.push(item);
+  for (const c of cloudItems) {
+    if (c && c.id) {
+      cloudMap.set(c.id, c);
+    }
+  }
+
+  for (const local of localItems) {
+    if (local && local.id) {
+      itemMap.set(local.id, local);
+      const cloud = cloudMap.get(local.id);
+      if (!cloud) {
+        // Item exists locally but is missing in cloud -> upload!
+        needsCloudUpload.push(local);
+      } else {
+        const localTime = local.updatedAt || '';
+        const cloudTime = cloud.updatedAt || '';
+        if (localTime > cloudTime) {
+          // Local item is newer than cloud -> upload updated local version to cloud!
+          needsCloudUpload.push(local);
+        }
       }
     }
   }
 
-  for (const item of cloudItems) {
-    if (item && item.id) {
-      const existing = itemMap.get(item.id);
-      if (!existing) {
-        itemMap.set(item.id, item);
+  for (const cloud of cloudItems) {
+    if (cloud && cloud.id) {
+      const local = itemMap.get(cloud.id);
+      if (!local) {
+        itemMap.set(cloud.id, cloud);
       } else {
-        const cloudTime = item.updatedAt || '';
-        const localTime = existing.updatedAt || '';
+        const cloudTime = cloud.updatedAt || '';
+        const localTime = local.updatedAt || '';
         if (cloudTime >= localTime) {
-          itemMap.set(item.id, item);
+          itemMap.set(cloud.id, cloud);
         }
       }
     }
@@ -145,7 +161,7 @@ export function mergeItemLists<T extends { id: string; updatedAt?: string }>(
 
   return {
     merged: Array.from(itemMap.values()),
-    missingInCloud,
+    needsCloudUpload,
   };
 }
 
@@ -182,13 +198,13 @@ export function setupRealtimeSync(uid: string): () => void {
               try { localItems = JSON.parse(rawLocal); } catch {}
             }
 
-            const { merged, missingInCloud } = mergeItemLists(localItems, cloudItems);
+            const { merged, needsCloudUpload } = mergeItemLists(localItems, cloudItems);
             await AsyncStorage.setItem(key, JSON.stringify(merged));
             notifyDataListeners();
 
-            // Push any local items missing from cloud up to Firestore
-            if (missingInCloud.length > 0) {
-              for (const item of missingInCloud) {
+            // Push any local items missing from or newer than cloud up to Firestore
+            if (needsCloudUpload.length > 0) {
+              for (const item of needsCloudUpload) {
                 const itemDoc = doc(db, 'users', uid, name, item.id);
                 await setDoc(itemDoc, item, { merge: true }).catch(() => {});
               }
@@ -422,12 +438,12 @@ export async function pullAllCloudDataToLocal(): Promise<void> {
           try { localItems = JSON.parse(rawLocal); } catch {}
         }
 
-        const { merged, missingInCloud } = mergeItemLists(localItems, cloudItems);
+        const { merged, needsCloudUpload } = mergeItemLists(localItems, cloudItems);
         await AsyncStorage.setItem(key, JSON.stringify(merged));
 
-        // Push any local items missing from cloud up to Firestore
-        if (missingInCloud.length > 0) {
-          for (const item of missingInCloud) {
+        // Push any local items missing from or newer than cloud up to Firestore
+        if (needsCloudUpload.length > 0) {
+          for (const item of needsCloudUpload) {
             const itemDoc = doc(db, 'users', uid, name, item.id);
             await setDoc(itemDoc, item, { merge: true }).catch(() => {});
           }

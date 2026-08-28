@@ -163,6 +163,10 @@ export default function App() {
     }
   }, []);
 
+  const { width } = useWindowDimensions();
+  const isWeb = Platform.OS === 'web';
+  const isDesktop = isWeb && width >= 850;
+
   if (!fontsLoaded || !initialRoute) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.paper }}>
@@ -170,10 +174,6 @@ export default function App() {
       </View>
     );
   }
-
-  const { width } = useWindowDimensions();
-  const isWeb = Platform.OS === 'web';
-  const isDesktop = isWeb && width >= 850;
 
   return (
     <View style={isDesktop ? styles.webDesktopOuter : isWeb ? styles.webOuterContainer : styles.mobileContainer}>

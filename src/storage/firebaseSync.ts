@@ -36,6 +36,12 @@ export function isCloudUser(): boolean {
   return uid !== 'local_guest' && !!uid;
 }
 
+/** Sanitizes JavaScript objects for Firestore setDoc, stripping out any `undefined` properties */
+export function sanitizeForFirestore<T>(obj: T): T {
+  if (obj === undefined || obj === null) return obj;
+  return JSON.parse(JSON.stringify(obj));
+}
+
 // ─── Realtime Listener & Event Emitter ──────────────────────────────
 type DataListener = () => void;
 const listeners = new Set<DataListener>();
@@ -143,7 +149,7 @@ export function setupRealtimeSync(uid: string): () => void {
             if (missingInCloud.length > 0) {
               for (const item of missingInCloud) {
                 const itemDoc = doc(db, 'users', uid, name, item.id);
-                await setDoc(itemDoc, item, { merge: true }).catch(() => {});
+                await setDoc(itemDoc, sanitizeForFirestore(item), { merge: true }).catch(() => {});
               }
             }
           } catch (err) {
@@ -247,7 +253,7 @@ export async function syncItemToCloud<T extends { id: string }>(
   try {
     const uid = getCurrentUid();
     const itemDoc = doc(db, 'users', uid, collectionName, item.id);
-    await setDoc(itemDoc, item, { merge: true });
+    await setDoc(itemDoc, sanitizeForFirestore(item), { merge: true });
   } catch (err) {
     console.warn(`[firebaseSync] syncItemToCloud(${collectionName}/${item.id}) failed:`, err);
   }

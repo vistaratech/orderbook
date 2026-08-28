@@ -447,10 +447,30 @@ Thank you for your business!`;
       </View>
 
       {/* In-Place Payment Collection Modal */}
-      <Modal visible={showPaymentModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Record Collection</Text>
+      <Modal
+        visible={showPaymentModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPaymentModal(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowPaymentModal(false)}
+        >
+          <Pressable
+            style={styles.modalCard}
+            onPress={(e) => e.stopPropagation?.()}
+          >
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>Record Collection</Text>
+              <Pressable
+                onPress={() => setShowPaymentModal(false)}
+                hitSlop={8}
+                style={styles.modalCloseIconBtn}
+              >
+                <Ionicons name="close" size={20} color={colors.inkSoft} />
+              </Pressable>
+            </View>
             <Text style={styles.modalSub}>
               Remaining balance due: {formatCurrency(balance)}
             </Text>
@@ -507,8 +527,8 @@ Thank you for your business!`;
                 <Text style={styles.modalSaveText}>Save Collection</Text>
               </Pressable>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* ─── PDF Invoice Printable Preview Modal ─── */}
@@ -681,7 +701,13 @@ function DetailRow({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
-  content: { padding: 16, paddingBottom: 60 },
+  content: {
+    padding: 20,
+    paddingBottom: 60,
+    width: '100%',
+    maxWidth: 900,
+    alignSelf: 'center',
+  },
   loading: { fontFamily: fonts.body, color: colors.inkSoft, marginTop: 40, textAlign: 'center' },
 
   // Hero Card
@@ -1131,15 +1157,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   modalCard: {
+    width: '100%',
+    maxWidth: 440,
     backgroundColor: colors.paperCard,
-    borderRadius: radius.md,
-    padding: 20,
+    borderRadius: radius.lg,
+    padding: 22,
     borderWidth: 1,
     borderColor: colors.line,
+    alignSelf: 'center',
     ...shadow.card,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  modalCloseIconBtn: {
+    padding: 4,
+    borderRadius: 16,
+    backgroundColor: colors.paper,
   },
   modalTitle: {
     fontFamily: fonts.display,

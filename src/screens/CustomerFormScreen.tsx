@@ -161,8 +161,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
   },
   content: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 60,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   section: {
     backgroundColor: colors.paperCard,

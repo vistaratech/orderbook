@@ -234,218 +234,220 @@ export default function HistoryScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <GlassBackButton label="Back" />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Store Activity & History</Text>
-            <Text style={styles.subtitle}>
-              {loading ? 'Loading timeline…' : `${events.length} total activity log${events.length === 1 ? '' : 's'}`}
+      <View style={styles.centerContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <GlassBackButton label="Back" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title}>Store Activity & History</Text>
+              <Text style={styles.subtitle}>
+                {loading ? 'Loading timeline…' : `${events.length} total activity log${events.length === 1 ? '' : 's'}`}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Summary Cards Row */}
+        <View style={styles.summaryRow}>
+          <View style={[styles.summaryCard, { borderLeftColor: colors.inflow }]}>
+            <Text style={styles.summaryLabel}>Total Payments</Text>
+            <Text style={[styles.summaryValue, { color: colors.inflow }]}>
+              {formatCurrency(totalInflow)}
+            </Text>
+          </View>
+
+          <View style={[styles.summaryCard, { borderLeftColor: colors.outflow }]}>
+            <Text style={styles.summaryLabel}>Total Outflows</Text>
+            <Text style={[styles.summaryValue, { color: colors.outflow }]}>
+              {formatCurrency(totalOutflow)}
             </Text>
           </View>
         </View>
-      </View>
 
-      {/* Summary Cards Row */}
-      <View style={styles.summaryRow}>
-        <View style={[styles.summaryCard, { borderLeftColor: colors.inflow }]}>
-          <Text style={styles.summaryLabel}>Total Payments</Text>
-          <Text style={[styles.summaryValue, { color: colors.inflow }]}>
-            {formatCurrency(totalInflow)}
-          </Text>
-        </View>
-
-        <View style={[styles.summaryCard, { borderLeftColor: colors.outflow }]}>
-          <Text style={styles.summaryLabel}>Total Outflows</Text>
-          <Text style={[styles.summaryValue, { color: colors.outflow }]}>
-            {formatCurrency(totalOutflow)}
-          </Text>
-        </View>
-      </View>
-
-      {/* Search & Filter Toolbar */}
-      <View style={styles.searchToolbar}>
-        <View style={styles.searchInputWrap}>
-          <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by order #, customer, amount…"
-            placeholderTextColor={colors.inkSoft}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
-            </Pressable>
-          )}
-        </View>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.filterBtn,
-            hasActiveFilters && styles.filterBtnActive,
-            pressed && { opacity: 0.8 },
-          ]}
-          onPress={() => setShowFilters(!showFilters)}
-        >
-          <Ionicons
-            name={showFilters ? 'chevron-up' : 'options-outline'}
-            size={18}
-            color={hasActiveFilters ? colors.white : colors.ink}
-          />
-          {hasActiveFilters && <View style={styles.activeDot} />}
-        </Pressable>
-      </View>
-
-      {/* Expandable Filter Options Drawer */}
-      {showFilters && (
-        <View style={styles.filterDrawer}>
-          {/* Date Range Section */}
-          <View style={styles.filterHeaderRow}>
-            <Ionicons name="calendar-outline" size={15} color={colors.clayDeep} />
-            <Text style={styles.filterSectionTitle}>Time Period</Text>
-          </View>
-          <View style={styles.chipGroupRow}>
-            {[
-              { id: 'all', label: 'All Time' },
-              { id: 'today', label: 'Today (24h)' },
-              { id: 'week', label: 'This Week (7 days)' },
-              { id: 'month', label: 'This Month (30 days)' },
-            ].map((d) => {
-              const selected = dateRange === d.id;
-              return (
-                <Pressable
-                  key={d.id}
-                  style={[styles.drawerChip, selected && styles.drawerChipActive]}
-                  onPress={() => setDateRange(d.id as DateRangeFilter)}
-                >
-                  <Text style={[styles.drawerChipText, selected && styles.drawerChipTextActive]}>
-                    {d.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+        {/* Search & Filter Toolbar */}
+        <View style={styles.searchToolbar}>
+          <View style={styles.searchInputWrap}>
+            <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by order #, customer, amount…"
+              placeholderTextColor={colors.inkSoft}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
+              </Pressable>
+            )}
           </View>
 
-          {/* Sort By Section */}
-          <View style={[styles.filterHeaderRow, { marginTop: 10 }]}>
-            <Ionicons name="swap-vertical-outline" size={15} color={colors.duskDeep} />
-            <Text style={styles.filterSectionTitle}>Sort By</Text>
-          </View>
-          <View style={styles.chipGroupRow}>
-            {[
-              { id: 'newest', label: 'Newest First' },
-              { id: 'oldest', label: 'Oldest First' },
-              { id: 'highest', label: 'Highest Amount' },
-            ].map((s) => {
-              const selected = sortBy === s.id;
-              return (
-                <Pressable
-                  key={s.id}
-                  style={[styles.drawerChip, selected && styles.drawerChipActive]}
-                  onPress={() => setSortBy(s.id as HistorySortOption)}
-                >
-                  <Text style={[styles.drawerChipText, selected && styles.drawerChipTextActive]}>
-                    {s.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          {hasActiveFilters && (
-            <Pressable
-              style={styles.resetFilterBtn}
-              onPress={() => {
-                setFilterType('All');
-                setDateRange('all');
-                setSortBy('newest');
-                setSearchQuery('');
-              }}
-            >
-              <Ionicons name="refresh" size={14} color={colors.clayDeep} />
-              <Text style={styles.resetFilterText}>Reset All Filters</Text>
-            </Pressable>
-          )}
+          <Pressable
+            style={({ pressed }) => [
+              styles.filterBtn,
+              hasActiveFilters && styles.filterBtnActive,
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <Ionicons
+              name={showFilters ? 'chevron-up' : 'options-outline'}
+              size={18}
+              color={hasActiveFilters ? colors.white : colors.ink}
+            />
+            {hasActiveFilters && <View style={styles.activeDot} />}
+          </Pressable>
         </View>
-      )}
 
-      {/* Activity Category Filter Chips */}
-      <View style={styles.filterChipsRow}>
-        {(['All', 'Orders', 'Payments', 'Outflows'] as HistoryFilterType[]).map((type) => {
-          const active = filterType === type;
-          return (
-            <Pressable
-              key={type}
-              style={[styles.filterChip, active && styles.filterChipActive]}
-              onPress={() => setFilterType(type)}
-            >
-              <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
-                {type}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {/* Activity Timeline List */}
-      {loading ? (
-        <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color={colors.clayDeep} />
-        </View>
-      ) : (
-        <FlatList
-          data={filteredEvents}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.clayDeep]} />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Ionicons name="time-outline" size={48} color={colors.inkSoft} />
-              <Text style={styles.emptyTitle}>No Activity Logs Found</Text>
-              <Text style={styles.emptySubtitle}>
-                {searchQuery
-                  ? 'No activity matches your search.'
-                  : 'Activities like new orders, payments, and outflows will show up here automatically.'}
-              </Text>
+        {/* Expandable Filter Options Drawer */}
+        {showFilters && (
+          <View style={styles.filterDrawer}>
+            {/* Date Range Section */}
+            <View style={styles.filterHeaderRow}>
+              <Ionicons name="calendar-outline" size={15} color={colors.clayDeep} />
+              <Text style={styles.filterSectionTitle}>Time Period</Text>
             </View>
-          }
-          renderItem={({ item }) => (
-            <Pressable
-              style={({ pressed }) => [styles.eventCard, pressed && { opacity: 0.85 }]}
-              onPress={() => handleItemPress(item)}
-            >
-              <View style={[styles.iconBox, { backgroundColor: item.badgeBg }]}>
-                <Ionicons name={item.icon as any} size={20} color={item.iconColor} />
-              </View>
+            <View style={styles.chipGroupRow}>
+              {[
+                { id: 'all', label: 'All Time' },
+                { id: 'today', label: 'Today (24h)' },
+                { id: 'week', label: 'This Week (7 days)' },
+                { id: 'month', label: 'This Month (30 days)' },
+              ].map((d) => {
+                const selected = dateRange === d.id;
+                return (
+                  <Pressable
+                    key={d.id}
+                    style={[styles.drawerChip, selected && styles.drawerChipActive]}
+                    onPress={() => setDateRange(d.id as DateRangeFilter)}
+                  >
+                    <Text style={[styles.drawerChipText, selected && styles.drawerChipTextActive]}>
+                      {d.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
 
-              <View style={styles.eventInfo}>
-                <Text style={styles.eventTitle}>{item.title}</Text>
-                <Text style={styles.eventSubtitle}>{item.subtitle}</Text>
-                <Text style={styles.eventDate}>{formatDate(item.date)}</Text>
-              </View>
+            {/* Sort By Section */}
+            <View style={[styles.filterHeaderRow, { marginTop: 10 }]}>
+              <Ionicons name="swap-vertical-outline" size={15} color={colors.duskDeep} />
+              <Text style={styles.filterSectionTitle}>Sort By</Text>
+            </View>
+            <View style={styles.chipGroupRow}>
+              {[
+                { id: 'newest', label: 'Newest First' },
+                { id: 'oldest', label: 'Oldest First' },
+                { id: 'highest', label: 'Highest Amount' },
+              ].map((s) => {
+                const selected = sortBy === s.id;
+                return (
+                  <Pressable
+                    key={s.id}
+                    style={[styles.drawerChip, selected && styles.drawerChipActive]}
+                    onPress={() => setSortBy(s.id as HistorySortOption)}
+                  >
+                    <Text style={[styles.drawerChipText, selected && styles.drawerChipTextActive]}>
+                      {s.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
 
-              {item.amount !== undefined && item.amount > 0 && (
-                <Text
-                  style={[
-                    styles.eventAmount,
-                    item.amountType === 'inflow' && { color: colors.inflow },
-                    item.amountType === 'outflow' && { color: colors.outflow },
-                  ]}
-                >
-                  {item.amountType === 'inflow' ? '+' : item.amountType === 'outflow' ? '-' : ''}
-                  {formatCurrency(item.amount)}
+            {hasActiveFilters && (
+              <Pressable
+                style={styles.resetFilterBtn}
+                onPress={() => {
+                  setFilterType('All');
+                  setDateRange('all');
+                  setSortBy('newest');
+                  setSearchQuery('');
+                }}
+              >
+                <Ionicons name="refresh" size={14} color={colors.clayDeep} />
+                <Text style={styles.resetFilterText}>Reset All Filters</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+
+        {/* Activity Category Filter Chips */}
+        <View style={styles.filterChipsRow}>
+          {(['All', 'Orders', 'Payments', 'Outflows'] as HistoryFilterType[]).map((type) => {
+            const active = filterType === type;
+            return (
+              <Pressable
+                key={type}
+                style={[styles.filterChip, active && styles.filterChipActive]}
+                onPress={() => setFilterType(type)}
+              >
+                <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                  {type}
                 </Text>
-              )}
-            </Pressable>
-          )}
-        />
-      )}
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Activity Timeline List */}
+        {loading ? (
+          <View style={styles.loaderWrap}>
+            <ActivityIndicator size="large" color={colors.clayDeep} />
+          </View>
+        ) : (
+          <FlatList
+            data={filteredEvents}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.clayDeep]} />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyWrap}>
+                <Ionicons name="time-outline" size={48} color={colors.inkSoft} />
+                <Text style={styles.emptyTitle}>No Activity Logs Found</Text>
+                <Text style={styles.emptySubtitle}>
+                  {searchQuery
+                    ? 'No activity matches your search.'
+                    : 'Activities like new orders, payments, and outflows will show up here automatically.'}
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => (
+              <Pressable
+                style={({ pressed }) => [styles.eventCard, pressed && { opacity: 0.85 }]}
+                onPress={() => handleItemPress(item)}
+              >
+                <View style={[styles.iconBox, { backgroundColor: item.badgeBg }]}>
+                  <Ionicons name={item.icon as any} size={20} color={item.iconColor} />
+                </View>
+
+                <View style={styles.eventInfo}>
+                  <Text style={styles.eventTitle}>{item.title}</Text>
+                  <Text style={styles.eventSubtitle}>{item.subtitle}</Text>
+                  <Text style={styles.eventDate}>{formatDate(item.date)}</Text>
+                </View>
+
+                {item.amount !== undefined && item.amount > 0 && (
+                  <Text
+                    style={[
+                      styles.eventAmount,
+                      item.amountType === 'inflow' && { color: colors.inflow },
+                      item.amountType === 'outflow' && { color: colors.outflow },
+                    ]}
+                  >
+                    {item.amountType === 'inflow' ? '+' : item.amountType === 'outflow' ? '-' : ''}
+                    {formatCurrency(item.amount)}
+                  </Text>
+                )}
+              </Pressable>
+            )}
+          />
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -454,6 +456,12 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.paper,
+  },
+  centerContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 1040,
+    alignSelf: 'center',
   },
   header: {
     paddingHorizontal: 20,

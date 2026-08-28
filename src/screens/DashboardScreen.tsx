@@ -78,6 +78,10 @@ export default function DashboardScreen() {
     }, [loadData])
   );
 
+  useEffect(() => {
+    loadData(true);
+  }, [loadData]);
+
   // Subscribe to live Firestore changes from other devices
   useEffect(() => {
     const unsub = addDataListener(() => {
@@ -834,8 +838,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
   },
   content: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 40,
+    width: '100%',
+    maxWidth: 1040,
+    alignSelf: 'center',
   },
 
   // ─── Header ───
@@ -1305,8 +1313,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(30, 24, 18, 0.24)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   modalSheet: {
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
     backgroundColor: colors.paperCard,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,

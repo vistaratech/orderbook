@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import { getAuth, initializeAuth, Auth } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
@@ -21,8 +22,27 @@ if (__DEV__ && !firebaseConfig.apiKey) {
 // Initialize Firebase App (prevent re-initializing on hot reload)
 export const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Auth
-export const auth: Auth = getAuth(app);
+// Initialize Auth with React Native AsyncStorage persistence on mobile
+let authInstance: Auth;
+if (Platform.OS === 'web') {
+  authInstance = getAuth(app);
+} else {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { getReactNativePersistence } = require('firebase/auth');
+    if (getReactNativePersistence) {
+      authInstance = initializeAuth(app, {
+        persistence: getReactNativePersistence(AsyncStorage),
+      });
+    } else {
+      authInstance = getAuth(app);
+    }
+  } catch {
+    authInstance = getAuth(app);
+  }
+}
+
+export const auth: Auth = authInstance;
 
 // Initialize Cloud Firestore & Storage
 export const db: Firestore = getFirestore(app);

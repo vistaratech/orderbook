@@ -216,8 +216,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
   },
   content: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 60,
+    width: '100%',
+    maxWidth: 900,
+    alignSelf: 'center',
   },
   loading: {
     fontFamily: fonts.body,

@@ -6,21 +6,29 @@ import {
   syncItemToCloud,
   deleteItemFromCloud,
   pullAllCloudDataToLocal,
+  getInMemoryItem,
+  setInMemoryItem,
 } from './firebaseSync';
 
 const KEY = 'order_book:customers';
 
 async function readAll(): Promise<Customer[]> {
+  const cached = getInMemoryItem<Customer[]>(KEY);
+  if (cached) return cached;
+
   const raw = await AsyncStorage.getItem(KEY);
   if (!raw) return [];
   try {
-    return JSON.parse(raw) as Customer[];
+    const parsed = JSON.parse(raw) as Customer[];
+    setInMemoryItem(KEY, parsed);
+    return parsed;
   } catch {
     return [];
   }
 }
 
 async function writeAll(items: Customer[]): Promise<void> {
+  setInMemoryItem(KEY, items);
   await AsyncStorage.setItem(KEY, JSON.stringify(items));
 }
 

@@ -82,104 +82,106 @@ export default function ProductListScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Catalog</Text>
-          <Text style={styles.subtitle}>
-            {filteredProducts.length} product{filteredProducts.length === 1 ? '' : 's'} in store catalog
-          </Text>
+      <View style={styles.centerContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Catalog</Text>
+            <Text style={styles.subtitle}>
+              {filteredProducts.length} product{filteredProducts.length === 1 ? '' : 's'} in store catalog
+            </Text>
+          </View>
+          <Pressable
+            style={({ pressed }) => [styles.newProductHeaderBtn, pressed && { opacity: 0.8 }]}
+            onPress={() => navigation.navigate('ProductForm', undefined)}
+          >
+            <Ionicons name="add" size={20} color={colors.white} />
+            <Text style={styles.newProductHeaderBtnText}>Add</Text>
+          </Pressable>
         </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search products in catalog…"
+            placeholderTextColor={colors.inkSoft}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')} style={{ padding: 2 }}>
+              <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
+            </Pressable>
+          )}
+        </View>
+
+        {/* Product List */}
+        <FlatList
+          data={filteredProducts}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
+          }
+          renderItem={({ item }) => (
+            <View style={styles.productCard}>
+              <View style={styles.productIconWrap}>
+                <Ionicons name="cube-outline" size={22} color={colors.duskDeep} />
+              </View>
+
+              <View style={styles.productLeft}>
+                <Text style={styles.productName}>{item.name}</Text>
+                <View style={styles.unitBadge}>
+                  <Text style={styles.unitBadgeText}>per {item.unit || 'pcs'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.productRight}>
+                <Text style={styles.productPrice}>{formatCurrency(item.defaultPrice)}</Text>
+                <View style={styles.actions}>
+                  <Pressable
+                    style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+                    onPress={() => navigation.navigate('ProductForm', { productId: item.id })}
+                  >
+                    <Ionicons name="pencil" size={16} color={colors.inkSoft} />
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+                    onPress={() => handleDelete(item.id, item.name)}
+                  >
+                    <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          )}
+          ListEmptyComponent={
+            !loading ? (
+              <EmptyState
+                icon="pricetags-outline"
+                title={searchQuery ? 'No products match' : 'Catalog is empty'}
+                message={
+                  searchQuery
+                    ? 'Try searching with a different product name.'
+                    : 'Add your regular products here to quickly autocomplete names and prices when writing orders.'
+                }
+              />
+            ) : null
+          }
+        />
+
+        {/* Floating Add Product Button */}
         <Pressable
-          style={({ pressed }) => [styles.newProductHeaderBtn, pressed && { opacity: 0.8 }]}
+          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
           onPress={() => navigation.navigate('ProductForm', undefined)}
         >
-          <Ionicons name="add" size={20} color={colors.white} />
-          <Text style={styles.newProductHeaderBtnText}>Add</Text>
+          <Ionicons name="add" size={22} color={colors.white} />
+          <Text style={styles.fabText}>+ Item</Text>
         </Pressable>
       </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchBar}>
-        <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search products in catalog…"
-          placeholderTextColor={colors.inkSoft}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <Pressable onPress={() => setSearchQuery('')} style={{ padding: 2 }}>
-            <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
-          </Pressable>
-        )}
-      </View>
-
-      {/* Product List */}
-      <FlatList
-        data={filteredProducts}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
-        }
-        renderItem={({ item }) => (
-          <View style={styles.productCard}>
-            <View style={styles.productIconWrap}>
-              <Ionicons name="cube-outline" size={22} color={colors.duskDeep} />
-            </View>
-
-            <View style={styles.productLeft}>
-              <Text style={styles.productName}>{item.name}</Text>
-              <View style={styles.unitBadge}>
-                <Text style={styles.unitBadgeText}>per {item.unit || 'pcs'}</Text>
-              </View>
-            </View>
-
-            <View style={styles.productRight}>
-              <Text style={styles.productPrice}>{formatCurrency(item.defaultPrice)}</Text>
-              <View style={styles.actions}>
-                <Pressable
-                  style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
-                  onPress={() => navigation.navigate('ProductForm', { productId: item.id })}
-                >
-                  <Ionicons name="pencil" size={16} color={colors.inkSoft} />
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
-                  onPress={() => handleDelete(item.id, item.name)}
-                >
-                  <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        )}
-        ListEmptyComponent={
-          !loading ? (
-            <EmptyState
-              icon="pricetags-outline"
-              title={searchQuery ? 'No products match' : 'Catalog is empty'}
-              message={
-                searchQuery
-                  ? 'Try searching with a different product name.'
-                  : 'Add your regular products here to quickly autocomplete names and prices when writing orders.'
-              }
-            />
-          ) : null
-        }
-      />
-
-      {/* Floating Add Product Button */}
-      <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        onPress={() => navigation.navigate('ProductForm', undefined)}
-      >
-        <Ionicons name="add" size={22} color={colors.white} />
-        <Text style={styles.fabText}>+ Item</Text>
-      </Pressable>
     </SafeAreaView>
   );
 }
@@ -188,6 +190,12 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.paper,
+  },
+  centerContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 1040,
+    alignSelf: 'center',
   },
   header: {
     paddingHorizontal: 20,

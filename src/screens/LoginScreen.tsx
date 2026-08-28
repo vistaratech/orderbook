@@ -411,6 +411,9 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 40,
     alignItems: 'center',
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
 
   // ── Brand Header ──

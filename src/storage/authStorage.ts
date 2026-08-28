@@ -16,7 +16,15 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import { generateId } from '../utils/id';
 import { todayIso } from '../utils/format';
-import { readCollectionFromCloud, readValueFromCloud, pullAllCloudDataToLocal } from './firebaseSync';
+import {
+  readCollectionFromCloud,
+  readValueFromCloud,
+  pullAllCloudDataToLocal,
+  stopRealtimeSync,
+  clearInMemoryStore,
+  setCurrentUidCache,
+  notifyDataListeners,
+} from './firebaseSync';
 
 export interface UserAccount {
   id: string;
@@ -132,7 +140,8 @@ export async function setupUserFromFirebase(fbUser: FirebaseUser): Promise<UserA
     createdAt: todayIso(),
   };
 
-  // Check if a different user was previously logged in
+  // Check if switching user or new session — always clear in-memory cache and wipe previous user data
+  clearInMemoryStore();
   const prevUserRaw = await AsyncStorage.getItem(AUTH_USER_KEY);
   let prevUserId: string | null = null;
   if (prevUserRaw) {
@@ -141,10 +150,11 @@ export async function setupUserFromFirebase(fbUser: FirebaseUser): Promise<UserA
     } catch {}
   }
 
-  // Only wipe local cache if switching to a DIFFERENT user account
-  if (prevUserId && prevUserId !== fbUser.uid) {
+  if (prevUserId !== fbUser.uid) {
     await AsyncStorage.multiRemove(USER_DATA_KEYS);
   }
+
+  setCurrentUidCache(fbUser.uid);
 
   await AsyncStorage.multiSet([
     [AUTH_USER_KEY, JSON.stringify(user)],
@@ -152,8 +162,8 @@ export async function setupUserFromFirebase(fbUser: FirebaseUser): Promise<UserA
     [ONBOARDED_KEY, 'true'],
   ]);
 
-  // Pull cloud data into local cache (merges/overwrites atomically)
-  await pullCloudDataToLocal();
+  // Pull cloud data into local cache
+  await pullAllCloudDataToLocal();
 
   // Only set default business profile if cloud didn't provide one
   const existingProfile = await AsyncStorage.getItem('order_book:business_profile');
@@ -289,17 +299,9 @@ export async function registerUser(params: {
     createdAt: todayIso(),
   };
 
-  // Check if switching from a different user — only wipe data in that case
-  const prevUserRaw = await AsyncStorage.getItem(AUTH_USER_KEY);
-  let prevUserId: string | null = null;
-  if (prevUserRaw) {
-    try {
-      prevUserId = JSON.parse(prevUserRaw)?.uid || JSON.parse(prevUserRaw)?.id || null;
-    } catch {}
-  }
-  if (prevUserId && prevUserId !== uid) {
-    await AsyncStorage.multiRemove(USER_DATA_KEYS);
-  }
+  clearInMemoryStore();
+  await AsyncStorage.multiRemove(USER_DATA_KEYS);
+  setCurrentUidCache(uid);
 
   const updates: [string, string][] = [
     [AUTH_USER_KEY, JSON.stringify(user)],
@@ -431,6 +433,9 @@ export async function resetPassword(email: string): Promise<boolean> {
 }
 
 export async function loginAsGuest(): Promise<UserAccount> {
+  stopRealtimeSync();
+  clearInMemoryStore();
+  setCurrentUidCache('local_guest');
   // Guest gets isolated local-only data (no cloud sync)
   const guestUser: UserAccount = {
     id: 'guest_user',
@@ -447,22 +452,25 @@ export async function loginAsGuest(): Promise<UserAccount> {
     [AUTH_USER_KEY, JSON.stringify(guestUser)],
     [AUTH_SESSION_KEY, 'true'],
   ]);
+  notifyDataListeners();
   return guestUser;
 }
 
 export async function logout(): Promise<void> {
   try {
-    // Flush any unsynced local items up to cloud before signing out
-    await pullAllCloudDataToLocal();
+    stopRealtimeSync();
     await firebaseSignOut(auth);
   } catch {}
-  // Clear session flags only — preserve cached data so re-login is instant
-  // (data keys are wiped only when switching to a DIFFERENT user account)
+  clearInMemoryStore();
+  setCurrentUidCache(null);
   await AsyncStorage.multiRemove([
+    ...USER_DATA_KEYS,
+    AUTH_USER_KEY,
     AUTH_SESSION_KEY,
     AUTH_PIN_KEY,
   ]);
   await AsyncStorage.setItem(AUTH_SESSION_KEY, 'false');
+  notifyDataListeners();
 }
 
 export async function setPinCode(pin: string): Promise<void> {

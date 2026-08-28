@@ -437,6 +437,9 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 30,
     alignItems: 'center',
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
   },
   iconGraphicWrap: {
     width: 140,

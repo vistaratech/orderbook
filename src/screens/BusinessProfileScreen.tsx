@@ -369,7 +369,13 @@ export default function BusinessProfileScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
-  content: { padding: 16, paddingBottom: 60 },
+  content: {
+    padding: 20,
+    paddingBottom: 60,
+    width: '100%',
+    maxWidth: 860,
+    alignSelf: 'center',
+  },
   loaderWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   bannerCard: {

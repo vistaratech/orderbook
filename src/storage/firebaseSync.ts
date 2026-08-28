@@ -23,6 +23,21 @@ import { auth, db } from '../config/firebase';
 
 let cachedUid: string | null = null;
 
+// In-memory store for instant zero-latency UI re-renders across all screens
+const inMemoryStore = new Map<string, any>();
+
+export function getInMemoryItem<T>(key: string): T | null {
+  return inMemoryStore.get(key) || null;
+}
+
+export function setInMemoryItem<T>(key: string, data: T): void {
+  inMemoryStore.set(key, data);
+}
+
+export function clearInMemoryStore(): void {
+  inMemoryStore.clear();
+}
+
 // Pending writes queue: items queued when auth isn't ready yet, flushed on auth ready
 interface PendingWrite {
   type: 'item' | 'delete' | 'value';
@@ -42,39 +57,62 @@ export function getCurrentUid(): string {
   return auth.currentUser?.uid || cachedUid || 'local_guest';
 }
 
-/** Returns true if we have a valid cloud user UID (either live auth or cached) */
+/** Returns true if we have a valid cloud user UID */
 export function isCloudUser(): boolean {
   const uid = getCurrentUid();
   return uid !== 'local_guest' && uid.length > 0;
 }
 
-/** Returns true if Firebase auth.currentUser is actively authenticated (can make Firestore requests) */
-function hasActiveAuth(): boolean {
-  return !!auth.currentUser;
+/** Returns true if Firebase Auth user is actively initialized in SDK */
+export function hasActiveAuth(): boolean {
+  return !!auth.currentUser && auth.currentUser.uid !== 'local_guest';
+}
+
+/**
+ * Recursively strips `undefined` properties from an object so Firestore JS SDK setDoc accepts it without throwing errors.
+ */
+export function sanitizeForFirestore<T>(obj: T): T {
+  if (obj === null || obj === undefined) return null as any;
+  if (typeof obj !== 'object') return obj;
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => sanitizeForFirestore(item)) as any;
+  }
+
+  const cleaned: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      cleaned[key] = typeof value === 'object' && value !== null
+        ? sanitizeForFirestore(value)
+        : value;
+    }
+  }
+  return cleaned as T;
 }
 
 /** Flush any pending writes that were queued before auth was ready */
 export async function flushPendingWrites(): Promise<void> {
-  if (!hasActiveAuth() || pendingWrites.length === 0) return;
-  const uid = auth.currentUser!.uid;
+  if (!isCloudUser() || pendingWrites.length === 0) return;
+  const uid = getCurrentUid();
   const writes = [...pendingWrites];
   pendingWrites.length = 0;
   for (const w of writes) {
     try {
       if (w.type === 'item' && w.item) {
         const itemDoc = doc(db, 'users', uid, w.collectionName, w.item.id);
-        await setDoc(itemDoc, w.item, { merge: true });
+        await setDoc(itemDoc, sanitizeForFirestore(w.item), { merge: true });
       } else if (w.type === 'delete' && w.id) {
         const itemDoc = doc(db, 'users', uid, w.collectionName, w.id);
         await deleteDoc(itemDoc);
       } else if (w.type === 'value' && w.path) {
         const settingsDocRef = doc(db, 'users', uid, 'settings', 'app');
+        const cleanVal = sanitizeForFirestore(w.value);
         if (w.path === 'settings/orderSeq') {
-          await setDoc(settingsDocRef, { orderSeq: w.value }, { merge: true });
+          await setDoc(settingsDocRef, { orderSeq: cleanVal }, { merge: true });
         } else if (w.path === 'settings/businessProfile') {
-          await setDoc(settingsDocRef, { businessProfile: w.value }, { merge: true });
+          await setDoc(settingsDocRef, { businessProfile: cleanVal }, { merge: true });
         } else {
-          await setDoc(settingsDocRef, { [w.path]: w.value }, { merge: true });
+          await setDoc(settingsDocRef, { [w.path]: cleanVal }, { merge: true });
         }
       }
     } catch (err) {
@@ -94,6 +132,26 @@ export function addDataListener(callback: DataListener): () => void {
   };
 }
 
+export interface LiveSyncInfo {
+  isConnected: boolean;
+  email: string | null;
+  uid: string | null;
+  isGuest: boolean;
+}
+
+export function getLiveSyncInfo(): LiveSyncInfo {
+  const currentAuth = auth.currentUser;
+  const uid = getCurrentUid();
+  const isGuest = uid === 'local_guest';
+  const isConnected = !!currentAuth && !isGuest && activeUnsubscribers.length > 0;
+  return {
+    isConnected,
+    email: currentAuth?.email || null,
+    uid: currentAuth?.uid || (isGuest ? 'guest' : cachedUid),
+    isGuest,
+  };
+}
+
 export function notifyDataListeners(): void {
   listeners.forEach((cb) => {
     try {
@@ -107,10 +165,18 @@ export function notifyDataListeners(): void {
 let activeUnsubscribers: Unsubscribe[] = [];
 
 /**
+ * Helper to safely convert an ISO timestamp string or Date into epoch milliseconds
+ */
+function parseTimestamp(ts?: string): number {
+  if (!ts) return 0;
+  const parsed = new Date(ts).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+/**
  * 2-Way Union Merge helper to prevent local data loss.
  * Combines local items with cloud items by ID.
- * Returns merged array and any local items that need to be uploaded to cloud
- * (both missing items and items with newer local updatedAt timestamp).
+ * Returns merged array and any local items that need to be uploaded to cloud.
  */
 export function mergeItemLists<T extends { id: string; updatedAt?: string }>(
   localItems: T[],
@@ -134,10 +200,10 @@ export function mergeItemLists<T extends { id: string; updatedAt?: string }>(
         // Item exists locally but is missing in cloud -> upload!
         needsCloudUpload.push(local);
       } else {
-        const localTime = local.updatedAt || '';
-        const cloudTime = cloud.updatedAt || '';
-        if (localTime > cloudTime) {
-          // Local item is newer than cloud -> upload updated local version to cloud!
+        const localMs = parseTimestamp(local.updatedAt);
+        const cloudMs = parseTimestamp(cloud.updatedAt);
+        // Only upload local item if it is strictly newer by > 1 second
+        if (localMs > cloudMs && localMs - cloudMs > 1000) {
           needsCloudUpload.push(local);
         }
       }
@@ -150,9 +216,10 @@ export function mergeItemLists<T extends { id: string; updatedAt?: string }>(
       if (!local) {
         itemMap.set(cloud.id, cloud);
       } else {
-        const cloudTime = cloud.updatedAt || '';
-        const localTime = local.updatedAt || '';
-        if (cloudTime >= localTime) {
+        const cloudMs = parseTimestamp(cloud.updatedAt);
+        const localMs = parseTimestamp(local.updatedAt);
+        // If cloud item timestamp is equal or newer (or within clock drift threshold), cloud wins!
+        if (cloudMs >= localMs - 1000) {
           itemMap.set(cloud.id, cloud);
         }
       }
@@ -192,23 +259,9 @@ export function setupRealtimeSync(uid: string): () => void {
         async (snapshot) => {
           try {
             const cloudItems = snapshot.docs.map((d) => d.data() as any);
-            const rawLocal = await AsyncStorage.getItem(key);
-            let localItems: any[] = [];
-            if (rawLocal) {
-              try { localItems = JSON.parse(rawLocal); } catch {}
-            }
-
-            const { merged, needsCloudUpload } = mergeItemLists(localItems, cloudItems);
-            await AsyncStorage.setItem(key, JSON.stringify(merged));
+            setInMemoryItem(key, cloudItems);
+            await AsyncStorage.setItem(key, JSON.stringify(cloudItems));
             notifyDataListeners();
-
-            // Push any local items missing from or newer than cloud up to Firestore
-            if (needsCloudUpload.length > 0) {
-              for (const item of needsCloudUpload) {
-                const itemDoc = doc(db, 'users', uid, name, item.id);
-                await setDoc(itemDoc, item, { merge: true }).catch(() => {});
-              }
-            }
           } catch (err) {
             console.warn(`[firebaseSync] Error processing snapshot for ${name}:`, err);
           }
@@ -305,20 +358,18 @@ export async function syncItemToCloud<T extends { id: string }>(
   collectionName: string,
   item: T
 ): Promise<void> {
-  if (!isCloudUser()) return;
-
-  // If Firebase auth isn't ready yet, queue the write for later
   if (!hasActiveAuth()) {
     pendingWrites.push({ type: 'item', collectionName, item });
     return;
   }
 
+  const uid = getCurrentUid();
   try {
-    const uid = getCurrentUid();
     const itemDoc = doc(db, 'users', uid, collectionName, item.id);
-    await setDoc(itemDoc, item, { merge: true });
+    await setDoc(itemDoc, sanitizeForFirestore(item), { merge: true });
   } catch (err) {
-    console.warn(`[firebaseSync] syncItemToCloud(${collectionName}/${item.id}) failed:`, err);
+    console.warn(`[firebaseSync] syncItemToCloud(${collectionName}/${item.id}) failed, queuing write:`, err);
+    pendingWrites.push({ type: 'item', collectionName, item });
   }
 }
 
@@ -326,19 +377,18 @@ export async function syncItemToCloud<T extends { id: string }>(
  * Delete a single item from `users/{uid}/{collection}/{id}`
  */
 export async function deleteItemFromCloud(collectionName: string, id: string): Promise<void> {
-  if (!isCloudUser()) return;
-
   if (!hasActiveAuth()) {
     pendingWrites.push({ type: 'delete', collectionName, id });
     return;
   }
 
+  const uid = getCurrentUid();
   try {
-    const uid = getCurrentUid();
     const itemDoc = doc(db, 'users', uid, collectionName, id);
     await deleteDoc(itemDoc);
   } catch (err) {
-    console.warn(`[firebaseSync] deleteItemFromCloud(${collectionName}/${id}) failed:`, err);
+    console.warn(`[firebaseSync] deleteItemFromCloud(${collectionName}/${id}) failed, queuing write:`, err);
+    pendingWrites.push({ type: 'delete', collectionName, id });
   }
 }
 
@@ -349,13 +399,13 @@ export async function syncCollectionToCloud<T extends { id: string }>(
   collectionName: string,
   items: T[]
 ): Promise<void> {
-  if (!isCloudUser()) return;
+  if (!hasActiveAuth()) return;
 
   try {
     const uid = getCurrentUid();
     for (const item of items) {
       const itemDoc = doc(db, 'users', uid, collectionName, item.id);
-      await setDoc(itemDoc, item, { merge: true });
+      await setDoc(itemDoc, sanitizeForFirestore(item), { merge: true });
     }
   } catch (err) {
     console.warn(`[firebaseSync] syncCollectionToCloud(${collectionName}) failed:`, err);
@@ -366,25 +416,25 @@ export async function syncCollectionToCloud<T extends { id: string }>(
  * Write a setting value to `users/{uid}/settings/app`
  */
 export async function syncValueToCloud(path: string, value: any): Promise<void> {
-  if (!isCloudUser()) return;
-
   if (!hasActiveAuth()) {
     pendingWrites.push({ type: 'value', collectionName: 'settings', path, value });
     return;
   }
 
+  const uid = getCurrentUid();
   try {
-    const uid = getCurrentUid();
     const settingsDoc = doc(db, 'users', uid, 'settings', 'app');
+    const cleanVal = sanitizeForFirestore(value);
     if (path === 'settings/orderSeq') {
-      await setDoc(settingsDoc, { orderSeq: value }, { merge: true });
+      await setDoc(settingsDoc, { orderSeq: cleanVal }, { merge: true });
     } else if (path === 'settings/businessProfile') {
-      await setDoc(settingsDoc, { businessProfile: value }, { merge: true });
+      await setDoc(settingsDoc, { businessProfile: cleanVal }, { merge: true });
     } else {
-      await setDoc(settingsDoc, { [path]: value }, { merge: true });
+      await setDoc(settingsDoc, { [path]: cleanVal }, { merge: true });
     }
   } catch (err) {
-    console.warn(`[firebaseSync] syncValueToCloud(${path}) failed:`, err);
+    console.warn(`[firebaseSync] syncValueToCloud(${path}) failed, queuing write:`, err);
+    pendingWrites.push({ type: 'value', collectionName: 'settings', path, value });
   }
 }
 
@@ -432,28 +482,14 @@ export async function pullAllCloudDataToLocal(): Promise<void> {
         const colRef = collection(db, 'users', uid, name);
         const snapshot = await getDocs(colRef);
         const cloudItems = snapshot.docs.map((d) => d.data() as any);
-        const rawLocal = await AsyncStorage.getItem(key);
-        let localItems: any[] = [];
-        if (rawLocal) {
-          try { localItems = JSON.parse(rawLocal); } catch {}
-        }
-
-        const { merged, needsCloudUpload } = mergeItemLists(localItems, cloudItems);
-        await AsyncStorage.setItem(key, JSON.stringify(merged));
-
-        // Push any local items missing from or newer than cloud up to Firestore
-        if (needsCloudUpload.length > 0) {
-          for (const item of needsCloudUpload) {
-            const itemDoc = doc(db, 'users', uid, name, item.id);
-            await setDoc(itemDoc, item, { merge: true }).catch(() => {});
-          }
-        }
+        setInMemoryItem(key, cloudItems);
+        await AsyncStorage.setItem(key, JSON.stringify(cloudItems));
       } catch (err) {
         console.warn(`[firebaseSync] Error pulling ${name}:`, err);
       }
     }
 
-    // Pull business profile (prioritize business_profile collection containing logo photo & full details)
+    // Pull business profile
     try {
       const bpColRef = collection(db, 'users', uid, 'business_profile');
       const bpSnap = await getDocs(bpColRef);
@@ -489,4 +525,5 @@ export async function pullAllCloudDataToLocal(): Promise<void> {
     console.warn('[firebaseSync] pullAllCloudDataToLocal failed:', err);
   }
 }
+
 

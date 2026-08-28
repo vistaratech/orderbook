@@ -49,6 +49,10 @@ export default function ExpensesScreen() {
     }, [loadExpenses])
   );
 
+  useEffect(() => {
+    loadExpenses(true);
+  }, [loadExpenses]);
+
   // Subscribe to live Firestore updates
   useEffect(() => {
     const unsub = addDataListener(() => {
@@ -106,153 +110,155 @@ export default function ExpensesScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Expenses</Text>
-          <Text style={styles.subtitle}>Track raw materials, rent, shipping & costs</Text>
+      <View style={styles.centerContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Expenses</Text>
+            <Text style={styles.subtitle}>Track raw materials, rent, shipping & costs</Text>
+          </View>
         </View>
-      </View>
 
-      {/* Outflow Hero Summary Card */}
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryTop}>
-          <Text style={styles.summaryLabel}>
-            {selectedCategory === 'All' ? 'Total Business Outflow' : `${selectedCategory} Outflow`}
-          </Text>
-          <Text style={styles.summaryCount}>{filteredExpenses.length} entries</Text>
+        {/* Outflow Hero Summary Card */}
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryTop}>
+            <Text style={styles.summaryLabel}>
+              {selectedCategory === 'All' ? 'Total Business Outflow' : `${selectedCategory} Outflow`}
+            </Text>
+            <Text style={styles.summaryCount}>{filteredExpenses.length} entries</Text>
+          </View>
+          <Text style={styles.summaryAmount}>{formatCurrency(totalOutflow)}</Text>
         </View>
-        <Text style={styles.summaryAmount}>{formatCurrency(totalOutflow)}</Text>
-      </View>
 
-      {/* Search Input */}
-      <View style={styles.searchBar}>
-        <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search outflow, notes, vendor…"
-          placeholderTextColor={colors.inkSoft}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <Pressable onPress={() => setSearchQuery('')} style={{ padding: 2 }}>
-            <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
-          </Pressable>
-        )}
-      </View>
+        {/* Search Input */}
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search outflow, notes, vendor…"
+            placeholderTextColor={colors.inkSoft}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')} style={{ padding: 2 }}>
+              <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
+            </Pressable>
+          )}
+        </View>
 
-      {/* Category Pills Slider */}
-      <View style={styles.pillsWrapper}>
+        {/* Category Pills Slider */}
+        <View style={styles.pillsWrapper}>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={['All', ...EXPENSE_CATEGORIES]}
+            keyExtractor={(item) => item}
+            contentContainerStyle={styles.pillsList}
+            renderItem={({ item }) => {
+              const isSelected = selectedCategory === item;
+              const catAmt = item !== 'All' ? categoryTotals[item] : null;
+              return (
+                <Pressable
+                  style={[
+                    styles.pill,
+                    isSelected && styles.pillActive,
+                    item !== 'All' && isSelected && {
+                      backgroundColor: categoryColor[item as ExpenseCategory] || colors.duskDeep,
+                      borderColor: categoryColor[item as ExpenseCategory] || colors.duskDeep,
+                    },
+                  ]}
+                  onPress={() => setSelectedCategory(item as ExpenseCategory | 'All')}
+                >
+                  <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
+                    {item}
+                    {catAmt ? ` (${formatCurrency(catAmt)})` : ''}
+                  </Text>
+                </Pressable>
+              );
+            }}
+          />
+        </View>
+
+        {/* Expenses List */}
         <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={['All', ...EXPENSE_CATEGORIES]}
-          keyExtractor={(item) => item}
-          contentContainerStyle={styles.pillsList}
+          data={filteredExpenses}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
+          }
           renderItem={({ item }) => {
-            const isSelected = selectedCategory === item;
-            const catAmt = item !== 'All' ? categoryTotals[item] : null;
+            const color = categoryColor[item.category] || colors.duskDeep;
             return (
-              <Pressable
-                style={[
-                  styles.pill,
-                  isSelected && styles.pillActive,
-                  item !== 'All' && isSelected && {
-                    backgroundColor: categoryColor[item as ExpenseCategory] || colors.duskDeep,
-                    borderColor: categoryColor[item as ExpenseCategory] || colors.duskDeep,
-                  },
-                ]}
-                onPress={() => setSelectedCategory(item as ExpenseCategory | 'All')}
-              >
-                <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
-                  {item}
-                  {catAmt ? ` (${formatCurrency(catAmt)})` : ''}
-                </Text>
-              </Pressable>
-            );
-          }}
-        />
-      </View>
-
-      {/* Expense List */}
-      <FlatList
-        data={filteredExpenses}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
-        }
-        renderItem={({ item }) => {
-          const color = categoryColor[item.category] || colors.duskDeep;
-          return (
-            <View style={styles.expenseCard}>
-              <View style={[styles.categoryIndicator, { backgroundColor: color }]} />
-              <View style={styles.expenseBody}>
-                <View style={styles.expenseTopRow}>
-                  <View style={styles.expenseLeft}>
-                    <View style={[styles.catBadge, { backgroundColor: color }]}>
-                      <Text style={styles.catBadgeText}>{item.category}</Text>
+              <View style={styles.expenseCard}>
+                <View style={[styles.categoryIndicator, { backgroundColor: color }]} />
+                <View style={styles.expenseBody}>
+                  <View style={styles.expenseTopRow}>
+                    <View style={styles.expenseLeft}>
+                      <View style={[styles.catBadge, { backgroundColor: color }]}>
+                        <Text style={styles.catBadgeText}>{item.category}</Text>
+                      </View>
+                      <Text style={styles.expenseDesc} numberOfLines={2}>
+                        {item.description || 'Expense entry'}
+                      </Text>
                     </View>
-                    <Text style={styles.expenseDesc} numberOfLines={2}>
-                      {item.description || 'Expense entry'}
-                    </Text>
-                  </View>
-                  <Text style={styles.expenseAmount}>-{formatCurrency(item.amount)}</Text>
-                </View>
-
-                <View style={styles.expenseBottomRow}>
-                  <View style={styles.metaRow}>
-                    <Ionicons name="calendar-outline" size={13} color={colors.inkSoft} />
-                    <Text style={styles.metaText}>{formatDate(item.date)}</Text>
-                    <Text style={styles.metaDivider}>•</Text>
-                    <Ionicons name="card-outline" size={13} color={colors.inkSoft} />
-                    <Text style={styles.metaText}>{item.paymentMethod || 'Cash'}</Text>
+                    <Text style={styles.expenseAmount}>-{formatCurrency(item.amount)}</Text>
                   </View>
 
-                  <View style={styles.actionIcons}>
-                    <Pressable
-                      style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
-                      onPress={() => navigation.navigate('ExpenseForm', { expenseId: item.id })}
-                    >
-                      <Ionicons name="pencil" size={16} color={colors.inkSoft} />
-                    </Pressable>
-                    <Pressable
-                      style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
-                      onPress={() => handleDelete(item.id, item.description)}
-                    >
-                      <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                    </Pressable>
+                  <View style={styles.expenseBottomRow}>
+                    <View style={styles.metaRow}>
+                      <Ionicons name="calendar-outline" size={13} color={colors.inkSoft} />
+                      <Text style={styles.metaText}>{formatDate(item.date)}</Text>
+                      <Text style={styles.metaDivider}>•</Text>
+                      <Ionicons name="card-outline" size={13} color={colors.inkSoft} />
+                      <Text style={styles.metaText}>{item.paymentMethod || 'Cash'}</Text>
+                    </View>
+
+                    <View style={styles.actionIcons}>
+                      <Pressable
+                        style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+                        onPress={() => navigation.navigate('ExpenseForm', { expenseId: item.id })}
+                      >
+                        <Ionicons name="pencil" size={16} color={colors.inkSoft} />
+                      </Pressable>
+                      <Pressable
+                        style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+                        onPress={() => handleDelete(item.id, item.description)}
+                      >
+                        <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                      </Pressable>
+                    </View>
                   </View>
                 </View>
               </View>
-            </View>
-          );
-        }}
-        ListEmptyComponent={
-          !loading ? (
-            <EmptyState
-              icon="wallet-outline"
-              title={searchQuery || selectedCategory !== 'All' ? 'No expenses match' : 'No expenses recorded yet'}
-              message={
-                searchQuery || selectedCategory !== 'All'
-                  ? 'Try selecting a different category or clearing your search.'
-                  : 'Tap the "+ Add Outflow" button to record raw materials, rent, or shipping costs.'
-              }
-            />
-          ) : null
-        }
-      />
+            );
+          }}
+          ListEmptyComponent={
+            !loading ? (
+              <EmptyState
+                icon="wallet-outline"
+                title={searchQuery || selectedCategory !== 'All' ? 'No expenses match' : 'No expenses recorded yet'}
+                message={
+                  searchQuery || selectedCategory !== 'All'
+                    ? 'Try selecting a different category or clearing your search.'
+                    : 'Tap the "+ Add Outflow" button to record raw materials, rent, or shipping costs.'
+                }
+              />
+            ) : null
+          }
+        />
 
-      {/* Floating Add Expense Button */}
-      <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        onPress={() => navigation.navigate('ExpenseForm', undefined)}
-      >
-        <Ionicons name="wallet" size={22} color={colors.white} />
-        <Text style={styles.fabText}>+ Outflow</Text>
-      </Pressable>
+        {/* Floating Add Expense Button */}
+        <Pressable
+          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+          onPress={() => navigation.navigate('ExpenseForm', undefined)}
+        >
+          <Ionicons name="wallet" size={22} color={colors.white} />
+          <Text style={styles.fabText}>+ Outflow</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
@@ -261,6 +267,12 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.paper,
+  },
+  centerContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 1040,
+    alignSelf: 'center',
   },
   header: {
     paddingHorizontal: 20,

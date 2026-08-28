@@ -6,21 +6,29 @@ import {
   syncItemToCloud,
   deleteItemFromCloud,
   pullAllCloudDataToLocal,
+  getInMemoryItem,
+  setInMemoryItem,
 } from './firebaseSync';
 
 const KEY = 'order_book:payments';
 
 async function readAll(): Promise<PaymentEntry[]> {
+  const cached = getInMemoryItem<PaymentEntry[]>(KEY);
+  if (cached) return cached;
+
   const raw = await AsyncStorage.getItem(KEY);
   if (!raw) return [];
   try {
-    return JSON.parse(raw) as PaymentEntry[];
+    const parsed = JSON.parse(raw) as PaymentEntry[];
+    setInMemoryItem(KEY, parsed);
+    return parsed;
   } catch {
     return [];
   }
 }
 
 async function writeAll(items: PaymentEntry[]): Promise<void> {
+  setInMemoryItem(KEY, items);
   await AsyncStorage.setItem(KEY, JSON.stringify(items));
 }
 

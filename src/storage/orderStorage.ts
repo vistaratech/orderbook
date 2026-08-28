@@ -7,22 +7,30 @@ import {
   deleteItemFromCloud,
   syncValueToCloud,
   pullAllCloudDataToLocal,
+  getInMemoryItem,
+  setInMemoryItem,
 } from './firebaseSync';
 
 const ORDERS_KEY = 'order_book:orders';
 const SEQ_KEY = 'order_book:order_seq';
 
 async function readAll(): Promise<Order[]> {
+  const cached = getInMemoryItem<Order[]>(ORDERS_KEY);
+  if (cached) return cached;
+
   const raw = await AsyncStorage.getItem(ORDERS_KEY);
   if (!raw) return [];
   try {
-    return JSON.parse(raw) as Order[];
+    const parsed = JSON.parse(raw) as Order[];
+    setInMemoryItem(ORDERS_KEY, parsed);
+    return parsed;
   } catch {
     return [];
   }
 }
 
 async function writeAll(orders: Order[]): Promise<void> {
+  setInMemoryItem(ORDERS_KEY, orders);
   await AsyncStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
 }
 

@@ -498,7 +498,13 @@ function ChipRow({
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.paper },
-  content: { padding: 16, paddingBottom: 60 },
+  content: {
+    padding: 20,
+    paddingBottom: 60,
+    width: '100%',
+    maxWidth: 860,
+    alignSelf: 'center',
+  },
   section: {
     backgroundColor: colors.paperCard,
     borderRadius: radius.md,

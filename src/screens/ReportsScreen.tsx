@@ -46,6 +46,10 @@ export default function ReportsScreen() {
     }, [loadData])
   );
 
+  useEffect(() => {
+    loadData(true);
+  }, [loadData]);
+
   // Subscribe to live Firestore updates
   useEffect(() => {
     const unsub = addDataListener(() => {
@@ -373,7 +377,11 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 40,
+    width: '100%',
+    maxWidth: 1040,
+    alignSelf: 'center',
   },
   header: {
     paddingVertical: 14,

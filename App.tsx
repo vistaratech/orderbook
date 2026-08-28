@@ -67,7 +67,7 @@ export default function App() {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
 
   useEffect(() => {
-    // Check initial local auth state (just for routing — no cloud calls yet)
+    // Check initial local auth state for initial screen routing
     getAuthState().then((state) => {
       if (!state.isOnboarded) {
         setInitialRoute('OnboardingWizard');
@@ -93,6 +93,7 @@ export default function App() {
         notifyDataListeners();
       } else {
         stopRealtimeSync();
+        notifyDataListeners();
       }
     });
 
@@ -292,24 +293,14 @@ const styles = {
     flex: 1,
     height: '100dvh' as any,
     maxHeight: '100dvh' as any,
-    backgroundColor: '#EAE2D3',
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    backgroundColor: colors.paper,
+    width: '100%' as any,
   },
   webInnerFrame: {
     flex: 1,
     height: '100%' as any,
     maxHeight: '100dvh' as any,
     width: '100%' as const,
-    maxWidth: 720,
     backgroundColor: colors.paper,
-    shadowColor: '#2E2A24',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 8,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: colors.line,
   },
 };

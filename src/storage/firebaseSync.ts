@@ -86,9 +86,9 @@ export function mergeItemLists<T extends { id: string; updatedAt?: string }>(
       if (!existing) {
         itemMap.set(item.id, item);
       } else {
-        const cloudTime = item.updatedAt || '';
-        const localTime = existing.updatedAt || '';
-        if (cloudTime >= localTime) {
+        const cloudTime = new Date(item.updatedAt || 0).getTime();
+        const localTime = new Date(existing.updatedAt || 0).getTime();
+        if (cloudTime >= localTime || isNaN(localTime)) {
           itemMap.set(item.id, item);
         }
       }

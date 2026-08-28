@@ -36,6 +36,8 @@ import {
   stopRealtimeSync,
   setCurrentUidCache,
   pullAllCloudDataToLocal,
+  flushPendingWrites,
+  notifyDataListeners,
 } from './src/storage/firebaseSync';
 import { colors, fonts } from './src/theme/theme';
 
@@ -65,7 +67,7 @@ export default function App() {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
 
   useEffect(() => {
-    // Check initial local auth state
+    // Check initial local auth state (just for routing — no cloud calls yet)
     getAuthState().then((state) => {
       if (!state.isOnboarded) {
         setInitialRoute('OnboardingWizard');
@@ -74,19 +76,23 @@ export default function App() {
       } else {
         if (state.user?.uid) {
           setCurrentUidCache(state.user.uid);
-          setupRealtimeSync(state.user.uid);
-          pullAllCloudDataToLocal();
         }
         setInitialRoute('MainTabs');
       }
     });
 
-    // Listen to Firebase live auth state -> activate real-time RTDB sync
-    const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
+    // Listen to Firebase live auth state -> activate real-time sync ONLY when auth is ready
+    const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
         setCurrentUidCache(fbUser.uid);
         setupRealtimeSync(fbUser.uid);
-        pullAllCloudDataToLocal();
+        // Flush any writes that happened before auth was ready
+        await flushPendingWrites();
+        // Pull latest cloud data and notify UI
+        await pullAllCloudDataToLocal();
+        notifyDataListeners();
+      } else {
+        stopRealtimeSync();
       }
     });
 

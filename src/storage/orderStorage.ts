@@ -7,7 +7,6 @@ import {
   deleteItemFromCloud,
   syncValueToCloud,
   pullAllCloudDataToLocal,
-  notifyDataListeners,
 } from './firebaseSync';
 
 const ORDERS_KEY = 'order_book:orders';
@@ -118,11 +117,9 @@ export async function setOrderStatus(id: string, status: Order['status']): Promi
   const orders = await readAll();
   const idx = orders.findIndex((o) => o.id === id);
   if (idx >= 0) {
-    const updated: Order = { ...orders[idx], status, updatedAt: todayIso() };
-    orders[idx] = updated;
+    orders[idx] = { ...orders[idx], status, updatedAt: todayIso() };
     await writeAll(orders);
-    await syncItemToCloud('orders', updated);
-    notifyDataListeners();
+    await syncItemToCloud('orders', orders[idx]);
   }
 }
 

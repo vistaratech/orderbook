@@ -23,6 +23,17 @@ import { auth, db } from '../config/firebase';
 
 let cachedUid: string | null = null;
 
+// Pending writes queue: items queued when auth isn't ready yet, flushed on auth ready
+interface PendingWrite {
+  type: 'item' | 'delete' | 'value';
+  collectionName: string;
+  item?: any;
+  id?: string;
+  path?: string;
+  value?: any;
+}
+const pendingWrites: PendingWrite[] = [];
+
 export function setCurrentUidCache(uid: string | null): void {
   cachedUid = uid;
 }
@@ -31,8 +42,45 @@ export function getCurrentUid(): string {
   return auth.currentUser?.uid || cachedUid || 'local_guest';
 }
 
+/** Returns true if we have a valid cloud user UID (either live auth or cached) */
 export function isCloudUser(): boolean {
-  return !!auth.currentUser && auth.currentUser.uid !== 'local_guest';
+  const uid = getCurrentUid();
+  return uid !== 'local_guest' && uid.length > 0;
+}
+
+/** Returns true if Firebase auth.currentUser is actively authenticated (can make Firestore requests) */
+function hasActiveAuth(): boolean {
+  return !!auth.currentUser;
+}
+
+/** Flush any pending writes that were queued before auth was ready */
+export async function flushPendingWrites(): Promise<void> {
+  if (!hasActiveAuth() || pendingWrites.length === 0) return;
+  const uid = auth.currentUser!.uid;
+  const writes = [...pendingWrites];
+  pendingWrites.length = 0;
+  for (const w of writes) {
+    try {
+      if (w.type === 'item' && w.item) {
+        const itemDoc = doc(db, 'users', uid, w.collectionName, w.item.id);
+        await setDoc(itemDoc, w.item, { merge: true });
+      } else if (w.type === 'delete' && w.id) {
+        const itemDoc = doc(db, 'users', uid, w.collectionName, w.id);
+        await deleteDoc(itemDoc);
+      } else if (w.type === 'value' && w.path) {
+        const settingsDocRef = doc(db, 'users', uid, 'settings', 'app');
+        if (w.path === 'settings/orderSeq') {
+          await setDoc(settingsDocRef, { orderSeq: w.value }, { merge: true });
+        } else if (w.path === 'settings/businessProfile') {
+          await setDoc(settingsDocRef, { businessProfile: w.value }, { merge: true });
+        } else {
+          await setDoc(settingsDocRef, { [w.path]: w.value }, { merge: true });
+        }
+      }
+    } catch (err) {
+      console.warn('[firebaseSync] flushPendingWrites error:', err);
+    }
+  }
 }
 
 // ─── Realtime Listener & Event Emitter ──────────────────────────────
@@ -82,7 +130,16 @@ export function mergeItemLists<T extends { id: string; updatedAt?: string }>(
 
   for (const item of cloudItems) {
     if (item && item.id) {
-      itemMap.set(item.id, item);
+      const existing = itemMap.get(item.id);
+      if (!existing) {
+        itemMap.set(item.id, item);
+      } else {
+        const cloudTime = item.updatedAt || '';
+        const localTime = existing.updatedAt || '';
+        if (cloudTime >= localTime) {
+          itemMap.set(item.id, item);
+        }
+      }
     }
   }
 
@@ -99,7 +156,7 @@ export function mergeItemLists<T extends { id: string; updatedAt?: string }>(
 export function setupRealtimeSync(uid: string): () => void {
   stopRealtimeSync();
 
-  if (!auth.currentUser || !uid || uid === 'local_guest') {
+  if (!uid || uid === 'local_guest') {
     return () => {};
   }
 
@@ -234,6 +291,12 @@ export async function syncItemToCloud<T extends { id: string }>(
 ): Promise<void> {
   if (!isCloudUser()) return;
 
+  // If Firebase auth isn't ready yet, queue the write for later
+  if (!hasActiveAuth()) {
+    pendingWrites.push({ type: 'item', collectionName, item });
+    return;
+  }
+
   try {
     const uid = getCurrentUid();
     const itemDoc = doc(db, 'users', uid, collectionName, item.id);
@@ -248,6 +311,11 @@ export async function syncItemToCloud<T extends { id: string }>(
  */
 export async function deleteItemFromCloud(collectionName: string, id: string): Promise<void> {
   if (!isCloudUser()) return;
+
+  if (!hasActiveAuth()) {
+    pendingWrites.push({ type: 'delete', collectionName, id });
+    return;
+  }
 
   try {
     const uid = getCurrentUid();
@@ -283,6 +351,11 @@ export async function syncCollectionToCloud<T extends { id: string }>(
  */
 export async function syncValueToCloud(path: string, value: any): Promise<void> {
   if (!isCloudUser()) return;
+
+  if (!hasActiveAuth()) {
+    pendingWrites.push({ type: 'value', collectionName: 'settings', path, value });
+    return;
+  }
 
   try {
     const uid = getCurrentUid();
@@ -395,9 +468,9 @@ export async function pullAllCloudDataToLocal(): Promise<void> {
       }
     } catch {}
 
-    // Notify UI screens that fresh cloud data has arrived
     notifyDataListeners();
   } catch (err) {
     console.warn('[firebaseSync] pullAllCloudDataToLocal failed:', err);
   }
 }
+

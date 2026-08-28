@@ -172,7 +172,7 @@ export function mergeItemLists<T extends { id: string; updatedAt?: string }>(
 export function setupRealtimeSync(uid: string): () => void {
   stopRealtimeSync();
 
-  if (!uid || uid === 'local_guest') {
+  if (!hasActiveAuth() || !uid || uid === 'local_guest') {
     return () => {};
   }
 
@@ -285,7 +285,7 @@ export function stopRealtimeSync(): void {
  * Fetch a full collection from `users/{uid}/{collection}`
  */
 export async function readCollectionFromCloud<T>(collectionName: string): Promise<T[]> {
-  if (!isCloudUser()) return [];
+  if (!hasActiveAuth() || !isCloudUser()) return [];
 
   try {
     const uid = getCurrentUid();
@@ -392,7 +392,7 @@ export async function syncValueToCloud(path: string, value: any): Promise<void> 
  * Read a scalar / object value from `users/{uid}/settings/app`
  */
 export async function readValueFromCloud<T = any>(path: string): Promise<T | null> {
-  if (!isCloudUser()) return null;
+  if (!hasActiveAuth() || !isCloudUser()) return null;
 
   try {
     const uid = getCurrentUid();
@@ -415,7 +415,7 @@ export async function readValueFromCloud<T = any>(path: string): Promise<T | nul
  * Call on login, app start, and on pull-to-refresh.
  */
 export async function pullAllCloudDataToLocal(): Promise<void> {
-  if (!isCloudUser()) return;
+  if (!hasActiveAuth() || !isCloudUser()) return;
 
   const uid = getCurrentUid();
   try {

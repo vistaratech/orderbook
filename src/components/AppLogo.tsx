@@ -169,7 +169,7 @@ export function AppLogoIcon({ size = 52 }: { size?: number }) {
 export function AppLogoImage({ size = 52 }: { size?: number }) {
   return (
     <Image
-      source={require('../../assets/logo.png')}
+      source={require('../../assets/icon.png')}
       style={{
         width: size,
         height: size,

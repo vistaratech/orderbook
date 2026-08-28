@@ -46,7 +46,7 @@ export default function ReportsScreen() {
     }, [loadData])
   );
 
-  // Subscribe to live Realtime Database changes
+  // Subscribe to live Firestore updates
   useEffect(() => {
     const unsub = addDataListener(() => {
       loadData(false);
@@ -99,7 +99,9 @@ export default function ReportsScreen() {
     0
   );
   const netProfit = totalInflow - totalOutflow;
+  const liquidCash = totalCollected - totalOutflow;
   const profitMargin = totalInflow > 0 ? ((netProfit / totalInflow) * 100).toFixed(1) : '0';
+  const collectionRate = totalInflow > 0 ? Math.min(100, Math.round((totalCollected / totalInflow) * 100)) : 0;
 
   // Expense breakdown by category
   const expenseByCategory = useMemo(() => {
@@ -153,12 +155,13 @@ export default function ReportsScreen() {
   }, [filteredOrders]);
 
   const handleShareSummary = async () => {
-    const msg = `📊 Business Summary (${period.replace('_', ' ').toUpperCase()})
-• Sales Inflow: ${formatCurrency(totalInflow)} (${filteredOrders.length} orders)
-• Outflow (Expenses): ${formatCurrency(totalOutflow)} (${filteredExpenses.length} entries)
-• Net Profit: ${formatCurrency(netProfit)} (Margin: ${profitMargin}%)
-• Collected: ${formatCurrency(totalCollected)}
-• Pending Due: ${formatCurrency(totalPending)}
+    const msg = `📊 Business Financial Report (${period.replace('_', ' ').toUpperCase()})
+• Total Sales: ${formatCurrency(totalInflow)} (${filteredOrders.length} orders)
+• Outflow Expenses: ${formatCurrency(totalOutflow)} (${filteredExpenses.length} entries)
+• Net Balance: ${formatCurrency(netProfit)} (Margin: ${profitMargin}%)
+• Cash Collected: ${formatCurrency(totalCollected)} (${collectionRate}% Collection Rate)
+• Liquid Cash Available: ${formatCurrency(liquidCash)}
+• Outstanding Dues: ${formatCurrency(totalPending)}
 Generated from Order Book App`;
     await Share.share({ message: msg });
   };
@@ -167,6 +170,7 @@ Generated from Order Book App`;
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
         }
@@ -174,11 +178,14 @@ Generated from Order Book App`;
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>P&L & Analytics</Text>
+            <Text style={styles.title}>Reports</Text>
             <Text style={styles.subtitle}>Inflow vs Outflow Business Performance</Text>
           </View>
-          <Pressable style={styles.shareBtn} onPress={handleShareSummary}>
-            <Ionicons name="share-outline" size={20} color={colors.clayDeep} />
+          <Pressable
+            style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.8 }]}
+            onPress={handleShareSummary}
+          >
+            <Ionicons name="share-outline" size={18} color={colors.clayDeep} />
             <Text style={styles.shareBtnText}>Share</Text>
           </Pressable>
         </View>
@@ -208,13 +215,16 @@ Generated from Order Book App`;
         ) : (
           <>
             {/* P&L Statement Card */}
-            <View style={[styles.card, styles.pnlCard]}>
-              <Text style={styles.pnlHeader}>Profit & Loss Statement</Text>
+            <View style={styles.card}>
+              <View style={styles.cardHeaderRow}>
+                <Ionicons name="pie-chart-outline" size={18} color={colors.clayDeep} />
+                <Text style={styles.cardTitle}>Profit & Loss Statement</Text>
+              </View>
 
               <View style={styles.pnlRow}>
                 <View style={styles.pnlLabelRow}>
-                  <Ionicons name="trending-up" size={16} color={colors.inflow} />
-                  <Text style={styles.pnlLabel}>Total Revenue (Inflow)</Text>
+                  <Ionicons name="arrow-down-circle" size={18} color={colors.inflow} />
+                  <Text style={styles.pnlLabel}>Sales Revenue (Inflow)</Text>
                 </View>
                 <Text style={[styles.pnlValue, { color: colors.inflow }]}>
                   +{formatCurrency(totalInflow)}
@@ -223,7 +233,7 @@ Generated from Order Book App`;
 
               <View style={styles.pnlRow}>
                 <View style={styles.pnlLabelRow}>
-                  <Ionicons name="trending-down" size={16} color={colors.outflow} />
+                  <Ionicons name="arrow-up-circle" size={18} color={colors.outflow} />
                   <Text style={styles.pnlLabel}>Total Expenses (Outflow)</Text>
                 </View>
                 <Text style={[styles.pnlValue, { color: colors.outflow }]}>
@@ -248,95 +258,107 @@ Generated from Order Book App`;
                 </Text>
               </View>
 
-              <View style={styles.divider} />
-
-              <View style={styles.subStatsRow}>
-                <View style={styles.subStatItem}>
+              {/* Inflow Sub-breakdown */}
+              <View style={styles.subStatsBox}>
+                <Pressable
+                  style={styles.subStatItem}
+                  onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Paid' })}
+                >
                   <Text style={styles.subStatLabel}>Cash Collected</Text>
                   <Text style={styles.subStatValue}>{formatCurrency(totalCollected)}</Text>
-                </View>
+                </Pressable>
                 <View style={styles.subStatDivider} />
-                <View style={styles.subStatItem}>
-                  <Text style={styles.subStatLabel}>Pending Balance</Text>
+                <Pressable
+                  style={styles.subStatItem}
+                  onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Pending' })}
+                >
+                  <Text style={styles.subStatLabel}>Pending Collections</Text>
                   <Text style={[styles.subStatValue, { color: colors.pending }]}>
                     {formatCurrency(totalPending)}
                   </Text>
-                </View>
+                </Pressable>
               </View>
             </View>
 
-            {/* Outflow by Category Breakdown */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Outflow by Expense Category</Text>
-              {expenseByCategory.length === 0 ? (
-                <Text style={styles.emptyText}>No expenses recorded for this period.</Text>
-              ) : (
-                expenseByCategory.map((item) => {
-                  const barColor = categoryColor[item.category] || colors.clayDeep;
+            {/* Expense Breakdown Category Bars */}
+            {expenseByCategory.length > 0 && (
+              <View style={styles.card}>
+                <View style={styles.cardHeaderRow}>
+                  <Ionicons name="wallet-outline" size={18} color={colors.outflow} />
+                  <Text style={styles.cardTitle}>Expense Breakdown</Text>
+                </View>
+                {expenseByCategory.map((item) => {
+                  const barColor = categoryColor[item.category as any] || colors.clayDeep;
                   return (
-                    <View key={item.category} style={styles.categoryBarItem}>
+                    <View key={item.category} style={styles.categoryBarRow}>
                       <View style={styles.categoryBarHeader}>
-                        <Text style={styles.catName}>{item.category}</Text>
-                        <Text style={styles.catAmt}>
-                          {formatCurrency(item.amount)}{' '}
-                          <Text style={styles.catPct}>({item.pct.toFixed(0)}%)</Text>
-                        </Text>
+                        <View style={styles.catLabelWrap}>
+                          <View style={[styles.catColorDot, { backgroundColor: barColor }]} />
+                          <Text style={styles.catName}>{item.category}</Text>
+                        </View>
+                        <Text style={styles.catAmount}>{formatCurrency(item.amount)} ({item.pct.toFixed(0)}%)</Text>
                       </View>
-                      <View style={styles.progressBarTrack}>
+                      <View style={styles.barTrack}>
                         <View
                           style={[
-                            styles.progressBarFill,
-                            { width: `${Math.max(4, Math.min(100, item.pct))}%`, backgroundColor: barColor },
+                            styles.barFill,
+                            { width: `${Math.min(100, item.pct)}%`, backgroundColor: barColor },
                           ]}
                         />
                       </View>
                     </View>
                   );
-                })
-              )}
-            </View>
+                })}
+              </View>
+            )}
 
             {/* Top Customers */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Top Customers</Text>
-              {topCustomers.length === 0 ? (
-                <Text style={styles.emptyText}>No customer orders for this period.</Text>
-              ) : (
-                topCustomers.map((cust, idx) => (
-                  <View key={cust.name} style={styles.rankItem}>
+            {topCustomers.length > 0 && (
+              <View style={styles.card}>
+                <View style={styles.cardHeaderRow}>
+                  <Ionicons name="people-outline" size={18} color={colors.clayDeep} />
+                  <Text style={styles.cardTitle}>Top Customers</Text>
+                </View>
+                {topCustomers.map((c, idx) => (
+                  <View key={c.name} style={styles.rankRow}>
                     <View style={styles.rankBadge}>
                       <Text style={styles.rankBadgeText}>#{idx + 1}</Text>
                     </View>
-                    <View style={styles.rankItemInfo}>
-                      <Text style={styles.rankItemName}>{cust.name}</Text>
-                      <Text style={styles.rankItemSub}>{cust.count} order{cust.count === 1 ? '' : 's'}</Text>
+                    <View style={styles.rankInfo}>
+                      <Text style={styles.rankName}>{c.name}</Text>
+                      <Text style={styles.rankMeta}>
+                        {c.count} order{c.count === 1 ? '' : 's'}
+                      </Text>
                     </View>
-                    <Text style={styles.rankItemTotal}>{formatCurrency(cust.total)}</Text>
+                    <Text style={styles.rankAmount}>{formatCurrency(c.total)}</Text>
                   </View>
-                ))
-              )}
-            </View>
+                ))}
+              </View>
+            )}
 
             {/* Best Selling Items */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Best Selling Items</Text>
-              {topItems.length === 0 ? (
-                <Text style={styles.emptyText}>No items sold in this period.</Text>
-              ) : (
-                topItems.map((it, idx) => (
-                  <View key={it.name} style={styles.rankItem}>
+            {topItems.length > 0 && (
+              <View style={styles.card}>
+                <View style={styles.cardHeaderRow}>
+                  <Ionicons name="ribbon-outline" size={18} color={colors.duskDeep} />
+                  <Text style={styles.cardTitle}>Best Selling Catalog Products</Text>
+                </View>
+                {topItems.map((it, idx) => (
+                  <View key={it.name} style={styles.rankRow}>
                     <View style={[styles.rankBadge, { backgroundColor: colors.duskLight }]}>
-                      <Text style={[styles.rankBadgeText, { color: colors.duskDeep }]}>#{idx + 1}</Text>
+                      <Text style={[styles.rankBadgeText, { color: colors.duskDeep }]}>
+                        #{idx + 1}
+                      </Text>
                     </View>
-                    <View style={styles.rankItemInfo}>
-                      <Text style={styles.rankItemName}>{it.name}</Text>
-                      <Text style={styles.rankItemSub}>{it.qty} units sold</Text>
+                    <View style={styles.rankInfo}>
+                      <Text style={styles.rankName}>{it.name}</Text>
+                      <Text style={styles.rankMeta}>{it.qty} units sold</Text>
                     </View>
-                    <Text style={styles.rankItemTotal}>{formatCurrency(it.revenue)}</Text>
+                    <Text style={styles.rankAmount}>{formatCurrency(it.revenue)}</Text>
                   </View>
-                ))
-              )}
-            </View>
+                ))}
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -350,36 +372,38 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
   },
   content: {
-    paddingHorizontal: 16,
-    paddingBottom: 50,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   header: {
+    paddingVertical: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
   },
   title: {
     fontFamily: fonts.display,
-    fontSize: 34,
+    fontSize: 32,
     color: colors.ink,
+    lineHeight: 36,
   },
   subtitle: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.inkSoft,
-    marginTop: -4,
+    marginTop: 1,
   },
   shareBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.sm,
     backgroundColor: colors.paperCard,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    ...shadow.card,
   },
   shareBtnText: {
     fontFamily: fonts.bodyMedium,
@@ -389,24 +413,24 @@ const styles = StyleSheet.create({
   periodTabs: {
     flexDirection: 'row',
     backgroundColor: colors.paperCard,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.line,
+    borderRadius: 20,
     padding: 3,
     marginBottom: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
   periodTab: {
     flex: 1,
-    paddingVertical: 6,
     alignItems: 'center',
-    borderRadius: radius.sm - 2,
+    paddingVertical: 7,
+    borderRadius: 18,
   },
   periodTabActive: {
     backgroundColor: colors.clayDeep,
   },
   periodTabText: {
-    fontFamily: fonts.body,
-    fontSize: 12,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
     color: colors.inkSoft,
   },
   periodTabTextActive: {
@@ -420,44 +444,44 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 16,
     marginBottom: 14,
-    overflow: 'hidden',
     ...shadow.card,
   },
-  pnlCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: colors.duskDeep,
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
   },
-  pnlHeader: {
+  cardTitle: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: 20,
     color: colors.clayDeep,
-    marginBottom: 12,
   },
   pnlRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 8,
   },
   pnlLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   pnlLabel: {
-    fontFamily: fonts.body,
+    fontFamily: fonts.bodyMedium,
     fontSize: 14,
     color: colors.ink,
   },
   pnlValue: {
     fontFamily: fonts.bodyBold,
-    fontSize: 15,
+    fontSize: 16,
   },
   divider: {
     height: 0,
     borderTopWidth: 1,
     borderTopColor: colors.line,
-    borderStyle: 'dashed',
+    borderStyle: 'dashed' as any,
     marginVertical: 10,
   },
   netProfitLabel: {
@@ -467,99 +491,92 @@ const styles = StyleSheet.create({
   },
   marginText: {
     fontFamily: fonts.body,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.inkSoft,
-    marginTop: 2,
   },
   netProfitValue: {
     fontFamily: fonts.display,
     fontSize: 28,
   },
-  subStatsRow: {
+  subStatsBox: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 4,
+    backgroundColor: colors.paper,
+    borderRadius: radius.sm,
+    padding: 12,
+    marginTop: 12,
   },
   subStatItem: {
     flex: 1,
     alignItems: 'center',
   },
-  subStatDivider: {
-    width: 1,
-    backgroundColor: colors.line,
-  },
   subStatLabel: {
     fontFamily: fonts.body,
     fontSize: 11,
     color: colors.inkSoft,
+    marginBottom: 2,
   },
   subStatValue: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.ink,
-    marginTop: 2,
   },
-  cardTitle: {
-    fontFamily: fonts.display,
-    fontSize: 20,
-    color: colors.clayDeep,
+  subStatDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: colors.line,
+  },
+  categoryBarRow: {
     marginBottom: 12,
-  },
-  emptyText: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.inkSoft,
-    textAlign: 'center',
-    paddingVertical: 12,
-  },
-  categoryBarItem: {
-    marginBottom: 10,
   },
   categoryBarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 4,
+  },
+  catLabelWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  catColorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   catName: {
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
     color: colors.ink,
   },
-  catAmt: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 13,
-    color: colors.ink,
-  },
-  catPct: {
+  catAmount: {
     fontFamily: fonts.body,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.inkSoft,
   },
-  progressBarTrack: {
-    height: 8,
+  barTrack: {
+    height: 6,
     backgroundColor: colors.paper,
-    borderRadius: 4,
+    borderRadius: 3,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.line,
   },
-  progressBarFill: {
+  barFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 3,
   },
-  rankItem: {
+  rankRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    borderStyle: 'dashed',
-    gap: 10,
+    borderStyle: 'dashed' as any,
+    gap: 12,
   },
   rankBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: colors.clayLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -569,20 +586,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.clayDeep,
   },
-  rankItemInfo: {
+  rankInfo: {
     flex: 1,
   },
-  rankItemName: {
+  rankName: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.ink,
   },
-  rankItemSub: {
+  rankMeta: {
     fontFamily: fonts.body,
     fontSize: 11,
     color: colors.inkSoft,
   },
-  rankItemTotal: {
+  rankAmount: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.ink,

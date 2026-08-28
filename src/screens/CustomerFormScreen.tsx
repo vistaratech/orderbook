@@ -10,10 +10,11 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { getCustomer, saveCustomer } from '../storage/customerStorage';
-import { colors, fonts, radius } from '../theme/theme';
+import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CustomerForm'>;
 
@@ -71,9 +72,12 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Customer Details</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="person-outline" size={18} color={colors.clayDeep} />
+            <Text style={styles.sectionTitle}>Customer Information</Text>
+          </View>
 
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Full Name *</Text>
@@ -137,9 +141,13 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+        <Pressable
+          style={({ pressed }) => [styles.saveBtn, saving && { opacity: 0.6 }, pressed && { opacity: 0.85 }]}
+          onPress={handleSave}
+          disabled={saving}
+        >
           <Text style={styles.saveBtnText}>
-            {saving ? 'Saving…' : isEditing ? 'Update Customer' : 'Save Customer'}
+            {saving ? 'Saving…' : isEditing ? 'Update Customer' : 'Save Customer Profile'}
           </Text>
         </Pressable>
       </ScrollView>
@@ -153,7 +161,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
   },
   content: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 60,
   },
   section: {
@@ -163,12 +171,18 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 16,
     marginBottom: 16,
+    ...shadow.card,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
   },
   sectionTitle: {
     fontFamily: fonts.display,
     fontSize: 22,
     color: colors.clayDeep,
-    marginBottom: 12,
   },
   field: {
     marginBottom: 14,
@@ -185,7 +199,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    borderStyle: 'dashed',
+    borderStyle: 'dashed' as any,
     paddingVertical: 6,
   },
   saveBtn: {
@@ -194,6 +208,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 4,
+    ...shadow.card,
   },
   saveBtnText: {
     fontFamily: fonts.bodyBold,

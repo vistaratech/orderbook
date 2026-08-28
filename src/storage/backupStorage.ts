@@ -1,6 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ref, set, get } from 'firebase/database';
-import { auth, rtdb } from '../config/firebase';
+import {
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  getDocs,
+  deleteDoc,
+  writeBatch,
+} from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
 import { isCloudUser, getCurrentUid } from './firebaseSync';
 
 const USER_DATA_KEYS = [
@@ -55,7 +63,11 @@ export async function importAllData(jsonString: string): Promise<boolean> {
   }
 }
 
+/**
+ * Clear all local data AND cloud data for the authenticated user.
+ */
 export async function clearAllData(): Promise<void> {
+  // Clear local AsyncStorage
   await AsyncStorage.multiRemove([
     'order_book:orders',
     'order_book:order_seq',
@@ -64,10 +76,35 @@ export async function clearAllData(): Promise<void> {
     'order_book:products',
     'order_book:payments',
   ]);
+
+  // Also clear cloud Firestore collections for the user
+  if (isCloudUser()) {
+    const uid = getCurrentUid();
+    const collectionsToDelete = ['orders', 'customers', 'expenses', 'products', 'payments'];
+
+    for (const colName of collectionsToDelete) {
+      try {
+        const colRef = collection(db, 'users', uid, colName);
+        const snapshot = await getDocs(colRef);
+        // Firestore doesn't support collection deletion, delete each doc
+        const batch = writeBatch(db);
+        snapshot.docs.forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      } catch (err) {
+        console.warn(`[backupStorage] clearAllData: failed to clear cloud ${colName}:`, err);
+      }
+    }
+
+    // Reset settings
+    try {
+      const settingsDoc = doc(db, 'users', uid, 'settings', 'app');
+      await setDoc(settingsDoc, { orderSeq: 0 }, { merge: true });
+    } catch {}
+  }
 }
 
 /**
- * Backup all local orders, customers, expenses to Firebase Realtime Database
+ * Backup all local orders, customers, expenses to Firebase Cloud Firestore
  * under the current user's path.
  */
 export async function backupToFirebaseCloud(): Promise<{
@@ -86,9 +123,9 @@ export async function backupToFirebaseCloud(): Promise<{
     const jsonStr = await exportAllData();
     const parsed = JSON.parse(jsonStr);
     const uid = getCurrentUid();
-    const backupRef = ref(rtdb, `users/${uid}/backup`);
+    const backupDoc = doc(db, 'users', uid, 'backup', 'latest');
 
-    await set(backupRef, {
+    await setDoc(backupDoc, {
       updatedAt: new Date().toISOString(),
       userEmail: auth.currentUser?.email || 'unknown',
       data: parsed.data,
@@ -99,13 +136,13 @@ export async function backupToFirebaseCloud(): Promise<{
     console.error('Firebase cloud backup failed:', err);
     return {
       success: false,
-      error: err?.message || 'Cloud backup failed. Check internet and Firebase DB rules.',
+      error: err?.message || 'Cloud backup failed. Check internet and Firestore rules.',
     };
   }
 }
 
 /**
- * Restore data from Firebase Realtime Database backup.
+ * Restore data from Firebase Cloud Firestore backup.
  */
 export async function restoreFromFirebaseCloud(): Promise<{
   success: boolean;
@@ -120,8 +157,8 @@ export async function restoreFromFirebaseCloud(): Promise<{
 
   try {
     const uid = getCurrentUid();
-    const backupRef = ref(rtdb, `users/${uid}/backup`);
-    const snapshot = await get(backupRef);
+    const backupDoc = doc(db, 'users', uid, 'backup', 'latest');
+    const snapshot = await getDoc(backupDoc);
 
     if (!snapshot.exists()) {
       return {
@@ -130,7 +167,7 @@ export async function restoreFromFirebaseCloud(): Promise<{
       };
     }
 
-    const cloudData = snapshot.val();
+    const cloudData = snapshot.data();
     if (!cloudData.data) {
       return { success: false, error: 'Cloud backup contains no data.' };
     }

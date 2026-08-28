@@ -2,7 +2,8 @@
   "expo": {
     "name": "Order Book",
     "slug": "order-book",
-    "version": "1.0.0",
+    "scheme": "orderbook",
+    "version": "1.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#F6F1E7",
@@ -21,6 +22,7 @@
     },
     "android": {
       "package": "com.orderbook.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F6F1E7"
@@ -28,7 +30,7 @@
     },
     "web": {
       "bundler": "metro",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon.png"
     },
     "extra": {
       "eas": {
@@ -37,7 +39,8 @@
     },
     "plugins": [
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-sharing"
     ]
   }
 }

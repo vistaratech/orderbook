@@ -56,7 +56,7 @@ export async function addPayment(
   };
   all.push(created);
   await writeAll(all);
-  syncItemToCloud('payments', created).catch(() => {});
+  await syncItemToCloud('payments', created);
   return created;
 }
 

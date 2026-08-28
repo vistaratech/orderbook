@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, statusColor } from '../theme/theme';
 import { ORDER_STATUS_STEPS, OrderStatus } from '../types/order';
 
@@ -8,79 +9,112 @@ interface Props {
   onChange?: (status: OrderStatus) => void;
 }
 
+const statusIcons: Record<OrderStatus, string> = {
+  Placed: 'receipt-outline',
+  Packed: 'cube-outline',
+  Dispatched: 'paper-plane-outline',
+  Delivered: 'checkmark-done-circle-outline',
+};
+
 export default function StatusTracker({ status, onChange }: Props) {
   const currentIndex = ORDER_STATUS_STEPS.indexOf(status);
 
   return (
-    <View style={styles.row}>
-      {ORDER_STATUS_STEPS.map((step, i) => {
-        const reached = i <= currentIndex;
-        const color = statusColor[step];
-        const Wrapper = onChange ? Pressable : View;
-        return (
-          <React.Fragment key={step}>
-            {i > 0 && (
-              <View
-                style={[
-                  styles.connector,
-                  { backgroundColor: reached ? color : colors.line },
-                ]}
-              />
-            )}
-            <Wrapper
-              style={styles.stepWrap}
-              onPress={onChange ? () => onChange(step) : undefined}
-            >
-              <View
-                style={[
-                  styles.stamp,
-                  {
-                    borderColor: color,
-                    backgroundColor: reached ? color : 'transparent',
-                  },
-                ]}
-              />
-              <Text
-                style={[
-                  styles.label,
-                  { color: reached ? colors.ink : colors.inkSoft },
-                ]}
+    <View style={styles.container}>
+      <View style={styles.row}>
+        {ORDER_STATUS_STEPS.map((step, i) => {
+          const isCurrent = i === currentIndex;
+          const reached = i <= currentIndex;
+          const color = statusColor[step];
+          const Wrapper = onChange ? Pressable : View;
+
+          return (
+            <React.Fragment key={step}>
+              {i > 0 && (
+                <View
+                  style={[
+                    styles.connector,
+                    { backgroundColor: reached ? color : colors.line },
+                  ]}
+                />
+              )}
+              <Wrapper
+                style={styles.stepWrap}
+                onPress={onChange ? () => onChange(step) : undefined}
               >
-                {step}
-              </Text>
-            </Wrapper>
-          </React.Fragment>
-        );
-      })}
+                <View
+                  style={[
+                    styles.badge,
+                    {
+                      borderColor: color,
+                      backgroundColor: reached ? color : colors.paperCard,
+                    },
+                    isCurrent && styles.activeBadge,
+                  ]}
+                >
+                  <Ionicons
+                    name={statusIcons[step] as any}
+                    size={14}
+                    color={reached ? colors.white : colors.inkSoft}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.label,
+                    { color: reached ? colors.ink : colors.inkSoft },
+                    isCurrent && styles.activeLabel,
+                  ]}
+                >
+                  {step}
+                </Text>
+              </Wrapper>
+            </React.Fragment>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    paddingVertical: 8,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
+    justifyContent: 'space-between',
   },
   stepWrap: {
     alignItems: 'center',
     flex: 1,
   },
-  stamp: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+  badge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeBadge: {
+    transform: [{ scale: 1.15 }],
   },
   connector: {
     flex: 1,
-    height: 2,
-    marginBottom: 18,
+    height: 3,
+    borderRadius: 1.5,
+    marginHorizontal: -4,
+    marginBottom: 20,
   },
   label: {
     marginTop: 6,
-    fontFamily: fonts.body,
+    fontFamily: fonts.bodyMedium,
     fontSize: 11,
     textAlign: 'center',
+  },
+  activeLabel: {
+    fontFamily: fonts.bodyBold,
+    color: colors.clayDeep,
   },
 });

@@ -6,7 +6,6 @@ import {
   Pressable,
   StyleSheet,
   Linking,
-  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -52,7 +51,7 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
 
   useFocusEffect(loadCustomerData);
 
-  // Subscribe to live Realtime Database updates
+  // Subscribe to live Firestore updates
   useEffect(() => {
     const unsub = addDataListener(() => {
       loadCustomerData();
@@ -89,7 +88,7 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       {/* Customer Header Profile Card */}
       <View style={styles.profileCard}>
         <View style={styles.avatar}>
@@ -106,7 +105,7 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
           {customer.phone ? (
             <>
               <Pressable
-                style={styles.actionBtn}
+                style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.8 }]}
                 onPress={() => Linking.openURL(`tel:${customer.phone}`)}
               >
                 <Ionicons name="call" size={16} color={colors.white} />
@@ -114,7 +113,7 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
               </Pressable>
 
               <Pressable
-                style={[styles.actionBtn, { backgroundColor: colors.success }]}
+                style={({ pressed }) => [styles.actionBtn, { backgroundColor: colors.success }, pressed && { opacity: 0.8 }]}
                 onPress={() => {
                   const clean = customer.phone.replace(/[^0-9]/g, '');
                   Linking.openURL(`whatsapp://send?phone=${clean}`);
@@ -127,7 +126,7 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
           ) : null}
 
           <Pressable
-            style={[styles.actionBtn, { backgroundColor: colors.clayDeep }]}
+            style={({ pressed }) => [styles.actionBtn, { backgroundColor: colors.clayDeep }, pressed && { opacity: 0.8 }]}
             onPress={() =>
               navigation.navigate('OrderForm', {
                 prefillCustomerName: customer.name,
@@ -164,7 +163,10 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
       {/* Customer Note */}
       {customer.notes ? (
         <View style={styles.noteCard}>
-          <Text style={styles.sectionTitle}>Notes</Text>
+          <View style={styles.cardHeaderRow}>
+            <Ionicons name="document-text-outline" size={18} color={colors.clayDeep} />
+            <Text style={styles.sectionTitle}>Customer Notes</Text>
+          </View>
           <Text style={styles.noteText}>{customer.notes}</Text>
         </View>
       ) : null}
@@ -189,14 +191,17 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
       {/* Manage Customer Buttons */}
       <View style={styles.footerRow}>
         <Pressable
-          style={styles.editBtn}
+          style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.8 }]}
           onPress={() => navigation.navigate('CustomerForm', { customerId: customer.id })}
         >
           <Ionicons name="pencil" size={16} color={colors.ink} />
           <Text style={styles.editBtnText}>Edit Profile</Text>
         </Pressable>
 
-        <Pressable style={styles.deleteBtn} onPress={handleDelete}>
+        <Pressable
+          style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.8 }]}
+          onPress={handleDelete}
+        >
           <Ionicons name="trash-outline" size={16} color={colors.danger} />
           <Text style={styles.deleteBtnText}>Delete</Text>
         </Pressable>
@@ -222,19 +227,19 @@ const styles = StyleSheet.create({
   },
   profileCard: {
     backgroundColor: colors.paperCard,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 18,
+    padding: 20,
     alignItems: 'center',
     marginBottom: 14,
     ...shadow.card,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.clayLight,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.clayDeep,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
@@ -242,11 +247,11 @@ const styles = StyleSheet.create({
   avatarText: {
     fontFamily: fonts.display,
     fontSize: 32,
-    color: colors.clayDeep,
+    color: colors.white,
   },
   customerName: {
     fontFamily: fonts.display,
-    fontSize: 26,
+    fontSize: 28,
     color: colors.ink,
   },
   customerPhone: {
@@ -271,16 +276,17 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 14,
+    marginTop: 16,
   },
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.duskDeep,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radius.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: radius.md,
+    ...shadow.card,
   },
   actionBtnText: {
     fontFamily: fonts.bodyBold,
@@ -293,8 +299,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
+    padding: 14,
     marginBottom: 14,
     ...shadow.card,
   },
@@ -302,44 +307,50 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  statDivider: {
-    width: 1,
-    backgroundColor: colors.line,
-  },
   statLabel: {
     fontFamily: fonts.body,
     fontSize: 11,
     color: colors.inkSoft,
+    marginBottom: 2,
   },
   statVal: {
     fontFamily: fonts.bodyBold,
-    fontSize: 14,
+    fontSize: 15,
     color: colors.ink,
-    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: colors.line,
   },
   noteCard: {
     backgroundColor: colors.paperCard,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 14,
+    padding: 16,
     marginBottom: 14,
+    ...shadow.card,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   sectionTitle: {
     fontFamily: fonts.display,
     fontSize: 20,
     color: colors.clayDeep,
-    marginBottom: 8,
   },
   noteText: {
     fontFamily: fonts.body,
     fontSize: 13,
     color: colors.ink,
-    lineHeight: 18,
+    lineHeight: 19,
   },
   ordersHeaderRow: {
-    marginTop: 6,
-    marginBottom: 8,
+    marginVertical: 8,
   },
   emptyOrders: {
     fontFamily: fonts.body,
@@ -363,10 +374,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingVertical: 12,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
+    ...shadow.card,
   },
   editBtnText: {
-    fontFamily: fonts.bodyMedium,
+    fontFamily: fonts.bodyBold,
     fontSize: 13,
     color: colors.ink,
   },
@@ -380,10 +392,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.danger,
     paddingVertical: 12,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
+    ...shadow.card,
   },
   deleteBtnText: {
-    fontFamily: fonts.bodyMedium,
+    fontFamily: fonts.bodyBold,
     fontSize: 13,
     color: colors.danger,
   },

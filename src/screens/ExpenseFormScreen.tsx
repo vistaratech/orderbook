@@ -10,12 +10,15 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { ExpenseCategory, EXPENSE_CATEGORIES } from '../types/order';
 import { getExpense, saveExpense } from '../storage/expenseStorage';
 import { formatDate, todayIso } from '../utils/format';
-import { colors, fonts, radius, categoryColor } from '../theme/theme';
+import { colors, fonts, radius, shadow, categoryColor } from '../theme/theme';
+import { getBusinessProfile } from '../storage/businessProfileStorage';
+import { getBusinessPreset } from '../config/businessTypes';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExpenseForm'>;
 
@@ -26,19 +29,30 @@ export default function ExpenseFormScreen({ navigation, route }: Props) {
   const isEditing = !!expenseId;
 
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<ExpenseCategory>('Raw Materials');
+  const [category, setCategory] = useState<string>('Raw Materials');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(formatDate(todayIso()));
   const [paymentMethod, setPaymentMethod] = useState('UPI');
   const [saving, setSaving] = useState(false);
+  const [categoriesList, setCategoriesList] = useState<string[]>(EXPENSE_CATEGORIES as any);
 
   useEffect(() => {
     navigation.setOptions({
-      title: isEditing ? 'Edit Expense' : 'Record Outflow',
+      title: isEditing ? 'Edit Outflow' : 'Record Outflow',
     });
   }, [isEditing, navigation]);
 
   useEffect(() => {
+    getBusinessProfile().then((profile) => {
+      const preset = getBusinessPreset(profile.businessType);
+      if (preset.expenseCategories && preset.expenseCategories.length > 0) {
+        setCategoriesList(preset.expenseCategories);
+        if (!expenseId) {
+          setCategory(preset.expenseCategories[0]);
+        }
+      }
+    });
+
     if (expenseId) {
       getExpense(expenseId).then((exp) => {
         if (!exp) return;
@@ -80,37 +94,45 @@ export default function ExpenseFormScreen({ navigation, route }: Props) {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {/* Amount Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Expense Amount</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="wallet-outline" size={18} color={colors.outflow} />
+            <Text style={styles.sectionTitle}>Outflow Amount</Text>
+          </View>
           <View style={styles.amountInputRow}>
             <Text style={styles.currencySymbol}>₹</Text>
             <TextInput
               style={styles.amountInput}
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={(v) => setAmount(v.replace(/^0+(?=\d)/, ''))}
               keyboardType="decimal-pad"
               placeholder="0"
               placeholderTextColor={colors.inkSoft}
               autoFocus={!isEditing}
+              selectTextOnFocus
             />
           </View>
         </View>
 
         {/* Category Picker */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Category</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="pricetag-outline" size={18} color={colors.duskDeep} />
+            <Text style={styles.sectionTitle}>Category</Text>
+          </View>
           <View style={styles.categoryGrid}>
-            {EXPENSE_CATEGORIES.map((cat) => {
+            {categoriesList.map((cat) => {
               const active = cat === category;
-              const color = categoryColor[cat] || colors.clayDeep;
+              const color = categoryColor[cat as ExpenseCategory] || colors.duskDeep;
               return (
                 <Pressable
                   key={cat}
-                  style={[
+                  style={({ pressed }) => [
                     styles.categoryChip,
                     active && { backgroundColor: color, borderColor: color },
+                    pressed && { opacity: 0.8 },
                   ]}
                   onPress={() => setCategory(cat)}
                 >
@@ -125,7 +147,10 @@ export default function ExpenseFormScreen({ navigation, route }: Props) {
 
         {/* Details Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Details</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="document-text-outline" size={18} color={colors.clayDeep} />
+            <Text style={styles.sectionTitle}>Details</Text>
+          </View>
 
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Description / Notes</Text>
@@ -172,8 +197,12 @@ export default function ExpenseFormScreen({ navigation, route }: Props) {
         </View>
 
         {/* Save Button */}
-        <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-          <Text style={styles.saveBtnText}>{saving ? 'Saving…' : isEditing ? 'Update Expense' : 'Save Expense'}</Text>
+        <Pressable
+          style={({ pressed }) => [styles.saveBtn, saving && { opacity: 0.6 }, pressed && { opacity: 0.85 }]}
+          onPress={handleSave}
+          disabled={saving}
+        >
+          <Text style={styles.saveBtnText}>{saving ? 'Saving Outflow…' : isEditing ? 'Update Outflow' : 'Save Outflow Entry'}</Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -186,7 +215,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
   },
   content: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 60,
   },
   section: {
@@ -195,14 +224,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     padding: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
+    marginBottom: 14,
+    ...shadow.card,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontFamily: fonts.display,
     fontSize: 22,
     color: colors.clayDeep,
-    marginBottom: 10,
   },
   amountInputRow: {
     flexDirection: 'row',
@@ -232,8 +266,8 @@ const styles = StyleSheet.create({
   categoryChip: {
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: radius.sm,
-    paddingHorizontal: 12,
+    borderRadius: 16,
+    paddingHorizontal: 14,
     paddingVertical: 7,
     backgroundColor: colors.paper,
   },
@@ -265,7 +299,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    borderStyle: 'dashed',
+    borderStyle: 'dashed' as any,
     paddingVertical: 6,
   },
   chipRow: {
@@ -277,7 +311,7 @@ const styles = StyleSheet.create({
   chip: {
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: radius.sm,
+    borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: colors.paper,
@@ -301,6 +335,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 4,
+    ...shadow.card,
   },
   saveBtnText: {
     fontFamily: fonts.bodyBold,

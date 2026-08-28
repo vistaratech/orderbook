@@ -89,7 +89,7 @@ export default function RegisterScreen({ navigation }: Props) {
       } else if (code === 'auth/invalid-email') {
         msg = 'The email address is formatted incorrectly.';
       } else if (code === 'auth/operation-not-allowed') {
-        msg = 'Email/Password provider is not enabled in your Firebase Console. Please enable it under Firebase -> Authentication -> Sign-in method.';
+        msg = 'Email/Password provider is not enabled in your Firebase Console.';
       } else if (code === 'auth/network-request-failed') {
         msg = 'Network connection error. Please check your internet.';
       }
@@ -108,6 +108,7 @@ export default function RegisterScreen({ navigation }: Props) {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           {/* Header */}
           <View style={styles.header}>
@@ -122,7 +123,11 @@ export default function RegisterScreen({ navigation }: Props) {
 
           {/* Google Sign Up Button */}
           <Pressable
-            style={[styles.googleBtn, googleLoading && styles.googleBtnDisabled]}
+            style={({ pressed }) => [
+              styles.googleBtn,
+              googleLoading && styles.googleBtnDisabled,
+              pressed && { opacity: 0.85 },
+            ]}
             onPress={handleGoogleSignUp}
             disabled={googleLoading || saving}
           >
@@ -216,7 +221,7 @@ export default function RegisterScreen({ navigation }: Props) {
           </View>
 
           <Pressable
-            style={styles.submitBtn}
+            style={({ pressed }) => [styles.submitBtn, saving && { opacity: 0.6 }, pressed && { opacity: 0.85 }]}
             onPress={handleRegister}
             disabled={saving}
           >
@@ -306,10 +311,10 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.paperCard,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 16,
+    padding: 18,
     marginBottom: 16,
     ...shadow.card,
   },
@@ -328,7 +333,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    borderStyle: 'dashed',
+    borderStyle: 'dashed' as any,
     paddingVertical: 6,
   },
   submitBtn: {

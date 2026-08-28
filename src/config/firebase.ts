@@ -1,21 +1,22 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getDatabase, Database } from 'firebase/database';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
 import { Platform } from 'react-native';
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyDMUcAZsBx8h0n1wvcB2n7etYZIOl7SoBY",
-  authDomain: "orderbook-0001.firebaseapp.com",
-  databaseURL: "https://orderbook-0001-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "orderbook-0001",
-  storageBucket: "orderbook-0001.firebasestorage.app",
-  messagingSenderId: "665574608894",
-  appId: "1:665574608894:web:f4982fa43a21f329fb3aaf",
-  measurementId: "G-54S6B1C8QX"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
 };
+
+if (__DEV__ && !firebaseConfig.apiKey) {
+  console.warn('⚠️ Missing EXPO_PUBLIC_FIREBASE_API_KEY. Please verify your .env file.');
+}
 
 // Initialize Firebase App (prevent re-initializing on hot reload)
 export const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -23,8 +24,7 @@ export const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseC
 // Initialize Auth
 export const auth: Auth = getAuth(app);
 
-// Initialize Realtime Database & Firestore & Storage
-export const rtdb: Database = getDatabase(app);
+// Initialize Cloud Firestore & Storage
 export const db: Firestore = getFirestore(app);
 export const storage: FirebaseStorage = getStorage(app);
 

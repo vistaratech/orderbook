@@ -7,7 +7,6 @@ import {
   StyleSheet,
   TextInput,
   RefreshControl,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -50,7 +49,7 @@ export default function ExpensesScreen() {
     }, [loadExpenses])
   );
 
-  // Subscribe to live Realtime Database updates
+  // Subscribe to live Firestore updates
   useEffect(() => {
     const unsub = addDataListener(() => {
       loadExpenses(false);
@@ -110,7 +109,7 @@ export default function ExpensesScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Outflow Ledger</Text>
+          <Text style={styles.title}>Expenses</Text>
           <Text style={styles.subtitle}>Track raw materials, rent, shipping & costs</Text>
         </View>
       </View>
@@ -128,7 +127,7 @@ export default function ExpensesScreen() {
 
       {/* Search Input */}
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={17} color={colors.inkSoft} style={{ marginRight: 8 }} />
+        <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search outflow, notes, vendor…"
@@ -138,7 +137,7 @@ export default function ExpensesScreen() {
         />
         {searchQuery.length > 0 && (
           <Pressable onPress={() => setSearchQuery('')} style={{ padding: 2 }}>
-            <Ionicons name="close-circle" size={16} color={colors.inkSoft} />
+            <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
           </Pressable>
         )}
       </View>
@@ -160,8 +159,8 @@ export default function ExpensesScreen() {
                   styles.pill,
                   isSelected && styles.pillActive,
                   item !== 'All' && isSelected && {
-                    backgroundColor: categoryColor[item as ExpenseCategory] || colors.clayDeep,
-                    borderColor: categoryColor[item as ExpenseCategory] || colors.clayDeep,
+                    backgroundColor: categoryColor[item as ExpenseCategory] || colors.duskDeep,
+                    borderColor: categoryColor[item as ExpenseCategory] || colors.duskDeep,
                   },
                 ]}
                 onPress={() => setSelectedCategory(item as ExpenseCategory | 'All')}
@@ -181,11 +180,12 @@ export default function ExpensesScreen() {
         data={filteredExpenses}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
         }
         renderItem={({ item }) => {
-          const color = categoryColor[item.category] || colors.clayDeep;
+          const color = categoryColor[item.category] || colors.duskDeep;
           return (
             <View style={styles.expenseCard}>
               <View style={[styles.categoryIndicator, { backgroundColor: color }]} />
@@ -213,13 +213,13 @@ export default function ExpensesScreen() {
 
                   <View style={styles.actionIcons}>
                     <Pressable
-                      style={styles.iconBtn}
+                      style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
                       onPress={() => navigation.navigate('ExpenseForm', { expenseId: item.id })}
                     >
                       <Ionicons name="pencil" size={16} color={colors.inkSoft} />
                     </Pressable>
                     <Pressable
-                      style={styles.iconBtn}
+                      style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
                       onPress={() => handleDelete(item.id, item.description)}
                     >
                       <Ionicons name="trash-outline" size={16} color={colors.danger} />
@@ -234,11 +234,11 @@ export default function ExpensesScreen() {
           !loading ? (
             <EmptyState
               icon="wallet-outline"
-              title={searchQuery || selectedCategory !== 'All' ? 'No expenses match' : 'No expenses yet'}
+              title={searchQuery || selectedCategory !== 'All' ? 'No expenses match' : 'No expenses recorded yet'}
               message={
                 searchQuery || selectedCategory !== 'All'
                   ? 'Try selecting a different category or clearing your search.'
-                  : 'Tap the + button to record raw material purchases, rent, courier costs, or other outflow.'
+                  : 'Tap the "+ Add Outflow" button to record raw materials, rent, or shipping costs.'
               }
             />
           ) : null
@@ -247,10 +247,11 @@ export default function ExpensesScreen() {
 
       {/* Floating Add Expense Button */}
       <Pressable
-        style={styles.fab}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={() => navigation.navigate('ExpenseForm', undefined)}
       >
-        <Ionicons name="add" size={30} color={colors.white} />
+        <Ionicons name="wallet" size={22} color={colors.white} />
+        <Text style={styles.fabText}>+ Outflow</Text>
       </Pressable>
     </SafeAreaView>
   );
@@ -263,31 +264,50 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 6,
+    paddingTop: 14,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   title: {
     fontFamily: fonts.display,
-    fontSize: 36,
+    fontSize: 32,
     color: colors.ink,
+    lineHeight: 36,
   },
   subtitle: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.inkSoft,
-    marginTop: -4,
+    marginTop: 1,
+  },
+  newExpenseHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.duskDeep,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.md,
+    ...shadow.card,
+  },
+  newExpenseHeaderBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.white,
   },
   summaryCard: {
     backgroundColor: colors.paperCard,
     marginHorizontal: 20,
-    marginTop: 8,
+    marginTop: 4,
     marginBottom: 8,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
     borderLeftWidth: 4,
     borderLeftColor: colors.outflow,
-    padding: 14,
+    padding: 16,
     ...shadow.card,
   },
   summaryTop: {
@@ -308,7 +328,7 @@ const styles = StyleSheet.create({
   },
   summaryAmount: {
     fontFamily: fonts.display,
-    fontSize: 32,
+    fontSize: 36,
     color: colors.outflow,
   },
   searchBar: {
@@ -322,12 +342,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 12,
-    paddingVertical: 9,
-    shadowColor: colors.ink,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    paddingVertical: 10,
+    ...shadow.card,
   },
   searchInput: {
     flex: 1,
@@ -337,23 +353,23 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   pillsWrapper: {
-    marginBottom: 6,
+    marginBottom: 8,
   },
   pillsList: {
     paddingHorizontal: 20,
     gap: 8,
   },
   pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
     backgroundColor: colors.paperCard,
     borderWidth: 1,
     borderColor: colors.line,
   },
   pillActive: {
-    backgroundColor: colors.clayDeep,
-    borderColor: colors.clayDeep,
+    backgroundColor: colors.duskDeep,
+    borderColor: colors.duskDeep,
   },
   pillText: {
     fontFamily: fonts.body,
@@ -380,11 +396,11 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   categoryIndicator: {
-    width: 4,
+    width: 5,
   },
   expenseBody: {
     flex: 1,
-    padding: 12,
+    padding: 14,
   },
   expenseTopRow: {
     flexDirection: 'row',
@@ -397,9 +413,9 @@ const styles = StyleSheet.create({
   },
   catBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
     marginBottom: 4,
   },
   catBadgeText: {
@@ -408,8 +424,8 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   expenseDesc: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
     color: colors.ink,
   },
   expenseAmount: {
@@ -425,7 +441,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: colors.line,
-    borderStyle: 'dashed',
+    borderStyle: 'dashed' as any,
   },
   metaRow: {
     flexDirection: 'row',
@@ -446,22 +462,32 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   iconBtn: {
-    padding: 2,
+    padding: 4,
   },
   fab: {
     position: 'absolute',
     right: 20,
     bottom: 24,
-    width: 56,
-    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     borderRadius: 28,
     backgroundColor: colors.duskDeep,
-    alignItems: 'center',
-    justifyContent: 'center',
+    elevation: 6,
     shadowColor: colors.ink,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 6,
+  },
+  fabPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.96 }],
+  },
+  fabText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.white,
   },
 });

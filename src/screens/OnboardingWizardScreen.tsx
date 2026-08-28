@@ -16,8 +16,14 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
 import { registerUser, loginAsGuest } from '../storage/authStorage';
+import { saveBusinessProfile } from '../storage/businessProfileStorage';
 import AppLogo from '../components/AppLogo';
 import { colors, fonts, radius, shadow } from '../theme/theme';
+import {
+  BusinessType,
+  BUSINESS_TYPES_LIST,
+  BUSINESS_TYPE_PRESETS,
+} from '../config/businessTypes';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingWizard'>;
 
@@ -56,6 +62,7 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
   const [saving, setSaving] = useState(false);
+  const [selectedBusinessType, setSelectedBusinessType] = useState<BusinessType>('general');
 
   const handleNext = () => {
     if (currentStep < 2) {
@@ -103,6 +110,14 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
         password: password.trim(),
         pin: pin.trim() || undefined,
       });
+
+      // Save business type to profile
+      await saveBusinessProfile({
+        businessName: businessName.trim(),
+        phone: phone.trim(),
+        businessType: selectedBusinessType,
+      });
+
       navigation.replace('MainTabs');
     } catch (e: any) {
       const code = e?.code;
@@ -165,7 +180,7 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
           </View>
 
           <Pressable onPress={handleExplorePublic} style={styles.topBtn}>
-            <Text style={styles.skipText}>Public Mode</Text>
+            <Text style={styles.skipText}>Visitor Mode</Text>
           </Pressable>
         </View>
 
@@ -200,14 +215,15 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
             {/* Bottom Actions */}
             <View style={styles.bottomActions}>
               <Pressable
-                style={[
+                style={({ pressed }) => [
                   styles.nextBtn,
                   { backgroundColor: SLIDES[currentStep].color },
+                  pressed && { opacity: 0.85 },
                 ]}
                 onPress={handleNext}
               >
                 <Text style={styles.nextBtnText}>
-                  {currentStep === 2 ? 'Start Setup Wizard' : 'Next Step'}
+                  {currentStep === 2 ? 'Start Store Setup' : 'Next Step'}
                 </Text>
                 <Ionicons name="arrow-forward" size={18} color={colors.white} />
               </Pressable>
@@ -224,6 +240,7 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
           <ScrollView
             contentContainerStyle={styles.formScrollContent}
             keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
             <View style={styles.formHeader}>
               <View style={{ alignItems: 'center', marginBottom: 10 }}>
@@ -233,6 +250,44 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
               <Text style={styles.formSubtitle}>
                 Set up your business notebook and 4-digit unlock passcode.
               </Text>
+            </View>
+
+            {/* Business Type Selector Grid */}
+            <View style={styles.card}>
+              <Text style={[styles.fieldLabel, { marginBottom: 12 }]}>What type of business do you run?</Text>
+              <View style={styles.typeGrid}>
+                {BUSINESS_TYPES_LIST.map((typeKey) => {
+                  const preset = BUSINESS_TYPE_PRESETS[typeKey];
+                  const isSelected = selectedBusinessType === typeKey;
+                  return (
+                    <Pressable
+                      key={typeKey}
+                      style={[
+                        styles.typeCard,
+                        isSelected && styles.typeCardSelected,
+                      ]}
+                      onPress={() => setSelectedBusinessType(typeKey)}
+                    >
+                      <View style={[
+                        styles.typeIconBox,
+                        isSelected && { backgroundColor: colors.clayDeep },
+                      ]}>
+                        <Ionicons
+                          name={preset.icon as any}
+                          size={20}
+                          color={isSelected ? colors.white : colors.clayDeep}
+                        />
+                      </View>
+                      <Text style={[
+                        styles.typeLabel,
+                        isSelected && { color: colors.clayDeep, fontFamily: fonts.bodyBold },
+                      ]}>
+                        {preset.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
 
             <View style={styles.card}>
@@ -248,24 +303,12 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Owner / Your Name *</Text>
+                <Text style={styles.fieldLabel}>Owner Name *</Text>
                 <TextInput
                   style={styles.input}
                   value={ownerName}
                   onChangeText={setOwnerName}
-                  placeholder="e.g. Ananya Kumar"
-                  placeholderTextColor={colors.inkSoft}
-                />
-              </View>
-
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Business Phone Number</Text>
-                <TextInput
-                  style={styles.input}
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                  placeholder="10-digit mobile number"
+                  placeholder="e.g. Priya"
                   placeholderTextColor={colors.inkSoft}
                 />
               </View>
@@ -278,7 +321,19 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  placeholder="owner@example.com"
+                  placeholder="your.email@example.com"
+                  placeholderTextColor={colors.inkSoft}
+                />
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Phone Number</Text>
+                <TextInput
+                  style={styles.input}
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  placeholder="10-digit mobile number"
                   placeholderTextColor={colors.inkSoft}
                 />
               </View>
@@ -290,42 +345,39 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
-                  placeholder="Create a secure password"
+                  placeholder="Create password"
                   placeholderTextColor={colors.inkSoft}
                 />
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Quick 4-Digit Unlock PIN (Optional)</Text>
+                <Text style={styles.fieldLabel}>Quick 4-Digit Unlock PIN (Default: 1234)</Text>
                 <TextInput
-                  style={[styles.input, { letterSpacing: 8, fontSize: 20 }]}
+                  style={[styles.input, { letterSpacing: 8, fontSize: 18 }]}
                   value={pin}
                   onChangeText={setPin}
                   keyboardType="number-pad"
                   maxLength={4}
+                  secureTextEntry
                   placeholder="1234"
                   placeholderTextColor={colors.inkSoft}
-                  secureTextEntry
                 />
-                <Text style={styles.helperText}>
-                  Optional quick unlock for this device
-                </Text>
               </View>
             </View>
 
             <Pressable
-              style={styles.completeBtn}
+              style={({ pressed }) => [styles.finishBtn, saving && { opacity: 0.6 }, pressed && { opacity: 0.85 }]}
               onPress={handleFinishSetup}
               disabled={saving}
             >
-              <Text style={styles.completeBtnText}>
-                {saving ? 'Setting Up…' : 'Launch Order Book 🚀'}
+              <Text style={styles.finishBtnText}>
+                {saving ? 'Creating Store…' : 'Finish & Open Order Book'}
               </Text>
             </Pressable>
 
             <Pressable style={styles.loginLinkBtn} onPress={handleGoToLogin}>
               <Text style={styles.loginLinkText}>
-                Or <Text style={styles.boldUnderline}>Log In</Text> with existing credentials
+                Already registered? <Text style={styles.boldUnderline}>Log In</Text>
               </Text>
             </Pressable>
           </ScrollView>
@@ -343,15 +395,18 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+
+  // Top Bar
   topBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
   topBtn: {
-    padding: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
   },
   skipText: {
     fontFamily: fonts.bodyMedium,
@@ -360,7 +415,8 @@ const styles = StyleSheet.create({
   },
   dotsRow: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
+    alignItems: 'center',
   },
   dot: {
     width: 8,
@@ -369,14 +425,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.line,
   },
   dotActive: {
-    width: 20,
+    width: 24,
+    height: 8,
+    borderRadius: 4,
   },
+
+  // Slide Body
   slideContainer: {
     flex: 1,
-    paddingHorizontal: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 24,
     paddingTop: 20,
+    paddingBottom: 30,
+    alignItems: 'center',
   },
   iconGraphicWrap: {
     width: 140,
@@ -384,19 +444,19 @@ const styles = StyleSheet.create({
     borderRadius: 70,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 28,
+    marginBottom: 24,
     ...shadow.card,
   },
   slideTitle: {
     fontFamily: fonts.display,
-    fontSize: 34,
+    fontSize: 32,
     color: colors.ink,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   slideSubtitle: {
     fontFamily: fonts.body,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.inkSoft,
     textAlign: 'center',
     lineHeight: 22,
@@ -407,7 +467,6 @@ const styles = StyleSheet.create({
   },
   bottomActions: {
     width: '100%',
-    paddingBottom: 24,
     gap: 14,
   },
   nextBtn: {
@@ -426,7 +485,7 @@ const styles = StyleSheet.create({
   },
   loginLinkBtn: {
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 8,
   },
   loginLinkText: {
     fontFamily: fonts.body,
@@ -437,30 +496,35 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     color: colors.clayDeep,
   },
+
+  // Setup Form Step
   formScrollContent: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 10,
     paddingBottom: 40,
   },
   formHeader: {
+    alignItems: 'center',
     marginBottom: 16,
   },
   formTitle: {
     fontFamily: fonts.display,
-    fontSize: 32,
+    fontSize: 28,
     color: colors.clayDeep,
   },
   formSubtitle: {
     fontFamily: fonts.body,
     fontSize: 13,
     color: colors.inkSoft,
+    textAlign: 'center',
     marginTop: 2,
   },
   card: {
     backgroundColor: colors.paperCard,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 16,
+    padding: 18,
     marginBottom: 16,
     ...shadow.card,
   },
@@ -479,25 +543,56 @@ const styles = StyleSheet.create({
     color: colors.ink,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    borderStyle: 'dashed',
+    borderStyle: 'dashed' as any,
     paddingVertical: 6,
   },
-  helperText: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.inkSoft,
-    marginTop: 4,
-  },
-  completeBtn: {
+  finishBtn: {
     backgroundColor: colors.clayDeep,
     borderRadius: radius.md,
     paddingVertical: 16,
     alignItems: 'center',
     ...shadow.card,
   },
-  completeBtnText: {
+  finishBtnText: {
     fontFamily: fonts.bodyBold,
     fontSize: 16,
     color: colors.white,
+  },
+
+  // Business Type Selector Grid
+  typeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  typeCard: {
+    width: '30%' as any,
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.paperCard,
+  },
+  typeCardSelected: {
+    borderColor: colors.clayDeep,
+    backgroundColor: colors.clayLight,
+    borderWidth: 2,
+  },
+  typeIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.clayLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  typeLabel: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.inkSoft,
+    textAlign: 'center',
   },
 });

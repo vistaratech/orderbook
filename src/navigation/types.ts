@@ -13,6 +13,8 @@ export type RootStackParamList = {
   ProductList: undefined;
   ProductForm: { productId?: string } | undefined;
   Settings: undefined;
+  BusinessProfile: undefined;
+  History: undefined;
 };
 
 export type MainTabParamList = {

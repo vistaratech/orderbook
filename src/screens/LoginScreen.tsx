@@ -144,6 +144,7 @@ export default function LoginScreen({ navigation }: Props) {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           {/* ── Logo & Brand ─────────────────────────────── */}
           <View style={styles.brandHeader}>
@@ -203,7 +204,11 @@ export default function LoginScreen({ navigation }: Props) {
             <View style={styles.emailCard}>
               {/* Google Sign In Button */}
               <Pressable
-                style={[styles.googleBtn, googleLoading && styles.googleBtnDisabled]}
+                style={({ pressed }) => [
+                  styles.googleBtn,
+                  googleLoading && styles.googleBtnDisabled,
+                  pressed && { opacity: 0.85 },
+                ]}
                 onPress={handleGoogleSignIn}
                 disabled={googleLoading || loading}
               >
@@ -277,7 +282,11 @@ export default function LoginScreen({ navigation }: Props) {
 
               {/* Sign In Button */}
               <Pressable
-                style={[styles.signInBtn, loading && styles.signInBtnDisabled]}
+                style={({ pressed }) => [
+                  styles.signInBtn,
+                  loading && styles.signInBtnDisabled,
+                  pressed && { opacity: 0.85 },
+                ]}
                 onPress={handleEmailLogin}
                 disabled={loading || googleLoading}
               >
@@ -336,7 +345,7 @@ export default function LoginScreen({ navigation }: Props) {
                         return (
                           <Pressable
                             key={cIdx}
-                            style={styles.keypadBtn}
+                            style={({ pressed }) => [styles.keypadBtn, pressed && { opacity: 0.7 }]}
                             onPress={handlePinDelete}
                           >
                             <Ionicons name="backspace-outline" size={24} color={colors.ink} />
@@ -346,7 +355,7 @@ export default function LoginScreen({ navigation }: Props) {
                       return (
                         <Pressable
                           key={cIdx}
-                          style={styles.keypadBtn}
+                          style={({ pressed }) => [styles.keypadBtn, pressed && { opacity: 0.7 }]}
                           onPress={() => handlePinDigit(btn)}
                         >
                           <Text style={styles.keypadBtnText}>{btn}</Text>
@@ -398,7 +407,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingTop: 28,
     paddingBottom: 40,
     alignItems: 'center',
@@ -409,33 +418,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  logoBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.clayDeep,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-    ...shadow.card,
-  },
-  brandTitle: {
-    fontFamily: fonts.display,
-    fontSize: 36,
-    color: colors.ink,
-  },
-  brandSubtitle: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.inkSoft,
-    marginTop: -2,
-  },
 
   // ── Mode Tabs ──
   modeTabs: {
     flexDirection: 'row',
     backgroundColor: colors.paperCard,
-    borderRadius: radius.sm,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.line,
     padding: 3,
@@ -449,7 +437,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 9,
-    borderRadius: radius.sm - 2,
+    borderRadius: 18,
   },
   modeTabActive: {
     backgroundColor: colors.clayDeep,
@@ -468,7 +456,7 @@ const styles = StyleSheet.create({
   emailCard: {
     width: '100%',
     backgroundColor: colors.paperCard,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
     padding: 20,
@@ -482,7 +470,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
     borderWidth: 1.5,
     borderColor: colors.line,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
     paddingVertical: 13,
     marginBottom: 4,
     ...shadow.card,
@@ -493,17 +481,6 @@ const styles = StyleSheet.create({
   googleBtnText: {
     fontFamily: fonts.bodyBold,
     fontSize: 15,
-    color: colors.ink,
-  },
-  emailCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 20,
-  },
-  emailCardTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 16,
     color: colors.ink,
   },
   inputGroup: {
@@ -521,7 +498,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.paper,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 12,
@@ -553,11 +530,12 @@ const styles = StyleSheet.create({
   signInBtn: {
     flexDirection: 'row',
     backgroundColor: colors.clayDeep,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    ...shadow.card,
   },
   signInBtnDisabled: {
     opacity: 0.7,
@@ -589,7 +567,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 12,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.duskDeep,
     backgroundColor: colors.paper,

@@ -54,7 +54,7 @@ export async function saveCustomer(
       };
       all[idx] = updated;
       await writeAll(all);
-      syncItemToCloud('customers', updated).catch(() => {});
+      await syncItemToCloud('customers', updated);
       return updated;
     }
   }
@@ -67,12 +67,12 @@ export async function saveCustomer(
   };
   all.push(created);
   await writeAll(all);
-  syncItemToCloud('customers', created).catch(() => {});
+  await syncItemToCloud('customers', created);
   return created;
 }
 
 export async function deleteCustomer(id: string): Promise<void> {
   const all = await readAll();
   await writeAll(all.filter((c) => c.id !== id));
-  deleteItemFromCloud('customers', id).catch(() => {});
+  await deleteItemFromCloud('customers', id);
 }

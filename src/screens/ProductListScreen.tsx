@@ -7,8 +7,8 @@ import {
   StyleSheet,
   TextInput,
   RefreshControl,
-  Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,7 +47,7 @@ export default function ProductListScreen() {
     }, [loadProducts])
   );
 
-  // Subscribe to live Realtime Database changes
+  // Subscribe to live Firestore updates
   useEffect(() => {
     const unsub = addDataListener(() => {
       loadProducts(false);
@@ -81,10 +81,27 @@ export default function ProductListScreen() {
   }, [products, searchQuery]);
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>Catalog</Text>
+          <Text style={styles.subtitle}>
+            {filteredProducts.length} product{filteredProducts.length === 1 ? '' : 's'} in store catalog
+          </Text>
+        </View>
+        <Pressable
+          style={({ pressed }) => [styles.newProductHeaderBtn, pressed && { opacity: 0.8 }]}
+          onPress={() => navigation.navigate('ProductForm', undefined)}
+        >
+          <Ionicons name="add" size={20} color={colors.white} />
+          <Text style={styles.newProductHeaderBtnText}>Add</Text>
+        </Pressable>
+      </View>
+
       {/* Search Bar */}
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={17} color={colors.inkSoft} style={{ marginRight: 8 }} />
+        <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search products in catalog…"
@@ -94,15 +111,9 @@ export default function ProductListScreen() {
         />
         {searchQuery.length > 0 && (
           <Pressable onPress={() => setSearchQuery('')} style={{ padding: 2 }}>
-            <Ionicons name="close-circle" size={16} color={colors.inkSoft} />
+            <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
           </Pressable>
         )}
-      </View>
-
-      <View style={styles.subHeader}>
-        <Text style={styles.subHeaderText}>
-          {filteredProducts.length} product{filteredProducts.length === 1 ? '' : 's'} in catalog
-        </Text>
       </View>
 
       {/* Product List */}
@@ -110,11 +121,16 @@ export default function ProductListScreen() {
         data={filteredProducts}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
         }
         renderItem={({ item }) => (
           <View style={styles.productCard}>
+            <View style={styles.productIconWrap}>
+              <Ionicons name="cube-outline" size={22} color={colors.duskDeep} />
+            </View>
+
             <View style={styles.productLeft}>
               <Text style={styles.productName}>{item.name}</Text>
               <View style={styles.unitBadge}>
@@ -126,13 +142,13 @@ export default function ProductListScreen() {
               <Text style={styles.productPrice}>{formatCurrency(item.defaultPrice)}</Text>
               <View style={styles.actions}>
                 <Pressable
-                  style={styles.iconBtn}
+                  style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
                   onPress={() => navigation.navigate('ProductForm', { productId: item.id })}
                 >
                   <Ionicons name="pencil" size={16} color={colors.inkSoft} />
                 </Pressable>
                 <Pressable
-                  style={styles.iconBtn}
+                  style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
                   onPress={() => handleDelete(item.id, item.name)}
                 >
                   <Ionicons name="trash-outline" size={16} color={colors.danger} />
@@ -158,12 +174,13 @@ export default function ProductListScreen() {
 
       {/* Floating Add Product Button */}
       <Pressable
-        style={styles.fab}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={() => navigation.navigate('ProductForm', undefined)}
       >
-        <Ionicons name="add" size={30} color={colors.white} />
+        <Ionicons name="add" size={22} color={colors.white} />
+        <Text style={styles.fabText}>+ Item</Text>
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -172,23 +189,54 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.paper,
   },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  title: {
+    fontFamily: fonts.display,
+    fontSize: 32,
+    color: colors.ink,
+    lineHeight: 36,
+  },
+  subtitle: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
+  newProductHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.duskDeep,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.md,
+    ...shadow.card,
+  },
+  newProductHeaderBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.white,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.paperCard,
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
+    marginHorizontal: 20,
+    marginTop: 4,
+    marginBottom: 10,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 12,
-    paddingVertical: 9,
-    shadowColor: colors.ink,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    paddingVertical: 10,
+    ...shadow.card,
   },
   searchInput: {
     flex: 1,
@@ -197,22 +245,12 @@ const styles = StyleSheet.create({
     color: colors.ink,
     padding: 0,
   },
-  subHeader: {
-    paddingHorizontal: 20,
-    marginBottom: 8,
-  },
-  subHeaderText: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
-  },
   listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 90,
+    paddingHorizontal: 20,
+    paddingBottom: 100,
   },
   productCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: colors.paperCard,
     borderRadius: radius.md,
@@ -220,7 +258,16 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 14,
     marginBottom: 10,
+    gap: 12,
     ...shadow.card,
+  },
+  productIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.duskLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   productLeft: {
     flex: 1,
@@ -238,7 +285,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    marginTop: 4,
+    marginTop: 3,
   },
   unitBadgeText: {
     fontFamily: fonts.body,
@@ -247,34 +294,44 @@ const styles = StyleSheet.create({
   },
   productRight: {
     alignItems: 'flex-end',
-    gap: 6,
+    gap: 4,
   },
   productPrice: {
     fontFamily: fonts.bodyBold,
     fontSize: 16,
-    color: colors.clayDeep,
+    color: colors.duskDeep,
   },
   actions: {
     flexDirection: 'row',
     gap: 12,
   },
   iconBtn: {
-    padding: 2,
+    padding: 4,
   },
   fab: {
     position: 'absolute',
     right: 20,
     bottom: 24,
-    width: 56,
-    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     borderRadius: 28,
     backgroundColor: colors.duskDeep,
-    alignItems: 'center',
-    justifyContent: 'center',
+    elevation: 6,
     shadowColor: colors.ink,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 6,
+  },
+  fabPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.96 }],
+  },
+  fabText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.white,
   },
 });

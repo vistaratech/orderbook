@@ -14,6 +14,7 @@ export interface OrderItem {
   name: string;
   qty: number;
   price: number;
+  unit?: string;
 }
 
 export interface Order {
@@ -34,7 +35,6 @@ export interface Order {
   advance: number;
 
   status: OrderStatus;
-  isPinned?: boolean;
 
   createdAt: string;
   updatedAt: string;
@@ -58,7 +58,8 @@ export type ExpenseCategory =
   | 'Utilities'
   | 'Salary'
   | 'Marketing'
-  | 'Miscellaneous';
+  | 'Miscellaneous'
+  | (string & {});
 
 export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   'Raw Materials',
@@ -97,9 +98,9 @@ export interface Customer {
 
 // ─── Product Catalog ────────────────────────────────────────────────
 
-export type ProductUnit = 'pcs' | 'kg' | 'meter' | 'liter' | 'box' | 'set';
+export type ProductUnit = 'pcs' | 'kg' | 'meter' | 'liter' | 'box' | 'set' | 'grams' | 'hours' | 'pairs' | 'bags' | 'sqft';
 
-export const PRODUCT_UNITS: ProductUnit[] = ['pcs', 'kg', 'meter', 'liter', 'box', 'set'];
+export const PRODUCT_UNITS: ProductUnit[] = ['pcs', 'kg', 'meter', 'liter', 'box', 'set', 'grams', 'hours', 'pairs', 'bags', 'sqft'];
 
 export interface Product {
   id: string;

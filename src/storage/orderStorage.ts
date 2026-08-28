@@ -56,17 +56,7 @@ export async function nextOrderNumber(): Promise<string> {
     }
   }
 
-  const raw = await AsyncStorage.getItem(SEQ_KEY);
-  if (raw) {
-    const seq = parseInt(raw, 10);
-    if (!isNaN(seq) && seq > maxNum) {
-      maxNum = seq;
-    }
-  }
-
   const next = maxNum + 1;
-  await AsyncStorage.setItem(SEQ_KEY, String(next));
-  syncValueToCloud('settings/orderSeq', next).catch(() => {});
   return `#${String(next).padStart(4, '0')}`;
 }
 
@@ -83,8 +73,24 @@ export async function saveOrder(
       orders[idx] = updated;
       await writeAll(orders);
       // Sync updated item to cloud atomically
-      syncItemToCloud('orders', updated).catch(() => {});
+      await syncItemToCloud('orders', updated);
       return updated;
+    }
+  }
+
+  // Update order sequence for new orders
+  if (order.orderNumber) {
+    const match = order.orderNumber.match(/\d+/);
+    if (match) {
+      const n = parseInt(match[0], 10);
+      if (!isNaN(n)) {
+        const raw = await AsyncStorage.getItem(SEQ_KEY);
+        const currentSeq = raw ? parseInt(raw, 10) : 0;
+        if (isNaN(currentSeq) || n >= currentSeq) {
+          await AsyncStorage.setItem(SEQ_KEY, String(n));
+          await syncValueToCloud('settings/orderSeq', n);
+        }
+      }
     }
   }
 
@@ -97,14 +103,14 @@ export async function saveOrder(
   orders.push(created);
   await writeAll(orders);
   // Sync new item to cloud atomically
-  syncItemToCloud('orders', created).catch(() => {});
+  await syncItemToCloud('orders', created);
   return created;
 }
 
 export async function deleteOrder(id: string): Promise<void> {
   const orders = await readAll();
   await writeAll(orders.filter((o) => o.id !== id));
-  deleteItemFromCloud('orders', id).catch(() => {});
+  await deleteItemFromCloud('orders', id);
 }
 
 export async function setOrderStatus(id: string, status: Order['status']): Promise<void> {
@@ -113,24 +119,7 @@ export async function setOrderStatus(id: string, status: Order['status']): Promi
   if (idx >= 0) {
     orders[idx] = { ...orders[idx], status, updatedAt: todayIso() };
     await writeAll(orders);
-    syncItemToCloud('orders', orders[idx]).catch(() => {});
+    await syncItemToCloud('orders', orders[idx]);
   }
-}
-
-export async function togglePinOrder(id: string): Promise<Order | undefined> {
-  const orders = await readAll();
-  const idx = orders.findIndex((o) => o.id === id);
-  if (idx >= 0) {
-    const updated: Order = {
-      ...orders[idx],
-      isPinned: !orders[idx].isPinned,
-      updatedAt: todayIso(),
-    };
-    orders[idx] = updated;
-    await writeAll(orders);
-    syncItemToCloud('orders', updated).catch(() => {});
-    return updated;
-  }
-  return undefined;
 }
 

@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Linking,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -49,7 +50,7 @@ export default function CustomerListScreen() {
     }, [loadData])
   );
 
-  // Subscribe to live Realtime Database changes
+  // Subscribe to live Firestore updates
   useEffect(() => {
     const unsub = addDataListener(() => {
       loadData(false);
@@ -102,10 +103,27 @@ export default function CustomerListScreen() {
   };
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>Customers</Text>
+          <Text style={styles.subtitle}>
+            {filteredCustomers.length} registered client{filteredCustomers.length === 1 ? '' : 's'}
+          </Text>
+        </View>
+        <Pressable
+          style={({ pressed }) => [styles.newCustomerHeaderBtn, pressed && { opacity: 0.8 }]}
+          onPress={() => navigation.navigate('CustomerForm', undefined)}
+        >
+          <Ionicons name="person-add" size={18} color={colors.white} />
+          <Text style={styles.newCustomerHeaderBtnText}>Add</Text>
+        </Pressable>
+      </View>
+
       {/* Search Bar */}
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={17} color={colors.inkSoft} style={{ marginRight: 8 }} />
+        <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search customers by name or phone…"
@@ -115,16 +133,9 @@ export default function CustomerListScreen() {
         />
         {searchQuery.length > 0 && (
           <Pressable onPress={() => setSearchQuery('')} style={{ padding: 2 }}>
-            <Ionicons name="close-circle" size={16} color={colors.inkSoft} />
+            <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
           </Pressable>
         )}
-      </View>
-
-      {/* Customer Count Header */}
-      <View style={styles.subHeader}>
-        <Text style={styles.subHeaderText}>
-          {filteredCustomers.length} customer{filteredCustomers.length === 1 ? '' : 's'} registered
-        </Text>
       </View>
 
       {/* Customer List */}
@@ -132,6 +143,7 @@ export default function CustomerListScreen() {
         data={filteredCustomers}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
         }
@@ -143,7 +155,10 @@ export default function CustomerListScreen() {
           };
           return (
             <Pressable
-              style={styles.customerCard}
+              style={({ pressed }) => [
+                styles.customerCard,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+              ]}
               onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}
             >
               <View style={styles.customerHeader}>
@@ -155,7 +170,7 @@ export default function CustomerListScreen() {
 
                 <View style={styles.customerInfo}>
                   <Text style={styles.customerName}>{item.name}</Text>
-                  <Text style={styles.customerPhone}>{item.phone || 'No phone'}</Text>
+                  <Text style={styles.customerPhone}>{item.phone || 'No phone recorded'}</Text>
                 </View>
 
                 <View style={styles.customerStats}>
@@ -179,7 +194,7 @@ export default function CustomerListScreen() {
                 {item.phone ? (
                   <>
                     <Pressable
-                      style={styles.actionPill}
+                      style={({ pressed }) => [styles.actionPill, pressed && { opacity: 0.7 }]}
                       onPress={() => handleCall(item.phone)}
                     >
                       <Ionicons name="call-outline" size={14} color={colors.clayDeep} />
@@ -187,7 +202,7 @@ export default function CustomerListScreen() {
                     </Pressable>
 
                     <Pressable
-                      style={styles.actionPill}
+                      style={({ pressed }) => [styles.actionPill, pressed && { opacity: 0.7 }]}
                       onPress={() => handleWhatsApp(item.phone)}
                     >
                       <Ionicons name="logo-whatsapp" size={14} color={colors.success} />
@@ -199,7 +214,7 @@ export default function CustomerListScreen() {
                 ) : null}
 
                 <Pressable
-                  style={[styles.actionPill, styles.newOrderPill]}
+                  style={({ pressed }) => [styles.actionPill, styles.newOrderPill, pressed && { opacity: 0.7 }]}
                   onPress={() =>
                     navigation.navigate('OrderForm', {
                       prefillCustomerName: item.name,
@@ -223,7 +238,7 @@ export default function CustomerListScreen() {
               title={searchQuery ? 'No customers found' : 'No customers yet'}
               message={
                 searchQuery
-                  ? 'Try searching with a different name or number.'
+                  ? 'Try searching with a different name or phone number.'
                   : 'Customers are automatically saved when you create orders, or you can add them directly.'
               }
             />
@@ -233,12 +248,13 @@ export default function CustomerListScreen() {
 
       {/* Floating Add Customer Button */}
       <Pressable
-        style={styles.fab}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={() => navigation.navigate('CustomerForm', undefined)}
       >
-        <Ionicons name="person-add" size={24} color={colors.white} />
+        <Ionicons name="person-add" size={20} color={colors.white} />
+        <Text style={styles.fabText}>+ Customer</Text>
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -247,23 +263,54 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.paper,
   },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  title: {
+    fontFamily: fonts.display,
+    fontSize: 32,
+    color: colors.ink,
+    lineHeight: 36,
+  },
+  subtitle: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
+  newCustomerHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.clayDeep,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.md,
+    ...shadow.card,
+  },
+  newCustomerHeaderBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.white,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.paperCard,
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
+    marginHorizontal: 20,
+    marginTop: 4,
+    marginBottom: 10,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 12,
-    paddingVertical: 9,
-    shadowColor: colors.ink,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    paddingVertical: 10,
+    ...shadow.card,
   },
   searchInput: {
     flex: 1,
@@ -272,18 +319,9 @@ const styles = StyleSheet.create({
     color: colors.ink,
     padding: 0,
   },
-  subHeader: {
-    paddingHorizontal: 20,
-    marginBottom: 8,
-  },
-  subHeaderText: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
-  },
   listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 90,
+    paddingHorizontal: 20,
+    paddingBottom: 100,
   },
   customerCard: {
     backgroundColor: colors.paperCard,
@@ -291,8 +329,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     padding: 14,
-    marginBottom: 10,
-    overflow: 'hidden',
+    marginBottom: 12,
     ...shadow.card,
   },
   customerHeader: {
@@ -301,31 +338,31 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.clayLight,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.clayDeep,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     fontFamily: fonts.display,
     fontSize: 22,
-    color: colors.clayDeep,
+    color: colors.white,
   },
   customerInfo: {
     flex: 1,
   },
   customerName: {
     fontFamily: fonts.bodyBold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.ink,
   },
   customerPhone: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.inkSoft,
-    marginTop: 1,
+    marginTop: 2,
   },
   customerStats: {
     alignItems: 'flex-end',
@@ -339,17 +376,17 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 11,
     color: colors.inkSoft,
-    marginTop: 1,
+    marginTop: 2,
   },
   dueStrip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.dangerLight,
+    backgroundColor: '#FFEBEE',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: radius.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginTop: 8,
+    marginTop: 10,
   },
   dueText: {
     fontFamily: fonts.bodyBold,
@@ -359,45 +396,57 @@ const styles = StyleSheet.create({
   cardActions: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 10,
-    paddingTop: 8,
+    marginTop: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: colors.line,
-    borderStyle: 'dashed',
+    borderStyle: 'dashed' as any,
   },
   actionPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radius.sm,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
-  },
-  newOrderPill: {
-    marginLeft: 'auto',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.sm,
   },
   actionPillText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.clayDeep,
+  },
+  newOrderPill: {
+    marginLeft: 'auto',
+    backgroundColor: colors.duskLight,
+    borderColor: colors.duskDeep,
   },
   fab: {
     position: 'absolute',
     right: 20,
     bottom: 24,
-    width: 56,
-    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     borderRadius: 28,
     backgroundColor: colors.clayDeep,
-    alignItems: 'center',
-    justifyContent: 'center',
+    elevation: 6,
     shadowColor: colors.ink,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 6,
+  },
+  fabPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.96 }],
+  },
+  fabText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.white,
   },
 });

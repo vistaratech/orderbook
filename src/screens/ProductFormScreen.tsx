@@ -10,11 +10,14 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { ProductUnit, PRODUCT_UNITS } from '../types/order';
 import { getProduct, saveProduct } from '../storage/productStorage';
-import { colors, fonts, radius } from '../theme/theme';
+import { colors, fonts, radius, shadow } from '../theme/theme';
+import { getBusinessProfile } from '../storage/businessProfileStorage';
+import { getBusinessPreset } from '../config/businessTypes';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductForm'>;
 
@@ -29,11 +32,21 @@ export default function ProductFormScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     navigation.setOptions({
-      title: isEditing ? 'Edit Product' : 'New Product',
+      title: isEditing ? 'Edit Catalog Item' : 'New Catalog Item',
     });
   }, [isEditing, navigation]);
 
   useEffect(() => {
+    getBusinessProfile().then((profile) => {
+      const preset = getBusinessPreset(profile.businessType);
+      if (!productId && preset.defaultUnit) {
+        const matchedUnit = preset.defaultUnit.toLowerCase() as ProductUnit;
+        if (PRODUCT_UNITS.includes(matchedUnit)) {
+          setUnit(matchedUnit);
+        }
+      }
+    });
+
     if (productId) {
       getProduct(productId).then((p) => {
         if (!p) return;
@@ -71,9 +84,12 @@ export default function ProductFormScreen({ navigation, route }: Props) {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Product Details</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="pricetag-outline" size={18} color={colors.duskDeep} />
+            <Text style={styles.sectionTitle}>Product Information</Text>
+          </View>
 
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Product / Item Name *</Text>
@@ -92,10 +108,11 @@ export default function ProductFormScreen({ navigation, route }: Props) {
             <TextInput
               style={styles.input}
               value={defaultPrice}
-              onChangeText={setDefaultPrice}
+              onChangeText={(v) => setDefaultPrice(v.replace(/^0+(?=\d)/, ''))}
               keyboardType="decimal-pad"
               placeholder="0.00"
               placeholderTextColor={colors.inkSoft}
+              selectTextOnFocus
             />
           </View>
 
@@ -118,9 +135,13 @@ export default function ProductFormScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+        <Pressable
+          style={({ pressed }) => [styles.saveBtn, saving && { opacity: 0.6 }, pressed && { opacity: 0.85 }]}
+          onPress={handleSave}
+          disabled={saving}
+        >
           <Text style={styles.saveBtnText}>
-            {saving ? 'Saving…' : isEditing ? 'Update Product' : 'Save to Catalog'}
+            {saving ? 'Saving…' : isEditing ? 'Update Item' : 'Save to Catalog'}
           </Text>
         </Pressable>
       </ScrollView>
@@ -134,7 +155,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
   },
   content: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 60,
   },
   section: {
@@ -144,12 +165,18 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 16,
     marginBottom: 16,
+    ...shadow.card,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
   },
   sectionTitle: {
     fontFamily: fonts.display,
     fontSize: 22,
     color: colors.clayDeep,
-    marginBottom: 12,
   },
   field: {
     marginBottom: 14,
@@ -166,7 +193,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    borderStyle: 'dashed',
+    borderStyle: 'dashed' as any,
     paddingVertical: 6,
   },
   chipRow: {
@@ -178,8 +205,8 @@ const styles = StyleSheet.create({
   chip: {
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: radius.sm,
-    paddingHorizontal: 12,
+    borderRadius: 16,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     backgroundColor: colors.paper,
   },
@@ -202,6 +229,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 4,
+    ...shadow.card,
   },
   saveBtnText: {
     fontFamily: fonts.bodyBold,

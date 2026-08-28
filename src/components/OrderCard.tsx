@@ -8,68 +8,65 @@ import { formatCurrency, formatDate } from '../utils/format';
 interface Props {
   order: Order;
   onPress: () => void;
-  onTogglePin?: (orderId: string) => void;
 }
 
-export default function OrderCard({ order, onPress, onTogglePin }: Props) {
+export default function OrderCard({ order, onPress }: Props) {
   const total = orderTotal(order);
   const balance = orderBalance(order);
-  const isPinned = !!order.isPinned;
+  const itemCount = order.items.reduce((sum, i) => sum + i.qty, 0);
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.card,
-        isPinned && styles.pinnedCard,
         pressed && styles.pressed,
       ]}
       onPress={onPress}
     >
-      <View style={styles.topRow}>
-        <View style={styles.orderNoRow}>
-          <Text style={styles.orderNumber}>{order.orderNumber}</Text>
-          {isPinned && (
-            <View style={styles.pinnedTag}>
-              <Ionicons name="pin" size={10} color={colors.clayDeep} />
-              <Text style={styles.pinnedTagText}>PINNED</Text>
-            </View>
-          )}
-        </View>
+      {/* Top Status Accent Bar */}
+      <View
+        style={[
+          styles.accentDot,
+          { backgroundColor: statusColor[order.status] || colors.clay },
+        ]}
+      />
 
-        <View style={styles.topRightActions}>
-          <View style={[styles.badge, { backgroundColor: statusColor[order.status] }]}>
-            <Text style={styles.badgeText}>{order.status}</Text>
+      <View style={styles.cardInner}>
+        <View style={styles.topRow}>
+          <View style={styles.orderNoRow}>
+            <Text style={styles.orderNumber}>{order.orderNumber}</Text>
           </View>
 
-          {onTogglePin && (
-            <Pressable
-              style={styles.pinBtn}
-              hitSlop={10}
-              onPress={(e) => {
-                e.stopPropagation?.();
-                onTogglePin(order.id);
-              }}
-            >
-              <Ionicons
-                name={isPinned ? 'pin' : 'pin-outline'}
-                size={16}
-                color={isPinned ? colors.clayDeep : colors.inkSoft}
-              />
-            </Pressable>
-          )}
+          <View style={styles.topRightActions}>
+            <View style={[styles.badge, { backgroundColor: statusColor[order.status] || colors.clay }]}>
+              <Text style={styles.badgeText}>{order.status}</Text>
+            </View>
+          </View>
         </View>
-      </View>
 
-      <Text style={styles.customer}>{order.customerName || 'Unnamed customer'}</Text>
-      <Text style={styles.date}>{formatDate(order.orderDate)}</Text>
+        <View style={styles.middleRow}>
+          <View style={styles.customerInfo}>
+            <Text style={styles.customer}>{order.customerName || 'Unnamed customer'}</Text>
+            <Text style={styles.metaText}>
+              {formatDate(order.orderDate)} • {itemCount} item{itemCount === 1 ? '' : 's'}
+            </Text>
+          </View>
+        </View>
 
-      <View style={styles.divider} />
+        <View style={styles.divider} />
 
-      <View style={styles.bottomRow}>
-        <Text style={styles.total}>{formatCurrency(total)}</Text>
-        <Text style={[styles.balance, balance > 0 && styles.balanceDue]}>
-          {balance > 0 ? `Balance ${formatCurrency(balance)}` : 'Paid in full'}
-        </Text>
+        <View style={styles.bottomRow}>
+          <View>
+            <Text style={styles.totalLabel}>Total Amount</Text>
+            <Text style={styles.total}>{formatCurrency(total)}</Text>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={styles.totalLabel}>Payment</Text>
+            <Text style={[styles.balance, balance > 0 ? styles.balanceDue : styles.balancePaid]}>
+              {balance > 0 ? `Due ${formatCurrency(balance)}` : 'Paid ✓'}
+            </Text>
+          </View>
+        </View>
       </View>
     </Pressable>
   );
@@ -81,18 +78,25 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 14,
     marginBottom: 12,
+    overflow: 'hidden',
+    flexDirection: 'row',
     ...shadow.card,
+  },
+  accentDot: {
+    width: 5,
+  },
+  cardInner: {
+    flex: 1,
+    padding: 14,
   },
   pinnedCard: {
     backgroundColor: '#FFFDF6',
     borderColor: colors.clayDeep,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.clayDeep,
   },
   pressed: {
     opacity: 0.85,
+    transform: [{ scale: 0.98 }],
   },
   topRow: {
     flexDirection: 'row',
@@ -130,15 +134,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pinBtn: {
-    padding: 4,
+    padding: 5,
     borderRadius: radius.sm,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
   },
   badge: {
-    borderRadius: radius.sm,
-    paddingHorizontal: 8,
+    borderRadius: 12,
+    paddingHorizontal: 9,
     paddingVertical: 3,
   },
   badgeText: {
@@ -146,23 +150,27 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.white,
   },
+  middleRow: {
+    marginTop: 6,
+  },
+  customerInfo: {
+    gap: 1,
+  },
   customer: {
-    fontFamily: fonts.bodyMedium,
+    fontFamily: fonts.bodyBold,
     fontSize: 15,
     color: colors.ink,
-    marginTop: 4,
   },
-  date: {
+  metaText: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.inkSoft,
-    marginTop: 2,
   },
   divider: {
     height: 0,
     borderTopWidth: 1,
     borderTopColor: colors.line,
-    borderStyle: 'dashed',
+    borderStyle: 'dashed' as any,
     marginVertical: 10,
   },
   bottomRow: {
@@ -170,15 +178,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  totalLabel: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.inkSoft,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 1,
+  },
   total: {
     fontFamily: fonts.bodyBold,
     fontSize: 16,
     color: colors.ink,
   },
   balance: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.statusDelivered,
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+  },
+  balancePaid: {
+    color: colors.success,
   },
   balanceDue: {
     color: colors.danger,

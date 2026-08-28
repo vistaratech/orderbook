@@ -33,6 +33,22 @@ import AppLogo from '../components/AppLogo';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+// Greeting based on time of day
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good Morning';
+  if (h < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
+
+// Status icon map
+const statusIcons: Record<OrderStatus, string> = {
+  Placed: 'receipt-outline',
+  Packed: 'cube-outline',
+  Dispatched: 'paper-plane-outline',
+  Delivered: 'checkmark-done-circle-outline',
+};
+
 export default function DashboardScreen() {
   const navigation = useNavigation<Nav>();
   const [loading, setLoading] = useState(true);
@@ -43,6 +59,7 @@ export default function DashboardScreen() {
   // Pipeline Status Quick-Update Modal State
   const [activePipelineStatus, setActivePipelineStatus] = useState<OrderStatus | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [showFinancialDetails, setShowFinancialDetails] = useState(false);
 
   const loadData = useCallback(async (forceSync = false) => {
     try {
@@ -61,7 +78,7 @@ export default function DashboardScreen() {
     }, [loadData])
   );
 
-  // Subscribe to live Realtime Database changes from other devices
+  // Subscribe to live Firestore changes from other devices
   useEffect(() => {
     const unsub = addDataListener(() => {
       loadData(false);
@@ -87,7 +104,7 @@ export default function DashboardScreen() {
     }
   };
 
-  // Calculations
+  // Financial Calculations
   const totalSales = orders.reduce((sum, o) => sum + orderTotal(o), 0);
   const totalOutflow = expenses.reduce((sum, e) => sum + e.amount, 0);
   const totalCollected = orders.reduce((sum, o) => {
@@ -97,6 +114,10 @@ export default function DashboardScreen() {
   }, 0);
   const pendingCollection = orders.reduce((sum, o) => sum + Math.max(0, orderBalance(o)), 0);
   const netProfit = totalSales - totalOutflow;
+  const liquidCash = totalCollected - totalOutflow;
+  const profitMargin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : '0';
+  const collectionRate = totalSales > 0 ? Math.min(100, Math.round((totalCollected / totalSales) * 100)) : 0;
+  const avgOrderValue = orders.length > 0 ? Math.round(totalSales / orders.length) : 0;
 
   // Status breakdown
   const statusCounts: Record<OrderStatus, number> = {
@@ -111,7 +132,7 @@ export default function DashboardScreen() {
     }
   });
 
-  const recentOrders = orders.slice(0, 4);
+  const recentOrders = orders.slice(0, 5);
 
   // Orders filtered by the currently active pipeline status
   const pipelineFilteredOrders = activePipelineStatus
@@ -122,19 +143,23 @@ export default function DashboardScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
         }
       >
-        {/* Header */}
+        {/* ─── Header ─── */}
         <View style={styles.header}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <AppLogo size={36} variant="icon" />
-            <View>
-              <Text style={styles.title}>Business Pulse</Text>
-              <Text style={styles.subtitle}>
+          <View style={styles.headerLeft}>
+            <AppLogo size={40} variant="icon" />
+            <View style={styles.headerTextBlock}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={styles.greeting}>{getGreeting()}</Text>
+                <Ionicons name="sparkles" size={14} color={colors.clayDeep} />
+              </View>
+              <Text style={styles.headerDate}>
                 {new Date().toLocaleDateString('en-IN', {
-                  weekday: 'short',
+                  weekday: 'long',
                   day: 'numeric',
                   month: 'short',
                   year: 'numeric',
@@ -142,12 +167,20 @@ export default function DashboardScreen() {
               </Text>
             </View>
           </View>
-          <Pressable
-            style={styles.settingsIconBtn}
-            onPress={() => navigation.navigate('Settings')}
-          >
-            <Ionicons name="cog-outline" size={24} color={colors.inkSoft} />
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Pressable
+              style={styles.settingsBtn}
+              onPress={() => navigation.navigate('History')}
+            >
+              <Ionicons name="time-outline" size={22} color={colors.inkSoft} />
+            </Pressable>
+            <Pressable
+              style={styles.settingsBtn}
+              onPress={() => navigation.navigate('Settings')}
+            >
+              <Ionicons name="settings-outline" size={22} color={colors.inkSoft} />
+            </Pressable>
+          </View>
         </View>
 
         {loading ? (
@@ -156,166 +189,341 @@ export default function DashboardScreen() {
           </View>
         ) : (
           <>
-            {/* Net Financial Overview Card */}
-            <View style={[styles.card, styles.heroCard]}>
-              <View style={styles.heroHeader}>
-                <Text style={styles.heroTitle}>Net Business Balance</Text>
-                <View
-                  style={[
-                    styles.profitBadge,
-                    { backgroundColor: netProfit >= 0 ? colors.successLight : colors.dangerLight },
-                  ]}
-                >
+            {/* ─── Hero Financial Card ─── */}
+            <View style={styles.heroCard}>
+              <View style={styles.heroTopRow}>
+                <View>
+                  <Text style={styles.heroLabel}>Net Business Balance</Text>
                   <Text
                     style={[
-                      styles.profitBadgeText,
+                      styles.heroAmount,
                       { color: netProfit >= 0 ? colors.inflow : colors.outflow },
                     ]}
                   >
-                    {netProfit >= 0 ? 'Profitable' : 'Deficit'}
+                    {formatCurrency(netProfit)}
                   </Text>
                 </View>
-              </View>
-              <Text style={[styles.heroAmount, { color: netProfit >= 0 ? colors.inflow : colors.outflow }]}>
-                {formatCurrency(netProfit)}
-              </Text>
-              <Text style={styles.heroSub}>Sales (Inflow) − Expenses (Outflow)</Text>
-
-              <View style={styles.divider} />
-
-              <View style={styles.metricGrid}>
-                <View style={styles.metricItem}>
-                  <View style={styles.metricLabelRow}>
-                    <Ionicons name="arrow-down-circle" size={16} color={colors.inflow} />
-                    <Text style={styles.metricLabel}>Total Sales</Text>
+                <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                  <View
+                    style={[
+                      styles.profitPill,
+                      {
+                        backgroundColor: netProfit >= 0 ? '#E8F5E9' : '#FFEBEE',
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={netProfit >= 0 ? 'trending-up' : 'trending-down'}
+                      size={14}
+                      color={netProfit >= 0 ? colors.inflow : colors.outflow}
+                    />
+                    <Text
+                      style={[
+                        styles.profitPillText,
+                        { color: netProfit >= 0 ? colors.inflow : colors.outflow },
+                      ]}
+                    >
+                      {netProfit >= 0 ? `Profit (${profitMargin}%)` : `Deficit (${profitMargin}%)`}
+                    </Text>
                   </View>
-                  <Text style={[styles.metricValue, { color: colors.inflow }]}>
+                  <View style={styles.liquidBadge}>
+                    <Ionicons name="cash-outline" size={11} color={colors.clayDeep} />
+                    <Text style={styles.liquidBadgeText}>
+                      Liquid Cash: {formatCurrency(liquidCash)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Cash Collection Progress Bar */}
+              <View style={styles.collectionProgressWrap}>
+                <View style={styles.collectionProgressLabelRow}>
+                  <Text style={styles.collectionProgressTitle}>Collection Health</Text>
+                  <Text style={styles.collectionProgressPct}>{collectionRate}% Collected</Text>
+                </View>
+                <View style={styles.collectionProgressBarBg}>
+                  <View
+                    style={[
+                      styles.collectionProgressBarFill,
+                      { width: `${Math.min(100, Math.max(0, collectionRate))}%` },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              {/* 4 Metric Tiles */}
+              <View style={styles.metricsRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.metricTile,
+                    { borderLeftColor: colors.inflow },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                  onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'All' })}
+                >
+                  <Ionicons name="arrow-down-circle" size={18} color={colors.inflow} />
+                  <Text style={styles.metricTileLabel}>Sales</Text>
+                  <Text style={[styles.metricTileValue, { color: colors.inflow }]}>
                     {formatCurrency(totalSales)}
                   </Text>
-                </View>
+                </Pressable>
 
-                <View style={styles.metricItem}>
-                  <View style={styles.metricLabelRow}>
-                    <Ionicons name="arrow-up-circle" size={16} color={colors.outflow} />
-                    <Text style={styles.metricLabel}>Total Outflow</Text>
-                  </View>
-                  <Text style={[styles.metricValue, { color: colors.outflow }]}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.metricTile,
+                    { borderLeftColor: colors.outflow },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                  onPress={() => (navigation as any).navigate('ExpensesTab')}
+                >
+                  <Ionicons name="arrow-up-circle" size={18} color={colors.outflow} />
+                  <Text style={styles.metricTileLabel}>Outflow</Text>
+                  <Text style={[styles.metricTileValue, { color: colors.outflow }]}>
                     {formatCurrency(totalOutflow)}
                   </Text>
-                </View>
+                </Pressable>
               </View>
 
-              <View style={[styles.metricGrid, { marginTop: 12 }]}>
-                <View style={styles.metricItem}>
-                  <View style={styles.metricLabelRow}>
-                    <Ionicons name="checkmark-circle" size={16} color={colors.duskDeep} />
-                    <Text style={styles.metricLabel}>Collected</Text>
-                  </View>
-                  <Text style={styles.metricValue}>{formatCurrency(totalCollected)}</Text>
-                </View>
+              <View style={styles.metricsRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.metricTile,
+                    { borderLeftColor: colors.duskDeep },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                  onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Paid' })}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color={colors.duskDeep} />
+                  <Text style={styles.metricTileLabel}>Collected</Text>
+                  <Text style={styles.metricTileValue}>
+                    {formatCurrency(totalCollected)}
+                  </Text>
+                </Pressable>
 
-                <View style={styles.metricItem}>
-                  <View style={styles.metricLabelRow}>
-                    <Ionicons name="time" size={16} color={colors.pending} />
-                    <Text style={styles.metricLabel}>Pending Due</Text>
-                  </View>
-                  <Text style={[styles.metricValue, { color: colors.pending }]}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.metricTile,
+                    { borderLeftColor: colors.pending },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                  onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Pending', initialSort: 'due' })}
+                >
+                  <Ionicons name="time" size={18} color={colors.pending} />
+                  <Text style={styles.metricTileLabel}>Pending Dues</Text>
+                  <Text style={[styles.metricTileValue, { color: colors.pending }]}>
                     {formatCurrency(pendingCollection)}
                   </Text>
-                </View>
+                </Pressable>
               </View>
+
+              {/* Expandable Financial Analysis Panel Toggle */}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.expandFinancialBtn,
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={() => setShowFinancialDetails(!showFinancialDetails)}
+              >
+                <Ionicons
+                  name={showFinancialDetails ? 'chevron-up' : 'analytics-outline'}
+                  size={15}
+                  color={colors.clayDeep}
+                />
+                <Text style={styles.expandFinancialBtnText}>
+                  {showFinancialDetails ? 'Hide Financial Breakdown' : 'View Financial Breakdown & Cash Position'}
+                </Text>
+              </Pressable>
+
+              {showFinancialDetails && (
+                <View style={styles.financialBreakdownPanel}>
+                  <View style={styles.breakdownItemRow}>
+                    <View style={styles.breakdownLabelGroup}>
+                      <Ionicons name="cash" size={15} color={colors.inflow} />
+                      <Text style={styles.breakdownLabelText}>Liquid Cash In-Hand / Bank</Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.breakdownValText,
+                        { color: liquidCash >= 0 ? colors.inflow : colors.outflow },
+                      ]}
+                    >
+                      {formatCurrency(liquidCash)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.breakdownItemRow}>
+                    <View style={styles.breakdownLabelGroup}>
+                      <Ionicons name="pie-chart" size={15} color={colors.duskDeep} />
+                      <Text style={styles.breakdownLabelText}>Net Profit Margin</Text>
+                    </View>
+                    <Text style={styles.breakdownValText}>{profitMargin}%</Text>
+                  </View>
+
+                  <View style={styles.breakdownItemRow}>
+                    <View style={styles.breakdownLabelGroup}>
+                      <Ionicons name="cart" size={15} color={colors.clayDeep} />
+                      <Text style={styles.breakdownLabelText}>Average Order Value (AOV)</Text>
+                    </View>
+                    <Text style={styles.breakdownValText}>{formatCurrency(avgOrderValue)}</Text>
+                  </View>
+
+                  <View style={styles.breakdownItemRow}>
+                    <View style={styles.breakdownLabelGroup}>
+                      <Ionicons name="shield-checkmark" size={15} color={colors.statusDelivered} />
+                      <Text style={styles.breakdownLabelText}>Order Collection Efficiency</Text>
+                    </View>
+                    <Text style={styles.breakdownValText}>{collectionRate}%</Text>
+                  </View>
+                </View>
+              )}
             </View>
 
-            {/* Fast Action Buttons */}
+            {/* ─── Quick Action Buttons ─── */}
             <View style={styles.actionsRow}>
               <Pressable
-                style={[styles.actionButton, { backgroundColor: colors.clayDeep }]}
+                style={({ pressed }) => [
+                  styles.actionBtn,
+                  styles.actionBtnPrimary,
+                  pressed && styles.actionBtnPressed,
+                ]}
                 onPress={() => navigation.navigate('OrderForm', undefined)}
               >
-                <Ionicons name="cart" size={20} color={colors.white} />
-                <Text style={styles.actionButtonText}>+ New Order</Text>
+                <View style={styles.actionBtnIcon}>
+                  <Ionicons name="cart" size={20} color={colors.white} />
+                </View>
+                <Text style={styles.actionBtnText}>New Order</Text>
               </Pressable>
 
               <Pressable
-                style={[styles.actionButton, { backgroundColor: colors.duskDeep }]}
+                style={({ pressed }) => [
+                  styles.actionBtn,
+                  styles.actionBtnSecondary,
+                  pressed && styles.actionBtnPressed,
+                ]}
                 onPress={() => navigation.navigate('ExpenseForm', undefined)}
               >
-                <Ionicons name="wallet" size={20} color={colors.white} />
-                <Text style={styles.actionButtonText}>+ Add Outflow</Text>
+                <View style={[styles.actionBtnIcon, { backgroundColor: colors.dusk }]}>
+                  <Ionicons name="wallet" size={20} color={colors.white} />
+                </View>
+                <Text style={[styles.actionBtnText, { color: colors.duskDeep }]}>
+                  Add Outflow
+                </Text>
               </Pressable>
             </View>
 
-            {/* Interactive Order Pipeline Status */}
-            <View style={styles.card}>
-              <View style={styles.pipelineHeaderRow}>
-                <Text style={styles.sectionHeading}>Order Pipeline</Text>
-                <Text style={styles.pipelineHint}>Tap to update status ⚡</Text>
+            {/* ─── Order Pipeline ─── */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>Order Pipeline</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={styles.sectionHint}>Tap to manage</Text>
+                  <Ionicons name="options-outline" size={12} color={colors.clayDeep} />
+                </View>
               </View>
-              <View style={styles.statusGrid}>
-                {ORDER_STATUS_STEPS.map((st) => {
+              <View style={styles.pipelineRow}>
+                {ORDER_STATUS_STEPS.map((st, idx) => {
                   const cnt = statusCounts[st] || 0;
                   const color = statusColor[st] || colors.clay;
+                  const isLast = idx === ORDER_STATUS_STEPS.length - 1;
                   return (
-                    <Pressable
-                      key={st}
-                      style={({ pressed }) => [
-                        styles.statusBox,
-                        pressed && styles.statusBoxPressed,
-                        cnt > 0 && { borderColor: color, backgroundColor: '#FFFDF9' },
-                      ]}
-                      onPress={() => setActivePipelineStatus(st)}
-                    >
-                      <View style={[styles.statusDot, { backgroundColor: color }]} />
-                      <Text style={[styles.statusNumber, cnt > 0 && { color }]}>
-                        {cnt}
-                      </Text>
-                      <Text style={styles.statusName}>{st}</Text>
-                    </Pressable>
+                    <React.Fragment key={st}>
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.pipelineItem,
+                          pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] },
+                        ]}
+                        onPress={() => setActivePipelineStatus(st)}
+                      >
+                        <View style={[styles.pipelineCircle, { backgroundColor: cnt > 0 ? color : colors.line }]}>
+                          <Ionicons
+                            name={statusIcons[st] as any}
+                            size={18}
+                            color={cnt > 0 ? colors.white : colors.inkSoft}
+                          />
+                        </View>
+                        <Text style={[styles.pipelineCount, cnt > 0 && { color }]}>{cnt}</Text>
+                        <Text style={styles.pipelineName}>{st}</Text>
+                      </Pressable>
+                      {!isLast && (
+                        <View style={styles.pipelineConnector}>
+                          <View style={styles.pipelineConnectorLine} />
+                          <Ionicons name="chevron-forward" size={10} color={colors.line} />
+                        </View>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </View>
             </View>
 
-            {/* Recent Orders List */}
-            <View style={styles.card}>
-              <View style={styles.cardHeaderWithLink}>
-                <Text style={styles.sectionHeading}>Recent Orders</Text>
-                <Pressable onPress={() => navigation.navigate('OrderList')}>
-                  <Text style={styles.viewAllText}>View All ({orders.length})</Text>
+            {/* ─── Recent Orders ─── */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>Recent Orders</Text>
+                <Pressable
+                  style={styles.viewAllBtn}
+                  onPress={() => navigation.navigate('OrderList')}
+                >
+                  <Text style={styles.viewAllText}>All ({orders.length})</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.duskDeep} />
                 </Pressable>
               </View>
 
               {recentOrders.length === 0 ? (
-                <Text style={styles.emptyText}>No orders recorded yet. Tap "+ New Order" to start!</Text>
+                <View style={styles.emptyState}>
+                  <Ionicons name="document-text-outline" size={40} color={colors.line} />
+                  <Text style={styles.emptyTitle}>No orders yet</Text>
+                  <Text style={styles.emptyDesc}>
+                    Tap "New Order" to create your first order!
+                  </Text>
+                </View>
               ) : (
-                recentOrders.map((o) => {
+                recentOrders.map((o, idx) => {
                   const bal = orderBalance(o);
+                  const isLast = idx === recentOrders.length - 1;
                   return (
                     <Pressable
                       key={o.id}
-                      style={styles.recentOrderItem}
+                      style={({ pressed }) => [
+                        styles.orderRow,
+                        !isLast && styles.orderRowBorder,
+                        pressed && { backgroundColor: '#F9F5EC' },
+                      ]}
                       onPress={() => navigation.navigate('OrderDetail', { orderId: o.id })}
                     >
-                      <View style={styles.recentOrderLeft}>
-                        <Text style={styles.recentOrderNo}>{o.orderNumber}</Text>
-                        <Text style={styles.recentCustomer}>{o.customerName || 'Customer'}</Text>
-                        <Text style={styles.recentDate}>{formatDate(o.orderDate)}</Text>
-                      </View>
-                      <View style={styles.recentOrderRight}>
-                        <Text style={styles.recentOrderTotal}>{formatCurrency(orderTotal(o))}</Text>
-                        <View
-                          style={[
-                            styles.miniBadge,
-                            { backgroundColor: statusColor[o.status] || colors.clay },
-                          ]}
-                        >
-                          <Text style={styles.miniBadgeText}>{o.status}</Text>
+                      {/* Status indicator dot */}
+                      <View
+                        style={[
+                          styles.orderStatusDot,
+                          { backgroundColor: statusColor[o.status] || colors.clay },
+                        ]}
+                      />
+                      <View style={styles.orderInfo}>
+                        <View style={styles.orderTopLine}>
+                          <Text style={styles.orderNo}>{o.orderNumber}</Text>
+                          <Text style={styles.orderAmount}>{formatCurrency(orderTotal(o))}</Text>
                         </View>
-                        {bal > 0 ? (
-                          <Text style={styles.pendingDueText}>Due {formatCurrency(bal)}</Text>
-                        ) : (
-                          <Text style={styles.paidText}>Paid</Text>
-                        )}
+                        <View style={styles.orderBottomLine}>
+                          <Text style={styles.orderCustomer} numberOfLines={1}>
+                            {o.customerName || 'Customer'}
+                          </Text>
+                          <View style={styles.orderMeta}>
+                            <View
+                              style={[
+                                styles.statusChip,
+                                { backgroundColor: statusColor[o.status] || colors.clay },
+                              ]}
+                            >
+                              <Text style={styles.statusChipText}>{o.status}</Text>
+                            </View>
+                            {bal > 0 ? (
+                              <Text style={styles.dueBadge}>₹{bal.toLocaleString('en-IN')} due</Text>
+                            ) : (
+                              <Text style={styles.paidBadge}>Paid ✓</Text>
+                            )}
+                          </View>
+                        </View>
+                        <Text style={styles.orderDate}>{formatDate(o.orderDate)}</Text>
                       </View>
                     </Pressable>
                   );
@@ -323,24 +531,34 @@ export default function DashboardScreen() {
               )}
             </View>
 
-            {/* Quick Links to Management Tools */}
-            <View style={styles.grid2}>
+            {/* ─── Quick Tools Grid ─── */}
+            <View style={styles.toolsGrid}>
               <Pressable
-                style={[styles.toolCard, { borderColor: colors.line }]}
+                style={({ pressed }) => [
+                  styles.toolCard,
+                  pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+                ]}
                 onPress={() => navigation.navigate('CustomerList')}
               >
-                <Ionicons name="people-outline" size={26} color={colors.clayDeep} />
-                <Text style={styles.toolTitle}>Customers</Text>
-                <Text style={styles.toolSub}>Directory & history</Text>
+                <View style={[styles.toolIconWrap, { backgroundColor: colors.clayLight }]}>
+                  <Ionicons name="people" size={22} color={colors.clayDeep} />
+                </View>
+                <Text style={styles.toolName}>Customers</Text>
+                <Text style={styles.toolDesc}>Directory & history</Text>
               </Pressable>
 
               <Pressable
-                style={[styles.toolCard, { borderColor: colors.line }]}
+                style={({ pressed }) => [
+                  styles.toolCard,
+                  pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+                ]}
                 onPress={() => navigation.navigate('ProductList')}
               >
-                <Ionicons name="pricetags-outline" size={26} color={colors.duskDeep} />
-                <Text style={styles.toolTitle}>Catalog</Text>
-                <Text style={styles.toolSub}>Products & prices</Text>
+                <View style={[styles.toolIconWrap, { backgroundColor: colors.duskLight }]}>
+                  <Ionicons name="pricetags" size={22} color={colors.duskDeep} />
+                </View>
+                <Text style={styles.toolName}>Catalog</Text>
+                <Text style={styles.toolDesc}>Products & prices</Text>
               </Pressable>
             </View>
           </>
@@ -354,8 +572,17 @@ export default function DashboardScreen() {
         transparent
         onRequestClose={() => setActivePipelineStatus(null)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setActivePipelineStatus(null)}
+        >
+          <Pressable
+            style={styles.modalSheet}
+            onPress={(e) => e.stopPropagation?.()}
+          >
+            {/* Drag Handle */}
+            <View style={styles.modalHandle} />
+
             {/* Modal Header */}
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderTitleRow}>
@@ -367,46 +594,80 @@ export default function DashboardScreen() {
                       : null,
                   ]}
                 >
+                  <Ionicons
+                    name={(activePipelineStatus ? statusIcons[activePipelineStatus] : 'cube-outline') as any}
+                    size={15}
+                    color={colors.white}
+                  />
                   <Text style={styles.modalStatusBadgeText}>
-                    {activePipelineStatus} ({pipelineFilteredOrders.length})
+                    {activePipelineStatus} stage ({pipelineFilteredOrders.length})
                   </Text>
                 </View>
-                <Text style={styles.modalSubtitle}>Tap any status below to update</Text>
+                <Text style={styles.modalSubtitle}>Manage stage status & quick progress orders</Text>
               </View>
               <Pressable
                 onPress={() => setActivePipelineStatus(null)}
                 style={styles.modalCloseBtn}
                 hitSlop={12}
               >
-                <Ionicons name="close-circle" size={26} color={colors.inkSoft} />
+                <Ionicons name="close-circle" size={28} color={colors.inkSoft} />
               </Pressable>
             </View>
 
             {/* Status Switcher Tabs inside modal */}
-            <View style={styles.modalStatusTabs}>
-              {ORDER_STATUS_STEPS.map((st) => {
-                const isActive = activePipelineStatus === st;
-                const count = statusCounts[st] || 0;
-                return (
-                  <Pressable
-                    key={st}
-                    style={[
-                      styles.modalStatusTab,
-                      isActive && { backgroundColor: statusColor[st], borderColor: statusColor[st] },
-                    ]}
-                    onPress={() => setActivePipelineStatus(st)}
-                  >
-                    <Text
+            <View style={styles.modalStatusTabsWrap}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.modalStatusTabsContent}
+              >
+                {ORDER_STATUS_STEPS.map((st) => {
+                  const isActive = activePipelineStatus === st;
+                  const count = statusCounts[st] || 0;
+                  const activeColor = statusColor[st];
+                  return (
+                    <Pressable
+                      key={st}
                       style={[
-                        styles.modalStatusTabText,
-                        isActive && styles.modalStatusTabTextActive,
+                        styles.modalStatusTab,
+                        isActive && { backgroundColor: activeColor, borderColor: activeColor },
                       ]}
+                      onPress={() => setActivePipelineStatus(st)}
                     >
-                      {st} ({count})
-                    </Text>
-                  </Pressable>
-                );
-              })}
+                      <Ionicons
+                        name={statusIcons[st] as any}
+                        size={15}
+                        color={isActive ? colors.white : colors.inkSoft}
+                      />
+                      <Text
+                        style={[
+                          styles.modalStatusTabText,
+                          isActive && styles.modalStatusTabTextActive,
+                        ]}
+                      >
+                        {st}
+                      </Text>
+                      <View
+                        style={[
+                          styles.modalStatusTabCountBadge,
+                          isActive
+                            ? { backgroundColor: 'rgba(255,255,255,0.25)' }
+                            : { backgroundColor: colors.line },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.modalStatusTabCountText,
+                            isActive && { color: colors.white },
+                          ]}
+                        >
+                          {count}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
             </View>
 
             {/* Orders List for Active Status */}
@@ -429,21 +690,54 @@ export default function DashboardScreen() {
                 contentContainerStyle={styles.modalListContent}
                 renderItem={({ item }) => {
                   const bal = orderBalance(item);
+                  const tot = orderTotal(item);
                   const isUpdating = updatingOrderId === item.id;
+                  const currentIdx = ORDER_STATUS_STEPS.indexOf(item.status);
+                  const nextStep = currentIdx < ORDER_STATUS_STEPS.length - 1 ? ORDER_STATUS_STEPS[currentIdx + 1] : null;
+                  const firstChar = (item.customerName || 'C').charAt(0).toUpperCase();
+
                   return (
-                    <View style={styles.pipelineOrderCard}>
-                      {/* Top Order Info */}
-                      <View style={styles.pipelineCardTop}>
-                        <View>
-                          <Text style={styles.pipelineOrderNo}>{item.orderNumber}</Text>
+                    <View
+                      style={[
+                        styles.pipelineOrderCard,
+                        { borderLeftColor: statusColor[item.status] || colors.clay },
+                      ]}
+                    >
+                      {/* Top Order Number & Amount Header */}
+                      <View style={styles.pipelineCardTopHeader}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <View style={styles.orderNoBadge}>
+                            <Ionicons name="receipt" size={13} color={colors.clayDeep} />
+                            <Text style={styles.pipelineOrderNo}>{item.orderNumber}</Text>
+                          </View>
+                          {bal > 0 ? (
+                            <View style={styles.dueBadgeWrap}>
+                              <Text style={styles.dueBadgeText}>₹{bal.toLocaleString('en-IN')} due</Text>
+                            </View>
+                          ) : (
+                            <View style={styles.paidBadgeWrap}>
+                              <Text style={styles.paidBadgeText}>Paid ✓</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <Text style={styles.pipelineCardTotalAmount}>{formatCurrency(tot)}</Text>
+                      </View>
+
+                      {/* Customer Info & Date Row */}
+                      <View style={styles.customerRow}>
+                        <View style={styles.customerAvatar}>
+                          <Text style={styles.customerAvatarText}>{firstChar}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
                           <Text style={styles.pipelineCustomerName}>
                             {item.customerName || 'Customer'}
                           </Text>
                           <Text style={styles.pipelineOrderDate}>
-                            {formatDate(item.orderDate)} • {formatCurrency(orderTotal(item))}
-                            {bal > 0 ? ` (Due ${formatCurrency(bal)})` : ' (Paid)'}
+                            {formatDate(item.orderDate)} • {item.items.length} {item.items.length === 1 ? 'Item' : 'Items'}
                           </Text>
                         </View>
+
                         <Pressable
                           style={styles.viewDetailBtn}
                           onPress={() => {
@@ -456,50 +750,76 @@ export default function DashboardScreen() {
                         </Pressable>
                       </View>
 
-                      {/* Quick Status Selector Pills */}
-                      <View style={styles.statusUpdateRow}>
-                        <Text style={styles.updateStatusLabel}>Move to:</Text>
-                        <View style={styles.statusPillsWrap}>
-                          {ORDER_STATUS_STEPS.map((step) => {
-                            const isCurrent = item.status === step;
-                            const stepColor = statusColor[step];
-                            return (
+                      {/* Mini Visual Pipeline Progress Bar */}
+                      <View style={styles.miniTrackerWrap}>
+                        {ORDER_STATUS_STEPS.map((step, idx) => {
+                          const reached = idx <= currentIdx;
+                          const isCurrent = idx === currentIdx;
+                          const stepColor = statusColor[step];
+                          return (
+                            <React.Fragment key={step}>
+                              {idx > 0 && (
+                                <View
+                                  style={[
+                                    styles.miniConnectorLine,
+                                    { backgroundColor: reached ? stepColor : colors.line },
+                                  ]}
+                                />
+                              )}
                               <Pressable
-                                key={step}
                                 disabled={isUpdating}
                                 style={[
-                                  styles.statusPillBtn,
-                                  isCurrent && {
-                                    backgroundColor: stepColor,
+                                  styles.miniStepNode,
+                                  {
                                     borderColor: stepColor,
+                                    backgroundColor: reached ? stepColor : colors.paperCard,
                                   },
+                                  isCurrent && styles.miniStepNodeActive,
                                 ]}
                                 onPress={() => handleQuickStatusChange(item.id, step)}
                               >
-                                {isUpdating && isCurrent ? (
-                                  <ActivityIndicator size="small" color={colors.white} />
-                                ) : (
-                                  <Text
-                                    style={[
-                                      styles.statusPillText,
-                                      isCurrent && styles.statusPillTextActive,
-                                    ]}
-                                  >
-                                    {step}
-                                  </Text>
-                                )}
+                                <Ionicons
+                                  name={statusIcons[step] as any}
+                                  size={10}
+                                  color={reached ? colors.white : colors.inkSoft}
+                                />
                               </Pressable>
-                            );
-                          })}
-                        </View>
+                            </React.Fragment>
+                          );
+                        })}
                       </View>
+
+                      {/* Prominent Next Stage Action Button */}
+                      {nextStep && (
+                        <Pressable
+                          disabled={isUpdating}
+                          style={({ pressed }) => [
+                            styles.primaryAdvanceBtn,
+                            { backgroundColor: statusColor[nextStep] },
+                            pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+                          ]}
+                          onPress={() => handleQuickStatusChange(item.id, nextStep)}
+                        >
+                          {isUpdating ? (
+                            <ActivityIndicator size="small" color={colors.white} />
+                          ) : (
+                            <>
+                              <Ionicons name="sparkles" size={14} color={colors.white} />
+                              <Text style={styles.primaryAdvanceBtnText}>
+                                Move to {nextStep} Stage
+                              </Text>
+                              <Ionicons name="arrow-forward-circle" size={16} color={colors.white} />
+                            </>
+                          )}
+                        </Pressable>
+                      )}
                     </View>
                   );
                 }}
               />
             )}
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );
@@ -514,264 +834,425 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 40,
   },
+
+  // ─── Header ───
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    marginBottom: 8,
+    paddingVertical: 14,
+    marginBottom: 4,
   },
-  title: {
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerTextBlock: {
+    gap: 1,
+  },
+  greeting: {
     fontFamily: fonts.display,
-    fontSize: 36,
+    fontSize: 28,
     color: colors.ink,
+    lineHeight: 32,
   },
-  subtitle: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
+  headerDate: {
+    fontFamily: fonts.body,
+    fontSize: 12,
     color: colors.inkSoft,
-    marginTop: -4,
   },
-  settingsIconBtn: {
-    padding: 8,
-    borderRadius: radius.md,
+  settingsBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: colors.paperCard,
     borderWidth: 1,
     borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   loaderWrap: {
     paddingVertical: 60,
     alignItems: 'center',
   },
-  card: {
+
+  // ─── Hero Financial Card ───
+  heroCard: {
+    backgroundColor: colors.paperCard,
+    borderRadius: radius.lg,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    ...shadow.card,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  heroLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.inkSoft,
+    marginBottom: 4,
+  },
+  heroAmount: {
+    fontFamily: fonts.display,
+    fontSize: 40,
+    lineHeight: 44,
+  },
+  profitPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  profitPillText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+  },
+  liquidBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.paper,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  liquidBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.clayDeep,
+  },
+  collectionProgressWrap: {
+    marginBottom: 14,
+    backgroundColor: colors.paper,
+    padding: 10,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  collectionProgressLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  collectionProgressTitle: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  collectionProgressPct: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.duskDeep,
+  },
+  collectionProgressBarBg: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.line,
+    overflow: 'hidden',
+  },
+  collectionProgressBarFill: {
+    height: '100%',
+    backgroundColor: colors.duskDeep,
+    borderRadius: 3,
+  },
+  expandFinancialBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 6,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    borderStyle: 'dashed' as any,
+  },
+  expandFinancialBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.clayDeep,
+  },
+  financialBreakdownPanel: {
+    marginTop: 10,
+    paddingTop: 10,
+    backgroundColor: colors.paper,
+    borderRadius: radius.sm,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    gap: 10,
+  },
+  breakdownItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  breakdownLabelGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  breakdownLabelText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  breakdownValText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.ink,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  metricTile: {
+    flex: 1,
+    backgroundColor: colors.paper,
+    borderRadius: radius.sm,
+    padding: 12,
+    borderLeftWidth: 3,
+    gap: 4,
+  },
+  metricTileLabel: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  metricTileValue: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+    color: colors.ink,
+  },
+
+  // ─── Action Buttons ───
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    gap: 10,
+    ...shadow.card,
+  },
+  actionBtnPrimary: {
+    backgroundColor: colors.clayDeep,
+  },
+  actionBtnSecondary: {
+    backgroundColor: colors.paperCard,
+    borderWidth: 1.5,
+    borderColor: colors.duskDeep,
+  },
+  actionBtnPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.97 }],
+  },
+  actionBtnIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+    color: colors.white,
+  },
+
+  // ─── Section Card ───
+  sectionCard: {
     backgroundColor: colors.paperCard,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
     padding: 16,
     marginBottom: 16,
-    overflow: 'hidden',
     ...shadow.card,
   },
-  heroCard: {
-    backgroundColor: '#FFFDF8',
-    borderColor: colors.line,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.clayDeep,
-  },
-  heroHeader: {
+  sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 14,
   },
-  heroTitle: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    color: colors.inkSoft,
-  },
-  profitBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-  },
-  profitBadgeText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-  },
-  heroAmount: {
-    fontFamily: fonts.display,
-    fontSize: 38,
-    marginVertical: 4,
-  },
-  heroSub: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
-    marginBottom: 8,
-  },
-  divider: {
-    height: 0,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-    borderStyle: 'dashed',
-    marginVertical: 12,
-  },
-  metricGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  metricItem: {
-    flex: 1,
-  },
-  metricLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
-  },
-  metricLabel: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
-  },
-  metricValue: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    color: colors.ink,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 13,
-    borderRadius: radius.md,
-    gap: 8,
-    elevation: 2,
-    shadowColor: colors.ink,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  actionButtonText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: colors.white,
-  },
-  pipelineHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  sectionHeading: {
+  sectionTitle: {
     fontFamily: fonts.display,
     fontSize: 22,
     color: colors.clayDeep,
   },
-  pipelineHint: {
+  sectionHint: {
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
     color: colors.clayDeep,
   },
-  cardHeaderWithLink: {
+
+  // ─── Pipeline ───
+  pipelineRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+  },
+  pipelineItem: {
+    alignItems: 'center',
+    gap: 4,
+    flex: 1,
+  },
+  pipelineCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  pipelineCount: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 17,
+    color: colors.ink,
+  },
+  pipelineName: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.inkSoft,
+  },
+  pipelineConnector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: -18,
+  },
+  pipelineConnectorLine: {
+    width: 8,
+    height: 1.5,
+    backgroundColor: colors.line,
+  },
+
+  // ─── Recent Orders ───
+  viewAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
   viewAllText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
     color: colors.duskDeep,
   },
-  statusGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  statusBox: {
-    flex: 1,
+  emptyState: {
     alignItems: 'center',
-    paddingVertical: 12,
-    backgroundColor: colors.paper,
-    borderRadius: radius.sm,
-    borderWidth: 1.5,
-    borderColor: colors.line,
+    paddingVertical: 24,
+    gap: 6,
   },
-  statusBoxPressed: {
-    opacity: 0.7,
-    transform: [{ scale: 0.97 }],
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginBottom: 6,
-  },
-  statusNumber: {
+  emptyTitle: {
     fontFamily: fonts.bodyBold,
-    fontSize: 18,
+    fontSize: 14,
     color: colors.ink,
   },
-  statusName: {
+  emptyDesc: {
     fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.inkSoft,
-    marginTop: 2,
-  },
-  emptyText: {
-    fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.inkSoft,
     textAlign: 'center',
-    paddingVertical: 16,
   },
-  recentOrderItem: {
+  orderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    gap: 12,
+  },
+  orderRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    borderStyle: 'dashed' as any,
+  },
+  orderStatusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 5,
+  },
+  orderInfo: {
+    flex: 1,
+    gap: 3,
+  },
+  orderTopLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
   },
-  recentOrderLeft: {
-    flex: 1,
-  },
-  recentOrderNo: {
+  orderNo: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.clayDeep,
   },
-  recentCustomer: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    color: colors.ink,
-    marginTop: 1,
-  },
-  recentDate: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.inkSoft,
-    marginTop: 1,
-  },
-  recentOrderRight: {
-    alignItems: 'flex-end',
-    gap: 3,
-  },
-  recentOrderTotal: {
+  orderAmount: {
     fontFamily: fonts.bodyBold,
     fontSize: 15,
     color: colors.ink,
   },
-  miniBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
+  orderBottomLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  miniBadgeText: {
+  orderCustomer: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.ink,
+    flex: 1,
+  },
+  orderMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusChip: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  statusChipText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 10,
     color: colors.white,
   },
-  pendingDueText: {
+  dueBadge: {
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
     color: colors.danger,
   },
-  paidText: {
-    fontFamily: fonts.body,
+  paidBadge: {
+    fontFamily: fonts.bodyMedium,
     fontSize: 11,
     color: colors.success,
   },
-  grid2: {
+  orderDate: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+
+  // ─── Tools Grid ───
+  toolsGrid: {
     flexDirection: 'row',
     gap: 12,
     marginBottom: 16,
@@ -781,40 +1262,56 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paperCard,
     borderRadius: radius.md,
     borderWidth: 1,
-    padding: 14,
+    borderColor: colors.line,
+    padding: 16,
     alignItems: 'center',
+    gap: 6,
     ...shadow.card,
   },
-  toolTitle: {
+  toolIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  toolName: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.ink,
-    marginTop: 6,
   },
-  toolSub: {
+  toolDesc: {
     fontFamily: fonts.body,
     fontSize: 11,
     color: colors.inkSoft,
-    marginTop: 2,
   },
 
   // ─── Modal Styles ───
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(30, 24, 18, 0.24)',
     justifyContent: 'flex-end',
   },
   modalSheet: {
     backgroundColor: colors.paperCard,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    maxHeight: '82%',
-    minHeight: '45%',
-    paddingTop: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '84%',
+    minHeight: '48%',
     paddingBottom: 24,
     borderWidth: 1,
     borderColor: colors.line,
     ...shadow.card,
+  },
+  modalHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.line,
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 14,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -829,10 +1326,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
     marginBottom: 4,
   },
   modalStatusBadgeText: {
@@ -848,31 +1348,50 @@ const styles = StyleSheet.create({
   modalCloseBtn: {
     padding: 4,
   },
-  modalStatusTabs: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 6,
+  modalStatusTabsWrap: {
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
+    backgroundColor: colors.paper,
+    paddingVertical: 8,
+  },
+  modalStatusTabsContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+    alignItems: 'center',
   },
   modalStatusTab: {
-    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    borderRadius: radius.sm,
-    backgroundColor: colors.paper,
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.md,
+    backgroundColor: colors.paperCard,
     borderWidth: 1,
     borderColor: colors.line,
   },
   modalStatusTabText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.inkSoft,
   },
   modalStatusTabTextActive: {
     color: colors.white,
     fontFamily: fonts.bodyBold,
+  },
+  modalStatusTabCountBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalStatusTabCountText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    color: colors.inkSoft,
   },
   modalListContent: {
     padding: 16,
@@ -902,30 +1421,88 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 12,
+    borderLeftWidth: 5,
+    padding: 14,
+    ...shadow.card,
   },
-  pipelineCardTop: {
+  pipelineCardTopHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 10,
+  },
+  orderNoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.clayLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
   },
   pipelineOrderNo: {
     fontFamily: fonts.bodyBold,
-    fontSize: 15,
+    fontSize: 13,
     color: colors.clayDeep,
   },
+  pipelineCardTotalAmount: {
+    fontFamily: fonts.display,
+    fontSize: 18,
+    color: colors.ink,
+  },
+  dueBadgeWrap: {
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+  },
+  dueBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.pending,
+  },
+  paidBadgeWrap: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+  },
+  paidBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.statusDelivered,
+  },
+  customerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  customerAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.duskLight,
+    borderWidth: 1,
+    borderColor: colors.dusk,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customerAvatarText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.duskDeep,
+  },
   pipelineCustomerName: {
-    fontFamily: fonts.bodyMedium,
+    fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.ink,
-    marginTop: 1,
   },
   pipelineOrderDate: {
     fontFamily: fonts.body,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.inkSoft,
-    marginTop: 2,
+    marginTop: 1,
   },
   viewDetailBtn: {
     flexDirection: 'row',
@@ -934,8 +1511,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paperCard,
     borderWidth: 1,
     borderColor: colors.line,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: radius.sm,
   },
   viewDetailText: {
@@ -943,38 +1520,48 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.clayDeep,
   },
-  statusUpdateRow: {
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-    paddingTop: 8,
-  },
-  updateStatusLabel: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    color: colors.inkSoft,
-    marginBottom: 6,
-  },
-  statusPillsWrap: {
+  miniTrackerWrap: {
     flexDirection: 'row',
-    gap: 6,
-  },
-  statusPillBtn: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 7,
-    borderRadius: radius.sm,
+    justifyContent: 'space-between',
     backgroundColor: colors.paperCard,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.line,
+    marginBottom: 10,
   },
-  statusPillText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    color: colors.ink,
+  miniStepNode: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  statusPillTextActive: {
-    color: colors.white,
+  miniStepNodeActive: {
+    transform: [{ scale: 1.15 }],
+  },
+  miniConnectorLine: {
+    flex: 1,
+    height: 2,
+    borderRadius: 1,
+    marginHorizontal: 2,
+  },
+  primaryAdvanceBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    borderRadius: radius.sm,
+    marginTop: 2,
+    ...shadow.card,
+  },
+  primaryAdvanceBtnText: {
     fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.white,
   },
 });

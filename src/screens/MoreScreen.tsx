@@ -16,31 +16,50 @@ export default function MoreScreen() {
 
   const menuItems = [
     {
+      title: 'Store Activity & History',
+      subtitle: 'Complete timeline of orders, payments received & outflows',
+      icon: 'time' as const,
+      color: colors.inflow,
+      bg: '#E8F5E9',
+      action: () => navigation.navigate('History'),
+    },
+    {
+      title: 'Business Profile',
+      subtitle: 'Company name, GSTIN, logo photo & address details',
+      icon: 'business' as const,
+      color: colors.clayDeep,
+      bg: colors.clayLight,
+      action: () => navigation.navigate('BusinessProfile'),
+    },
+    {
       title: 'Customer Directory',
       subtitle: 'Manage client directory, phone numbers & history',
-      icon: 'people-outline' as const,
-      color: colors.clayDeep,
+      icon: 'people' as const,
+      color: colors.duskDeep,
+      bg: colors.duskLight,
       action: () => navigation.navigate('CustomerList'),
     },
     {
       title: 'Product Catalog',
       subtitle: 'Saved items, units, and default selling prices',
-      icon: 'pricetags-outline' as const,
-      color: colors.duskDeep,
+      icon: 'pricetags' as const,
+      color: colors.statusPlaced,
+      bg: '#FFF8E1',
       action: () => navigation.navigate('ProductList'),
     },
     {
-      title: 'Business & Backup Settings',
-      subtitle: 'Profile, JSON export, restore & data management',
-      icon: 'settings-outline' as const,
-      color: colors.statusPlaced,
+      title: 'Settings & Cloud Sync',
+      subtitle: 'Passcode PIN, cloud backup, restore & data export',
+      icon: 'settings' as const,
+      color: colors.ink,
+      bg: colors.paperCard,
       action: () => navigation.navigate('Settings'),
     },
   ];
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <AppLogo size={42} variant="icon" />
@@ -53,9 +72,16 @@ export default function MoreScreen() {
 
         <View style={styles.menuList}>
           {menuItems.map((item) => (
-            <Pressable key={item.title} style={styles.menuCard} onPress={item.action}>
-              <View style={[styles.iconBox, { backgroundColor: item.color + '20' }]}>
-                <Ionicons name={item.icon} size={24} color={item.color} />
+            <Pressable
+              key={item.title}
+              style={({ pressed }) => [
+                styles.menuCard,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+              ]}
+              onPress={item.action}
+            >
+              <View style={[styles.iconBox, { backgroundColor: item.bg }]}>
+                <Ionicons name={item.icon} size={22} color={item.color} />
               </View>
               <View style={styles.menuInfo}>
                 <Text style={styles.menuTitle}>{item.title}</Text>
@@ -73,7 +99,7 @@ export default function MoreScreen() {
             <Text style={styles.infoTitle}>About Order Book & Outflow</Text>
           </View>
           <Text style={styles.infoText}>
-            All order data, outflow records, customer profiles, and catalog entries are stored on your device and synced to the cloud when signed in. Use the Backup tool in Settings to export a copy of your records.
+            All order data, outflow records, customer profiles, and catalog entries are stored on your device and synced in real-time to Cloud Firestore when signed in. Use the Backup tool in Settings to manage your data copies.
           </Text>
         </View>
       </ScrollView>
@@ -87,23 +113,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
   },
   content: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingBottom: 40,
   },
   header: {
-    paddingVertical: 12,
-    marginBottom: 8,
+    paddingVertical: 14,
+    marginBottom: 4,
   },
   title: {
     fontFamily: fonts.display,
-    fontSize: 36,
+    fontSize: 32,
     color: colors.ink,
+    lineHeight: 36,
   },
   subtitle: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.inkSoft,
-    marginTop: -4,
+    marginTop: 1,
   },
   menuList: {
     gap: 12,
@@ -121,9 +148,9 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   iconBox: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -147,12 +174,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     padding: 16,
+    ...shadow.card,
   },
   infoTitle: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.ink,
-    marginBottom: 4,
   },
   infoText: {
     fontFamily: fonts.body,

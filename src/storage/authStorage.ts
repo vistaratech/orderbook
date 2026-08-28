@@ -12,11 +12,11 @@ import {
   User as FirebaseUser,
   AuthCredential,
 } from 'firebase/auth';
-import { ref, set, get } from 'firebase/database';
-import { auth, rtdb } from '../config/firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
 import { generateId } from '../utils/id';
 import { todayIso } from '../utils/format';
-import { readCollectionFromCloud, readValueFromCloud } from './firebaseSync';
+import { readCollectionFromCloud, readValueFromCloud, pullAllCloudDataToLocal } from './firebaseSync';
 
 export interface UserAccount {
   id: string;
@@ -88,16 +88,16 @@ export async function setupUserFromFirebase(fbUser: FirebaseUser): Promise<UserA
   let name = fbUser.displayName || 'Store Owner';
 
   try {
-    const userRef = ref(rtdb, `users/${fbUser.uid}/profile`);
-    const snapshot = await get(userRef);
+    const userDoc = doc(db, 'users', fbUser.uid, 'profile', 'info');
+    const snapshot = await getDoc(userDoc);
     if (snapshot.exists()) {
-      const data = snapshot.val();
+      const data = snapshot.data();
       businessName = data.businessName || businessName;
       phone = data.phone || phone;
       name = data.name || name;
     } else {
-      // First-time Google / Firebase user -> create profile in RTDB
-      await set(userRef, {
+      // First-time Google / Firebase user -> create profile in Firestore
+      await setDoc(userDoc, {
         uid: fbUser.uid,
         name,
         email: cleanEmail,
@@ -106,8 +106,8 @@ export async function setupUserFromFirebase(fbUser: FirebaseUser): Promise<UserA
         role: 'owner',
         createdAt: todayIso(),
       });
-      const settingsRef = ref(rtdb, `users/${fbUser.uid}/settings`);
-      await set(settingsRef, {
+      const settingsDoc = doc(db, 'users', fbUser.uid, 'settings', 'app');
+      await setDoc(settingsDoc, {
         businessProfile: {
           businessName,
           phone,
@@ -118,7 +118,7 @@ export async function setupUserFromFirebase(fbUser: FirebaseUser): Promise<UserA
       });
     }
   } catch (err) {
-    console.warn('Realtime database profile sync skipped:', err);
+    console.warn('Firestore profile sync skipped:', err);
   }
 
   const user: UserAccount = {
@@ -132,26 +132,42 @@ export async function setupUserFromFirebase(fbUser: FirebaseUser): Promise<UserA
     createdAt: todayIso(),
   };
 
-  // Clear previous user's local cache
-  await AsyncStorage.multiRemove(USER_DATA_KEYS);
+  // Check if a different user was previously logged in
+  const prevUserRaw = await AsyncStorage.getItem(AUTH_USER_KEY);
+  let prevUserId: string | null = null;
+  if (prevUserRaw) {
+    try {
+      prevUserId = JSON.parse(prevUserRaw)?.uid || JSON.parse(prevUserRaw)?.id || null;
+    } catch {}
+  }
+
+  // Only wipe local cache if switching to a DIFFERENT user account
+  if (prevUserId && prevUserId !== fbUser.uid) {
+    await AsyncStorage.multiRemove(USER_DATA_KEYS);
+  }
 
   await AsyncStorage.multiSet([
     [AUTH_USER_KEY, JSON.stringify(user)],
     [AUTH_SESSION_KEY, 'true'],
     [ONBOARDED_KEY, 'true'],
-    [
+  ]);
+
+  // Pull cloud data into local cache (merges/overwrites atomically)
+  await pullCloudDataToLocal();
+
+  // Only set default business profile if cloud didn't provide one
+  const existingProfile = await AsyncStorage.getItem('order_book:business_profile');
+  if (!existingProfile) {
+    await AsyncStorage.setItem(
       'order_book:business_profile',
       JSON.stringify({
         businessName,
         phone,
         address: '',
         currency: '₹ INR',
-      }),
-    ],
-  ]);
-
-  // Pull cloud data into local cache
-  await pullCloudDataToLocal();
+      })
+    );
+  }
 
   return user;
 }
@@ -234,10 +250,10 @@ export async function registerUser(params: {
     displayName: params.name,
   });
 
-  // Save profile in Firebase Realtime Database
+  // Save profile in Firebase Firestore
   try {
-    const userRef = ref(rtdb, `users/${uid}/profile`);
-    await set(userRef, {
+    const userDoc = doc(db, 'users', uid, 'profile', 'info');
+    await setDoc(userDoc, {
       uid,
       name: params.name,
       email: params.email.toLowerCase().trim(),
@@ -248,8 +264,8 @@ export async function registerUser(params: {
     });
 
     // Also save business profile & initial settings in cloud
-    const settingsRef = ref(rtdb, `users/${uid}/settings`);
-    await set(settingsRef, {
+    const settingsDoc = doc(db, 'users', uid, 'settings', 'app');
+    await setDoc(settingsDoc, {
       businessProfile: {
         businessName: params.businessName,
         phone: params.phone,
@@ -259,7 +275,7 @@ export async function registerUser(params: {
       orderSeq: 0,
     });
   } catch (dbErr) {
-    console.warn('Realtime database profile sync skipped:', dbErr);
+    console.warn('Firestore profile sync skipped:', dbErr);
   }
 
   const user: UserAccount = {
@@ -273,8 +289,17 @@ export async function registerUser(params: {
     createdAt: todayIso(),
   };
 
-  // Clear any old user's local data before saving new user
-  await AsyncStorage.multiRemove(USER_DATA_KEYS);
+  // Check if switching from a different user — only wipe data in that case
+  const prevUserRaw = await AsyncStorage.getItem(AUTH_USER_KEY);
+  let prevUserId: string | null = null;
+  if (prevUserRaw) {
+    try {
+      prevUserId = JSON.parse(prevUserRaw)?.uid || JSON.parse(prevUserRaw)?.id || null;
+    } catch {}
+  }
+  if (prevUserId && prevUserId !== uid) {
+    await AsyncStorage.multiRemove(USER_DATA_KEYS);
+  }
 
   const updates: [string, string][] = [
     [AUTH_USER_KEY, JSON.stringify(user)],
@@ -364,7 +389,19 @@ async function pullCloudDataToLocal(): Promise<void> {
     if (cloudSeq) {
       await AsyncStorage.setItem('order_book:order_seq', String(cloudSeq));
     }
-    const cloudProfile = await readValueFromCloud<any>('settings/businessProfile');
+
+    // Try business_profile collection first (holds complete logo photo, GSTIN, bank & address details)
+    let cloudProfile: any = null;
+    const bpCollection = await readCollectionFromCloud<any>('business_profile');
+    if (bpCollection && bpCollection.length > 0) {
+      cloudProfile = bpCollection[0];
+    }
+
+    // Fallback: try settings/businessProfile if collection was empty
+    if (!cloudProfile) {
+      cloudProfile = await readValueFromCloud<any>('settings/businessProfile');
+    }
+
     if (cloudProfile) {
       await AsyncStorage.setItem('order_book:business_profile', JSON.stringify(cloudProfile));
     }
@@ -415,20 +452,39 @@ export async function loginAsGuest(): Promise<UserAccount> {
 
 export async function logout(): Promise<void> {
   try {
+    // Flush any unsynced local items up to cloud before signing out
+    await pullAllCloudDataToLocal();
     await firebaseSignOut(auth);
   } catch {}
-  // Clear session and all local user data
+  // Clear session flags only — preserve cached data so re-login is instant
+  // (data keys are wiped only when switching to a DIFFERENT user account)
   await AsyncStorage.multiRemove([
     AUTH_SESSION_KEY,
-    AUTH_USER_KEY,
     AUTH_PIN_KEY,
-    ...USER_DATA_KEYS,
   ]);
   await AsyncStorage.setItem(AUTH_SESSION_KEY, 'false');
 }
 
 export async function setPinCode(pin: string): Promise<void> {
   await AsyncStorage.setItem(AUTH_PIN_KEY, pin);
+}
+
+export async function updateUserBusinessName(newBusinessName: string): Promise<void> {
+  try {
+    const raw = await AsyncStorage.getItem(AUTH_USER_KEY);
+    if (raw) {
+      const user = JSON.parse(raw);
+      user.businessName = newBusinessName;
+      await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+    }
+    // Also sync to Firestore users/{uid}/profile/info so re-login fetches latest name
+    if (auth.currentUser) {
+      const userDoc = doc(db, 'users', auth.currentUser.uid, 'profile', 'info');
+      await setDoc(userDoc, { businessName: newBusinessName }, { merge: true });
+    }
+  } catch (err) {
+    console.error('Error updating user businessName:', err);
+  }
 }
 
 export async function setOnboardingComplete(complete = true): Promise<void> {

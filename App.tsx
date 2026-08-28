@@ -15,6 +15,7 @@ import TabNavigator from './src/navigation/TabNavigator';
 import OnboardingWizardScreen from './src/screens/OnboardingWizardScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
+import OrderListScreen from './src/screens/OrderListScreen';
 import OrderFormScreen from './src/screens/OrderFormScreen';
 import OrderDetailScreen from './src/screens/OrderDetailScreen';
 import ExpenseFormScreen from './src/screens/ExpenseFormScreen';
@@ -24,13 +25,15 @@ import CustomerFormScreen from './src/screens/CustomerFormScreen';
 import ProductListScreen from './src/screens/ProductListScreen';
 import ProductFormScreen from './src/screens/ProductFormScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import BusinessProfileScreen from './src/screens/BusinessProfileScreen';
+import HistoryScreen from './src/screens/HistoryScreen';
+import GlassBackButton from './src/components/GlassBackButton';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './src/config/firebase';
 import { getAuthState } from './src/storage/authStorage';
 import {
   setupRealtimeSync,
   stopRealtimeSync,
-  pullAllCloudDataToLocal,
 } from './src/storage/firebaseSync';
 import { colors, fonts } from './src/theme/theme';
 
@@ -75,7 +78,9 @@ export default function App() {
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
       if (fbUser) {
         setupRealtimeSync(fbUser.uid);
-        pullAllCloudDataToLocal();
+        // Note: pullAllCloudDataToLocal is already called during login flow
+        // (setupUserFromFirebase). Calling it again here would race with the
+        // realtime listener and potentially overwrite data.
       } else {
         stopRealtimeSync();
       }
@@ -101,6 +106,8 @@ export default function App() {
 
       const style = document.createElement('style');
       style.innerHTML = `
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap');
+
         html, body, #root {
           height: 100%;
           height: 100dvh;
@@ -175,6 +182,8 @@ export default function App() {
               headerShadowVisible: false,
               headerTintColor: colors.clayDeep,
               contentStyle: { backgroundColor: colors.paper },
+              headerLeft: (props) =>
+                props.canGoBack ? <GlassBackButton label="Back" /> : null,
             }}
           >
             <Stack.Screen
@@ -196,6 +205,11 @@ export default function App() {
               name="MainTabs"
               component={TabNavigator}
               options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="OrderList"
+              component={OrderListScreen}
+              options={{ title: 'All Orders' }}
             />
             <Stack.Screen
               name="OrderForm"
@@ -240,7 +254,17 @@ export default function App() {
             <Stack.Screen
               name="Settings"
               component={SettingsScreen}
-              options={{ title: 'Settings & Backup' }}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="BusinessProfile"
+              component={BusinessProfileScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="History"
+              component={HistoryScreen}
+              options={{ headerShown: false }}
             />
           </Stack.Navigator>
         </NavigationContainer>

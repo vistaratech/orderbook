@@ -19,8 +19,10 @@ import { getCustomers, saveCustomer } from '../storage/customerStorage';
 import { getProducts, saveProduct } from '../storage/productStorage';
 import { generateId } from '../utils/id';
 import { formatCurrency, formatDate, todayIso } from '../utils/format';
-import { colors, fonts, radius } from '../theme/theme';
+import { colors, fonts, radius, shadow } from '../theme/theme';
 import StatusTracker from '../components/StatusTracker';
+import { getBusinessProfile } from '../storage/businessProfileStorage';
+import { getBusinessPreset } from '../config/businessTypes';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OrderForm'>;
 
@@ -50,9 +52,10 @@ export default function OrderFormScreen({ navigation, route }: Props) {
   const [dispatchDate, setDispatchDate] = useState('');
   const [items, setItems] = useState<OrderItem[]>([emptyItem()]);
   const [customerNote, setCustomerNote] = useState('');
-  const [advance, setAdvance] = useState('0');
+  const [advance, setAdvance] = useState('');
   const [status, setStatus] = useState<OrderStatus>('Placed');
   const [saving, setSaving] = useState(false);
+  const [defaultUnit, setDefaultUnit] = useState('Pcs');
 
   // Autocomplete data
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
@@ -66,6 +69,10 @@ export default function OrderFormScreen({ navigation, route }: Props) {
     // Load catalog and customer list for suggestions
     getCustomers().then(setAllCustomers);
     getProducts().then(setAllProducts);
+    getBusinessProfile().then((profile) => {
+      const preset = getBusinessPreset(profile.businessType);
+      setDefaultUnit(preset.defaultUnit);
+    });
 
     if (editingId) {
       getOrder(editingId).then((order) => {
@@ -81,7 +88,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
         setDispatchDate(order.dispatchDate || '');
         setItems(order.items.length ? order.items : [emptyItem()]);
         setCustomerNote(order.customerNote || '');
-        setAdvance(String(order.advance ?? 0));
+        setAdvance(order.advance ? String(order.advance) : '');
         setStatus(order.status);
       });
     } else {
@@ -209,8 +216,8 @@ export default function OrderFormScreen({ navigation, route }: Props) {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Section title="Order">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <Section title="Order Details" icon="receipt-outline">
           <Row>
             <Field label="Order #" flex={1}>
               <TextInput style={styles.input} value={orderNumber} onChangeText={setOrderNumber} />
@@ -230,7 +237,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           </Field>
         </Section>
 
-        <Section title="Customer">
+        <Section title="Customer Info" icon="person-outline">
           <Field label="Name">
             <TextInput
               style={styles.input}
@@ -269,7 +276,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           </Field>
         </Section>
 
-        <Section title="Payment">
+        <Section title="Payment Details" icon="card-outline">
           <Field label="Payment Method">
             <ChipRow options={PAYMENT_METHODS} value={paymentMethod} onChange={setPaymentMethod} />
           </Field>
@@ -282,7 +289,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           </Field>
         </Section>
 
-        <Section title="Dispatch">
+        <Section title="Dispatch Details" icon="airplane-outline">
           <Field label="Dispatch Method">
             <ChipRow options={DISPATCH_METHODS} value={dispatchMethod} onChange={setDispatchMethod} />
           </Field>
@@ -297,10 +304,10 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           </Field>
         </Section>
 
-        <Section title="Items & Products">
+        <Section title="Items & Products" icon="basket-outline">
           <View style={styles.itemHeaderRow}>
             <Text style={[styles.itemHeaderCell, { flex: 3 }]}>Item Name</Text>
-            <Text style={[styles.itemHeaderCell, { flex: 1, textAlign: 'center' }]}>Qty</Text>
+            <Text style={[styles.itemHeaderCell, { flex: 1, textAlign: 'center' }]}>Qty ({defaultUnit})</Text>
             <Text style={[styles.itemHeaderCell, { flex: 1.2, textAlign: 'right' }]}>Price</Text>
             <View style={{ width: 28 }} />
           </View>
@@ -325,15 +332,27 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                   />
                   <TextInput
                     style={[styles.itemInput, { flex: 1, textAlign: 'center' }]}
-                    value={String(item.qty)}
-                    onChangeText={(v) => updateItem(item.id, { qty: parseInt(v, 10) || 0 })}
+                    value={item.qty === 0 ? '' : String(item.qty)}
+                    onChangeText={(v) => {
+                      const clean = v.replace(/^0+(?=\d)/, '');
+                      updateItem(item.id, { qty: clean === '' ? 0 : parseInt(clean, 10) || 0 });
+                    }}
+                    placeholder="1"
+                    placeholderTextColor={colors.inkSoft}
                     keyboardType="number-pad"
+                    selectTextOnFocus
                   />
                   <TextInput
                     style={[styles.itemInput, { flex: 1.2, textAlign: 'right' }]}
-                    value={String(item.price)}
-                    onChangeText={(v) => updateItem(item.id, { price: parseFloat(v) || 0 })}
+                    value={item.price === 0 ? '' : String(item.price)}
+                    onChangeText={(v) => {
+                      const clean = v.replace(/^0+(?=\d)/, '');
+                      updateItem(item.id, { price: clean === '' ? 0 : parseFloat(clean) || 0 });
+                    }}
+                    placeholder="0"
+                    placeholderTextColor={colors.inkSoft}
                     keyboardType="decimal-pad"
+                    selectTextOnFocus
                   />
                   <Pressable onPress={() => removeItem(item.id)} style={styles.removeBtn}>
                     <Ionicons name="close-circle" size={20} color={colors.inkSoft} />
@@ -361,12 +380,12 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           })}
 
           <Pressable style={styles.addItemBtn} onPress={addItem}>
-            <Ionicons name="add" size={16} color={colors.clayDeep} />
-            <Text style={styles.addItemText}>Add Item</Text>
+            <Ionicons name="add-circle" size={18} color={colors.clayDeep} />
+            <Text style={styles.addItemText}>Add Another Item</Text>
           </Pressable>
         </Section>
 
-        <Section title="Customer Note">
+        <Section title="Customer Note" icon="document-text-outline">
           <TextInput
             style={[styles.input, styles.noteInput]}
             value={customerNote}
@@ -377,17 +396,20 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           />
         </Section>
 
-        <Section title="Payment Summary">
+        <Section title="Payment Summary" icon="wallet-outline">
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Bill</Text>
             <Text style={styles.summaryValue}>{formatCurrency(total)}</Text>
           </View>
-          <Field label="Advance Received">
+          <Field label="Advance Received (₹)">
             <TextInput
               style={styles.input}
               value={advance}
-              onChangeText={setAdvance}
+              onChangeText={(v) => setAdvance(v.replace(/^0+(?=\d)/, ''))}
+              placeholder="0"
+              placeholderTextColor={colors.inkSoft}
               keyboardType="decimal-pad"
+              selectTextOnFocus
             />
           </Field>
           <View style={styles.summaryRow}>
@@ -398,22 +420,29 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           </View>
         </Section>
 
-        <Section title="Status">
+        <Section title="Fulfillment Status" icon="git-commit-outline">
           <StatusTracker status={status} onChange={setStatus} />
         </Section>
 
-        <Pressable style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
-          <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save Order'}</Text>
+        <Pressable
+          style={({ pressed }) => [styles.saveBtn, saving && { opacity: 0.6 }, pressed && { opacity: 0.85 }]}
+          onPress={handleSave}
+          disabled={saving}
+        >
+          <Text style={styles.saveBtnText}>{saving ? 'Saving Order…' : 'Save Order'}</Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, icon, children }: { title: string; icon?: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionHeaderRow}>
+        {icon && <Ionicons name={icon as any} size={18} color={colors.clayDeep} />}
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
       {children}
     </View>
   );
@@ -477,13 +506,18 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 16,
     marginBottom: 14,
-    overflow: 'hidden',
+    ...shadow.card,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontFamily: fonts.display,
     fontSize: 22,
     color: colors.clayDeep,
-    marginBottom: 10,
   },
   row: { flexDirection: 'row', gap: 12 },
   field: { marginBottom: 12 },
@@ -499,7 +533,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    borderStyle: 'dashed',
+    borderStyle: 'dashed' as any,
     paddingVertical: 6,
   },
   suggestionRow: {
@@ -534,12 +568,13 @@ const styles = StyleSheet.create({
   chip: {
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: radius.sm,
+    borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    backgroundColor: colors.paper,
   },
   chipActive: {
-    backgroundColor: colors.clay,
+    backgroundColor: colors.clayDeep,
     borderColor: colors.clayDeep,
   },
   chipText: {
@@ -549,7 +584,7 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: colors.white,
-    fontFamily: fonts.bodyMedium,
+    fontFamily: fonts.bodyBold,
   },
   itemContainer: {
     marginBottom: 8,
@@ -568,7 +603,7 @@ const styles = StyleSheet.create({
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   itemInput: {
     fontFamily: fonts.body,
@@ -576,12 +611,12 @@ const styles = StyleSheet.create({
     color: colors.ink,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    borderStyle: 'dashed',
-    paddingVertical: 4,
+    borderStyle: 'dashed' as any,
+    paddingVertical: 6,
     paddingHorizontal: 2,
     minWidth: 0,
   },
-  removeBtn: { width: 24, alignItems: 'center', justifyContent: 'center' },
+  removeBtn: { width: 28, alignItems: 'center', justifyContent: 'center' },
   prodSuggestionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -593,8 +628,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    marginTop: 6,
-    gap: 4,
+    marginTop: 10,
+    gap: 6,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.sm,
   },
   addItemText: {
     fontFamily: fonts.bodyMedium,
@@ -605,7 +646,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginVertical: 6,
   },
   summaryLabel: {
     fontFamily: fonts.bodyMedium,
@@ -622,7 +663,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 8,
+    ...shadow.card,
   },
   saveBtnText: {
     fontFamily: fonts.bodyBold,

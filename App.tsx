@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
@@ -163,10 +163,6 @@ export default function App() {
     }
   }, []);
 
-  const { width } = useWindowDimensions();
-  const isWeb = Platform.OS === 'web';
-  const isDesktop = isWeb && width >= 850;
-
   if (!fontsLoaded || !initialRoute) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.paper }}>
@@ -175,9 +171,11 @@ export default function App() {
     );
   }
 
+  const isWeb = Platform.OS === 'web';
+
   return (
-    <View style={isDesktop ? styles.webDesktopOuter : isWeb ? styles.webOuterContainer : styles.mobileContainer}>
-      <View style={isDesktop ? styles.webDesktopInner : isWeb ? styles.webInnerFrame : styles.mobileContainer}>
+    <View style={isWeb ? styles.webOuterContainer : styles.mobileContainer}>
+      <View style={isWeb ? styles.webInnerFrame : styles.mobileContainer}>
         <NavigationContainer theme={navTheme}>
           <StatusBar style="dark" />
           <Stack.Navigator
@@ -307,20 +305,5 @@ const styles = {
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: colors.line,
-  },
-  webDesktopOuter: {
-    flex: 1,
-    height: '100dvh' as any,
-    maxHeight: '100dvh' as any,
-    backgroundColor: colors.paper,
-    alignItems: 'center' as const,
-  },
-  webDesktopInner: {
-    flex: 1,
-    height: '100%' as any,
-    maxHeight: '100dvh' as any,
-    width: '100%' as const,
-    maxWidth: 1440,
-    backgroundColor: colors.paper,
   },
 };

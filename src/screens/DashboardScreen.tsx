@@ -9,8 +9,6 @@ import {
   RefreshControl,
   Modal,
   FlatList,
-  useWindowDimensions,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -53,8 +51,6 @@ const statusIcons: Record<OrderStatus, string> = {
 
 export default function DashboardScreen() {
   const navigation = useNavigation<Nav>();
-  const { width } = useWindowDimensions();
-  const isDesktop = Platform.OS === 'web' && width >= 850;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -256,7 +252,7 @@ export default function DashboardScreen() {
               </View>
 
               {/* 4 Metric Tiles */}
-              <View style={[styles.metricsRow, isDesktop && { flexWrap: 'nowrap' }]}>
+              <View style={styles.metricsRow}>
                 <Pressable
                   style={({ pressed }) => [
                     styles.metricTile,
@@ -286,7 +282,9 @@ export default function DashboardScreen() {
                     {formatCurrency(totalOutflow)}
                   </Text>
                 </Pressable>
+              </View>
 
+              <View style={styles.metricsRow}>
                 <Pressable
                   style={({ pressed }) => [
                     styles.metricTile,

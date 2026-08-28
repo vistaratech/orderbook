@@ -32,14 +32,7 @@ export function getCurrentUid(): string {
 }
 
 export function isCloudUser(): boolean {
-  const uid = getCurrentUid();
-  return uid !== 'local_guest' && !!uid;
-}
-
-/** Sanitizes JavaScript objects for Firestore setDoc, stripping out any `undefined` properties */
-export function sanitizeForFirestore<T>(obj: T): T {
-  if (obj === undefined || obj === null) return obj;
-  return JSON.parse(JSON.stringify(obj));
+  return !!auth.currentUser && auth.currentUser.uid !== 'local_guest';
 }
 
 // ─── Realtime Listener & Event Emitter ──────────────────────────────
@@ -115,7 +108,7 @@ export function mergeItemLists<T extends { id: string; updatedAt?: string }>(
 export function setupRealtimeSync(uid: string): () => void {
   stopRealtimeSync();
 
-  if (!uid || uid === 'local_guest') {
+  if (!auth.currentUser || !uid || uid === 'local_guest') {
     return () => {};
   }
 
@@ -149,7 +142,7 @@ export function setupRealtimeSync(uid: string): () => void {
             if (missingInCloud.length > 0) {
               for (const item of missingInCloud) {
                 const itemDoc = doc(db, 'users', uid, name, item.id);
-                await setDoc(itemDoc, sanitizeForFirestore(item), { merge: true }).catch(() => {});
+                await setDoc(itemDoc, item, { merge: true }).catch(() => {});
               }
             }
           } catch (err) {
@@ -253,7 +246,7 @@ export async function syncItemToCloud<T extends { id: string }>(
   try {
     const uid = getCurrentUid();
     const itemDoc = doc(db, 'users', uid, collectionName, item.id);
-    await setDoc(itemDoc, sanitizeForFirestore(item), { merge: true });
+    await setDoc(itemDoc, item, { merge: true });
   } catch (err) {
     console.warn(`[firebaseSync] syncItemToCloud(${collectionName}/${item.id}) failed:`, err);
   }

@@ -9,7 +9,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
-import { isCloudUser, getCurrentUid } from './firebaseSync';
+import { isCloudUser, getCurrentUid, notifyDataListeners } from './firebaseSync';
 
 const USER_DATA_KEYS = [
   'order_book:orders',
@@ -131,6 +131,27 @@ export async function backupToFirebaseCloud(): Promise<{
       data: parsed.data,
     });
 
+    // Also push individual documents to Firestore collections so live listeners on other devices receive them
+    const collections = [
+      { name: 'orders', items: parsed.data['order_book:orders'] },
+      { name: 'customers', items: parsed.data['order_book:customers'] },
+      { name: 'expenses', items: parsed.data['order_book:expenses'] },
+      { name: 'products', items: parsed.data['order_book:products'] },
+      { name: 'payments', items: parsed.data['order_book:payments'] },
+    ];
+    for (const { name, items } of collections) {
+      if (Array.isArray(items)) {
+        for (const item of items) {
+          if (item && item.id) {
+            const itemDoc = doc(db, 'users', uid, name, item.id);
+            await setDoc(itemDoc, item, { merge: true }).catch(() => {});
+          }
+        }
+      }
+    }
+
+    notifyDataListeners();
+
     return { success: true, timestamp: new Date().toLocaleTimeString() };
   } catch (err: any) {
     console.error('Firebase cloud backup failed:', err);
@@ -180,8 +201,8 @@ export async function restoreFromFirebaseCloud(): Promise<{
     }
     if (entries.length > 0) {
       await AsyncStorage.multiSet(entries);
+      notifyDataListeners();
     }
-
     return { success: true };
   } catch (err: any) {
     console.error('Firebase cloud restore failed:', err);

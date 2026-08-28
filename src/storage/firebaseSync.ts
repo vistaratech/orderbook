@@ -82,16 +82,7 @@ export function mergeItemLists<T extends { id: string; updatedAt?: string }>(
 
   for (const item of cloudItems) {
     if (item && item.id) {
-      const existing = itemMap.get(item.id);
-      if (!existing) {
-        itemMap.set(item.id, item);
-      } else {
-        const cloudTime = new Date(item.updatedAt || 0).getTime();
-        const localTime = new Date(existing.updatedAt || 0).getTime();
-        if (cloudTime >= localTime || isNaN(localTime)) {
-          itemMap.set(item.id, item);
-        }
-      }
+      itemMap.set(item.id, item);
     }
   }
 
@@ -404,9 +395,9 @@ export async function pullAllCloudDataToLocal(): Promise<void> {
       }
     } catch {}
 
+    // Notify UI screens that fresh cloud data has arrived
     notifyDataListeners();
   } catch (err) {
     console.warn('[firebaseSync] pullAllCloudDataToLocal failed:', err);
   }
 }
-

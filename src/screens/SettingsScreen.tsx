@@ -301,9 +301,6 @@ export default function SettingsScreen() {
                 <View style={styles.userInfo}>
                   <Text style={styles.userName}>{currentUser.name}</Text>
                   <Text style={styles.userEmail}>{currentUser.email || 'No email'}</Text>
-                  <Text style={{ fontSize: 11, color: colors.inkSoft, marginTop: 3, fontFamily: fonts.body }}>
-                    UID: {currentUser.uid || currentUser.id}
-                  </Text>
                 </View>
               </View>
             ) : null}

@@ -27,6 +27,7 @@ import ProductFormScreen from './src/screens/ProductFormScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import BusinessProfileScreen from './src/screens/BusinessProfileScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
+import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
 import GlassBackButton from './src/components/GlassBackButton';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './src/config/firebase';
@@ -67,6 +68,19 @@ export default function App() {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
 
   useEffect(() => {
+    // On web, check if user arrived via a password reset link (e.g. ?mode=resetPassword&oobCode=XYZ)
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode');
+        const oobCode = urlParams.get('oobCode');
+        if ((mode === 'resetPassword' || mode === 'reset') && oobCode) {
+          setInitialRoute('ResetPassword');
+          return;
+        }
+      } catch {}
+    }
+
     // Check initial local auth state for initial screen routing
     getAuthState().then((state) => {
       if (!state.isOnboarded) {
@@ -275,6 +289,11 @@ export default function App() {
             <Stack.Screen
               name="History"
               component={HistoryScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="ResetPassword"
+              component={ResetPasswordScreen}
               options={{ headerShown: false }}
             />
           </Stack.Navigator>

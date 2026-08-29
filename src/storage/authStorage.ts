@@ -8,6 +8,8 @@ import {
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
+  verifyPasswordResetCode,
+  confirmPasswordReset,
   updateProfile,
   User as FirebaseUser,
   AuthCredential,
@@ -518,6 +520,48 @@ export async function sendResetPassword(email: string): Promise<{ success: boole
       msg = 'Too many attempts. Please wait a few moments and try again.';
     } else if (err?.code === 'auth/network-request-failed') {
       msg = 'Network error. Please check your internet connection.';
+    }
+    return { success: false, error: msg };
+  }
+}
+
+export async function verifyResetCode(oobCode: string): Promise<{ valid: boolean; email?: string; error?: string }> {
+  try {
+    const email = await verifyPasswordResetCode(auth, oobCode);
+    return { valid: true, email };
+  } catch (err: any) {
+    console.warn('verifyPasswordResetCode error:', err);
+    let msg = 'This password reset link is invalid or has expired.';
+    if (err?.code === 'auth/expired-action-code') {
+      msg = 'This password reset link has expired. Please request a new one.';
+    } else if (err?.code === 'auth/invalid-action-code') {
+      msg = 'This password reset link has already been used or is invalid.';
+    } else if (err?.code === 'auth/user-disabled') {
+      msg = 'This user account has been disabled.';
+    }
+    return { valid: false, error: msg };
+  }
+}
+
+export async function confirmNewPassword(
+  oobCode: string,
+  newPassword: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters.' };
+    }
+    await confirmPasswordReset(auth, oobCode, newPassword);
+    return { success: true };
+  } catch (err: any) {
+    console.warn('confirmPasswordReset error:', err);
+    let msg = 'Failed to update password. Please try again.';
+    if (err?.code === 'auth/weak-password') {
+      msg = 'Password is too weak. Please use at least 6 characters.';
+    } else if (err?.code === 'auth/expired-action-code') {
+      msg = 'This password reset link has expired. Please request a new one.';
+    } else if (err?.code === 'auth/invalid-action-code') {
+      msg = 'This password reset link is invalid or has already been used.';
     }
     return { success: false, error: msg };
   }

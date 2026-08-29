@@ -15,6 +15,7 @@ export type RootStackParamList = {
   Settings: undefined;
   BusinessProfile: undefined;
   History: undefined;
+  ResetPassword: { oobCode?: string } | undefined;
 };
 
 export type MainTabParamList = {

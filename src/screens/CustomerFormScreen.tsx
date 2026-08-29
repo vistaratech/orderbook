@@ -14,11 +14,13 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { getCustomer, saveCustomer } from '../storage/customerStorage';
+import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CustomerForm'>;
 
 export default function CustomerFormScreen({ navigation, route }: Props) {
+  const { t } = useLanguage();
   const customerId = route.params?.customerId;
   const isEditing = !!customerId;
 
@@ -31,9 +33,9 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     navigation.setOptions({
-      title: isEditing ? 'Edit Customer' : 'New Customer',
+      title: isEditing ? t('customers.editCustomer') : t('customers.addCustomerBtn'),
     });
-  }, [isEditing, navigation]);
+  }, [isEditing, navigation, t]);
 
   useEffect(() => {
     if (customerId) {
@@ -76,11 +78,11 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Ionicons name="person-outline" size={18} color={colors.clayDeep} />
-            <Text style={styles.sectionTitle}>Customer Information</Text>
+            <Text style={styles.sectionTitle}>{t('customers.customerProfileTitle')}</Text>
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Full Name *</Text>
+            <Text style={styles.fieldLabel}>{t('customers.name')} *</Text>
             <TextInput
               style={styles.input}
               value={name}
@@ -92,7 +94,7 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Phone Number</Text>
+            <Text style={styles.fieldLabel}>{t('customers.phone')}</Text>
             <TextInput
               style={styles.input}
               value={phone}
@@ -104,7 +106,7 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Email Address</Text>
+            <Text style={styles.fieldLabel}>{t('customers.email')}</Text>
             <TextInput
               style={styles.input}
               value={email}
@@ -117,7 +119,7 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Delivery Address / City</Text>
+            <Text style={styles.fieldLabel}>{t('customers.address')}</Text>
             <TextInput
               style={[styles.input, { minHeight: 50 }]}
               value={address}
@@ -129,7 +131,7 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Notes / Preferences</Text>
+            <Text style={styles.fieldLabel}>{t('common.notes')}</Text>
             <TextInput
               style={[styles.input, { minHeight: 50 }]}
               value={notes}
@@ -147,7 +149,7 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
           disabled={saving}
         >
           <Text style={styles.saveBtnText}>
-            {saving ? 'Saving…' : isEditing ? 'Update Customer' : 'Save Customer Profile'}
+            {saving ? t('common.loading') : isEditing ? t('common.update') : t('customers.saveCustomerBtn')}
           </Text>
         </Pressable>
       </ScrollView>

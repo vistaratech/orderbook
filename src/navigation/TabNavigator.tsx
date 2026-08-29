@@ -15,11 +15,13 @@ import SettingsScreen from '../screens/SettingsScreen';
 import MoreScreen from '../screens/MoreScreen';
 import SaaSSidebar from '../components/SaaSSidebar';
 import { DesktopSidebarContext } from '../components/DesktopLayout';
+import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts } from '../theme/theme';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export default function TabNavigator() {
+  const { t } = useLanguage();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
   const [activeTab, setActiveTab] = useState<string>('DashboardTab');
@@ -64,7 +66,7 @@ export default function TabNavigator() {
         name="DashboardTab"
         component={DashboardScreen}
         options={{
-          tabBarLabel: 'Dashboard',
+          tabBarLabel: t('nav.dashboard'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />
           ),
@@ -74,7 +76,7 @@ export default function TabNavigator() {
         name="OrdersTab"
         component={OrderListScreen}
         options={{
-          tabBarLabel: 'Orders',
+          tabBarLabel: t('nav.orders'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'receipt' : 'receipt-outline'} size={22} color={color} />
           ),
@@ -84,7 +86,7 @@ export default function TabNavigator() {
         name="ExpensesTab"
         component={ExpensesScreen}
         options={{
-          tabBarLabel: 'Outflow',
+          tabBarLabel: t('nav.expenses'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'wallet' : 'wallet-outline'} size={22} color={color} />
           ),
@@ -94,7 +96,7 @@ export default function TabNavigator() {
         name="ReportsTab"
         component={ReportsScreen}
         options={{
-          tabBarLabel: 'Reports',
+          tabBarLabel: t('nav.reports'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'bar-chart' : 'bar-chart-outline'} size={22} color={color} />
           ),
@@ -104,7 +106,7 @@ export default function TabNavigator() {
         name="MoreTab"
         component={MoreScreen}
         options={{
-          tabBarLabel: 'More',
+          tabBarLabel: t('nav.more'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'grid' : 'grid-outline'} size={22} color={color} />
           ),

@@ -19,10 +19,12 @@ import { getExpenses } from '../storage/expenseStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import { colors, fonts, radius, shadow, categoryColor } from '../theme/theme';
 import { formatCurrency } from '../utils/format';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type Period = 'this_month' | 'last_30_days' | 'this_week' | 'all_time';
 
 export default function ReportsScreen() {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<Period>('this_month');
@@ -181,26 +183,26 @@ Generated from KadaiBook • kadaibook.in`;
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Reports</Text>
-            <Text style={styles.subtitle}>Inflow vs Outflow Business Performance</Text>
+          <View style={styles.headerTitleWrap}>
+            <Text style={styles.title}>{t('reports.title')}</Text>
+            <Text style={styles.subtitle}>{t('reports.subtitle')}</Text>
           </View>
           <Pressable
             style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.8 }]}
             onPress={handleShareSummary}
           >
-            <Ionicons name="share-outline" size={18} color={colors.clayDeep} />
-            <Text style={styles.shareBtnText}>Share</Text>
+            <Ionicons name="share-outline" size={16} color={colors.clayDeep} />
+            <Text style={styles.shareBtnText}>{t('common.share')}</Text>
           </Pressable>
         </View>
 
         {/* Period Selector Tabs */}
         <View style={styles.periodTabs}>
           {[
-            { id: 'this_week', label: '7 Days' },
-            { id: 'this_month', label: 'This Month' },
-            { id: 'last_30_days', label: '30 Days' },
-            { id: 'all_time', label: 'All Time' },
+            { id: 'this_week', label: t('reports.thisWeek') },
+            { id: 'this_month', label: t('reports.thisMonth') },
+            { id: 'last_30_days', label: t('reports.lastMonth') },
+            { id: 'all_time', label: t('reports.allTime') },
           ].map((p) => (
             <Pressable
               key={p.id}
@@ -222,13 +224,13 @@ Generated from KadaiBook • kadaibook.in`;
             <View style={styles.card}>
               <View style={styles.cardHeaderRow}>
                 <Ionicons name="pie-chart-outline" size={18} color={colors.clayDeep} />
-                <Text style={styles.cardTitle}>Profit & Loss Statement</Text>
+                <Text style={styles.cardTitle}>{t('reports.profitLoss')}</Text>
               </View>
 
               <View style={styles.pnlRow}>
                 <View style={styles.pnlLabelRow}>
                   <Ionicons name="arrow-down-circle" size={18} color={colors.inflow} />
-                  <Text style={styles.pnlLabel} numberOfLines={1}>Sales Revenue</Text>
+                  <Text style={styles.pnlLabel} numberOfLines={1}>{t('reports.totalRevenue')}</Text>
                 </View>
                 <Text style={[styles.pnlValue, { color: colors.inflow }]}>
                   +{formatCurrency(totalInflow)}
@@ -238,7 +240,7 @@ Generated from KadaiBook • kadaibook.in`;
               <View style={styles.pnlRow}>
                 <View style={styles.pnlLabelRow}>
                   <Ionicons name="arrow-up-circle" size={18} color={colors.outflow} />
-                  <Text style={styles.pnlLabel} numberOfLines={1}>Total Expenses</Text>
+                  <Text style={styles.pnlLabel} numberOfLines={1}>{t('reports.totalOutflow')}</Text>
                 </View>
                 <Text style={[styles.pnlValue, { color: colors.outflow }]}>
                   -{formatCurrency(totalOutflow)}
@@ -249,8 +251,8 @@ Generated from KadaiBook • kadaibook.in`;
 
               <View style={styles.pnlRow}>
                 <View>
-                  <Text style={styles.netProfitLabel}>Net Business Profit</Text>
-                  <Text style={styles.marginText}>Margin: {profitMargin}%</Text>
+                  <Text style={styles.netProfitLabel}>{t('dashboard.netProfit')}</Text>
+                  <Text style={styles.marginText}>{t('reports.netMargin')}: {profitMargin}%</Text>
                 </View>
                 <Text
                   style={[
@@ -268,7 +270,7 @@ Generated from KadaiBook • kadaibook.in`;
                   style={styles.subStatItem}
                   onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Paid' })}
                 >
-                  <Text style={styles.subStatLabel}>Cash Collected</Text>
+                  <Text style={styles.subStatLabel}>{t('dashboard.collected')}</Text>
                   <Text style={styles.subStatValue}>{formatCurrency(totalCollected)}</Text>
                 </Pressable>
                 <View style={styles.subStatDivider} />
@@ -276,7 +278,7 @@ Generated from KadaiBook • kadaibook.in`;
                   style={styles.subStatItem}
                   onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Pending' })}
                 >
-                  <Text style={styles.subStatLabel}>Pending Collections</Text>
+                  <Text style={styles.subStatLabel}>{t('dashboard.pendingDues')}</Text>
                   <Text style={[styles.subStatValue, { color: colors.pending }]}>
                     {formatCurrency(totalPending)}
                   </Text>
@@ -289,7 +291,7 @@ Generated from KadaiBook • kadaibook.in`;
               <View style={styles.card}>
                 <View style={styles.cardHeaderRow}>
                   <Ionicons name="wallet-outline" size={18} color={colors.outflow} />
-                  <Text style={styles.cardTitle}>Expense Breakdown</Text>
+                  <Text style={styles.cardTitle}>{t('reports.expenseBreakdown')}</Text>
                 </View>
                 {expenseByCategory.map((item) => {
                   const barColor = categoryColor[item.category as any] || colors.clayDeep;
@@ -321,7 +323,7 @@ Generated from KadaiBook • kadaibook.in`;
               <View style={styles.card}>
                 <View style={styles.cardHeaderRow}>
                   <Ionicons name="people-outline" size={18} color={colors.clayDeep} />
-                  <Text style={styles.cardTitle}>Top Customers</Text>
+                  <Text style={styles.cardTitle}>{t('reports.topCustomers')}</Text>
                 </View>
                 {topCustomers.map((c, idx) => (
                   <View key={c.name} style={styles.rankRow}>
@@ -331,7 +333,7 @@ Generated from KadaiBook • kadaibook.in`;
                     <View style={styles.rankInfo}>
                       <Text style={styles.rankName}>{c.name}</Text>
                       <Text style={styles.rankMeta}>
-                        {c.count} order{c.count === 1 ? '' : 's'}
+                        {c.count} {c.count === 1 ? t('reports.orderCount') : t('reports.ordersCount')}
                       </Text>
                     </View>
                     <Text style={styles.rankAmount}>{formatCurrency(c.total)}</Text>
@@ -345,7 +347,7 @@ Generated from KadaiBook • kadaibook.in`;
               <View style={styles.card}>
                 <View style={styles.cardHeaderRow}>
                   <Ionicons name="ribbon-outline" size={18} color={colors.duskDeep} />
-                  <Text style={styles.cardTitle}>Best Selling Catalog Products</Text>
+                  <Text style={styles.cardTitle}>{t('reports.topProducts')}</Text>
                 </View>
                 {topItems.map((it, idx) => (
                   <View key={it.name} style={styles.rankRow}>
@@ -356,7 +358,7 @@ Generated from KadaiBook • kadaibook.in`;
                     </View>
                     <View style={styles.rankInfo}>
                       <Text style={styles.rankName}>{it.name}</Text>
-                      <Text style={styles.rankMeta}>{it.qty} units sold</Text>
+                      <Text style={styles.rankMeta}>{it.qty} {t('reports.unitsSold')}</Text>
                     </View>
                     <Text style={styles.rankAmount}>{formatCurrency(it.revenue)}</Text>
                   </View>
@@ -389,33 +391,36 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerTitleWrap: {
+    flex: 1,
+    paddingRight: 10,
+  },
   title: {
     fontFamily: fonts.display,
-    fontSize: 32,
+    fontSize: 26,
     color: colors.ink,
-    lineHeight: 36,
-    paddingRight: 10,
+    lineHeight: 32,
   },
   subtitle: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.inkSoft,
-    marginTop: 1,
+    marginTop: 2,
   },
   shareBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: colors.paperCard,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 8,
     ...shadow.card,
   },
   shareBtnText: {
-    fontFamily: fonts.bodyMedium,
+    fontFamily: fonts.bodyBold,
     fontSize: 12,
     color: colors.clayDeep,
   },

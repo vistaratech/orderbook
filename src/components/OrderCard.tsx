@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Order, orderTotal, orderBalance } from '../types/order';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
 import { formatCurrency, formatDate } from '../utils/format';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface Props {
   order: Order;
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function OrderCard({ order, onPress }: Props) {
+  const { t } = useLanguage();
   const total = orderTotal(order);
   const balance = orderBalance(order);
   const itemCount = order.items.reduce((sum, i) => sum + i.qty, 0);
@@ -39,16 +41,18 @@ export default function OrderCard({ order, onPress }: Props) {
 
           <View style={styles.topRightActions}>
             <View style={[styles.badge, { backgroundColor: statusColor[order.status] || colors.clay }]}>
-              <Text style={styles.badgeText}>{order.status}</Text>
+              <Text style={styles.badgeText}>
+                {t('status.' + order.status.toLowerCase(), order.status)}
+              </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.middleRow}>
           <View style={styles.customerInfo}>
-            <Text style={styles.customer}>{order.customerName || 'Unnamed customer'}</Text>
+            <Text style={styles.customer}>{order.customerName || t('orders.customerName')}</Text>
             <Text style={styles.metaText}>
-              {formatDate(order.orderDate)} • {itemCount} item{itemCount === 1 ? '' : 's'}
+              {formatDate(order.orderDate)} • {itemCount} {itemCount === 1 ? t('common.item') : t('common.items')}
             </Text>
           </View>
         </View>
@@ -57,13 +61,13 @@ export default function OrderCard({ order, onPress }: Props) {
 
         <View style={styles.bottomRow}>
           <View>
-            <Text style={styles.totalLabel}>Total Amount</Text>
+            <Text style={styles.totalLabel}>{t('orders.totalAmount')}</Text>
             <Text style={styles.total}>{formatCurrency(total)}</Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.totalLabel}>Payment</Text>
+            <Text style={styles.totalLabel}>{t('orders.paymentStatus')}</Text>
             <Text style={[styles.balance, balance > 0 ? styles.balanceDue : styles.balancePaid]}>
-              {balance > 0 ? `Due ${formatCurrency(balance)}` : 'Paid ✓'}
+              {balance > 0 ? `${t('common.due')} ${formatCurrency(balance)}` : `${t('common.paid')} ✓`}
             </Text>
           </View>
         </View>

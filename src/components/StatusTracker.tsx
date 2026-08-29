@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, statusColor } from '../theme/theme';
 import { ORDER_STATUS_STEPS, OrderStatus } from '../types/order';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface Props {
   status: OrderStatus;
@@ -17,7 +18,23 @@ const statusIcons: Record<OrderStatus, string> = {
 };
 
 export default function StatusTracker({ status, onChange }: Props) {
+  const { t } = useLanguage();
   const currentIndex = ORDER_STATUS_STEPS.indexOf(status);
+
+  const getStepLabel = (step: OrderStatus) => {
+    switch (step) {
+      case 'Placed':
+        return t('orders.statusPlaced');
+      case 'Packed':
+        return t('orders.statusPacked');
+      case 'Dispatched':
+        return t('orders.statusDispatched');
+      case 'Delivered':
+        return t('orders.statusDelivered');
+      default:
+        return step;
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -65,7 +82,7 @@ export default function StatusTracker({ status, onChange }: Props) {
                     isCurrent && styles.activeLabel,
                   ]}
                 >
-                  {step}
+                  {getStepLabel(step)}
                 </Text>
               </Wrapper>
             </React.Fragment>

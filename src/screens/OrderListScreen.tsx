@@ -20,6 +20,7 @@ import { getOrders } from '../storage/orderStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import OrderCard from '../components/OrderCard';
 import EmptyState from '../components/EmptyState';
+import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { formatCurrency } from '../utils/format';
 
@@ -29,6 +30,7 @@ type SortOption = 'newest' | 'oldest' | 'highest' | 'due';
 
 export default function OrderListScreen() {
   const navigation = useNavigation<Nav>();
+  const { t } = useLanguage();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -150,13 +152,11 @@ export default function OrderListScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>Orders</Text>
+            <Text style={styles.title}>{t('orders.title')}</Text>
             <Text style={styles.subtitle}>
               {loading
-                ? 'Loading…'
-                : `${filteredOrders.length} of ${orders.length} order${
-                    orders.length === 1 ? '' : 's'
-                  }`}
+                ? t('common.loading')
+                : `${filteredOrders.length} / ${orders.length}`}
             </Text>
           </View>
         </View>
@@ -167,7 +167,7 @@ export default function OrderListScreen() {
             <Ionicons name="search" size={18} color={colors.inkSoft} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search orders, customers, items…"
+              placeholder={t('orders.searchPlaceholder')}
               placeholderTextColor={colors.inkSoft}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -208,7 +208,7 @@ export default function OrderListScreen() {
               }}
             >
               <Text style={[styles.quickChipText, paymentFilter === 'All' && statusFilter === 'All' && styles.quickChipTextActive]}>
-                All Orders ({orders.length})
+                {t('orders.filterAll')} ({orders.length})
               </Text>
             </Pressable>
 
@@ -222,7 +222,7 @@ export default function OrderListScreen() {
             >
               <Ionicons name="time" size={13} color={paymentFilter === 'Pending' ? colors.white : colors.pending} />
               <Text style={[styles.quickChipText, paymentFilter === 'Pending' && styles.quickChipTextActive, { color: paymentFilter === 'Pending' ? colors.white : colors.pending }]}>
-                Pending Dues ({orders.filter((o) => o.paymentStatus !== 'Paid' && orderBalance(o) > 0).length})
+                {t('dashboard.pendingDues')} ({orders.filter((o) => o.paymentStatus !== 'Paid' && orderBalance(o) > 0).length})
               </Text>
             </Pressable>
 
@@ -235,7 +235,7 @@ export default function OrderListScreen() {
             >
               <Ionicons name="checkmark-circle" size={13} color={paymentFilter === 'Paid' ? colors.white : colors.inflow} />
               <Text style={[styles.quickChipText, paymentFilter === 'Paid' && styles.quickChipTextActive, { color: paymentFilter === 'Paid' ? colors.white : colors.inflow }]}>
-                Paid ({orders.filter((o) => o.paymentStatus === 'Paid').length})
+                {t('orders.payPaid')} ({orders.filter((o) => o.paymentStatus === 'Paid').length})
               </Text>
             </Pressable>
 
@@ -247,7 +247,7 @@ export default function OrderListScreen() {
               }}
             >
               <Text style={[styles.quickChipText, statusFilter === 'Delivered' && styles.quickChipTextActive]}>
-                Delivered ({orders.filter((o) => o.status === 'Delivered').length})
+                {t('orders.statusDelivered')} ({orders.filter((o) => o.status === 'Delivered').length})
               </Text>
             </Pressable>
           </ScrollView>
@@ -257,7 +257,7 @@ export default function OrderListScreen() {
         {showFilters && (
           <View style={styles.filterPanel}>
             <View style={styles.filterPanelHeaderRow}>
-              <Text style={styles.filterPanelHeading}>Filter & Refine</Text>
+              <Text style={styles.filterPanelHeading}>{t('common.filter')}</Text>
               {hasActiveFilters && (
                 <Pressable
                   onPress={() => {
@@ -266,7 +266,7 @@ export default function OrderListScreen() {
                     setSortBy('newest');
                   }}
                 >
-                  <Text style={styles.resetFiltersText}>Reset All</Text>
+                  <Text style={styles.resetFiltersText}>{t('common.clear')}</Text>
                 </Pressable>
               )}
             </View>
@@ -274,11 +274,12 @@ export default function OrderListScreen() {
             {/* Order Status Section */}
             <View style={styles.filterGroupHeader}>
               <Ionicons name="cube-outline" size={16} color={colors.clayDeep} />
-              <Text style={styles.filterGroupTitle}>Status Stage</Text>
+              <Text style={styles.filterGroupTitle}>{t('orders.orderStatus')}</Text>
             </View>
             <View style={styles.chipRow}>
               {(['All', 'Placed', 'Packed', 'Dispatched', 'Delivered'] as const).map((st) => {
                 const isSelected = statusFilter === st;
+                const label = st === 'All' ? t('common.all') : t(`orders.status${st}`, st);
                 return (
                   <Pressable
                     key={st}
@@ -289,7 +290,7 @@ export default function OrderListScreen() {
                       <Ionicons name="checkmark-circle" size={13} color={colors.white} />
                     )}
                     <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                      {st}
+                      {label}
                     </Text>
                   </Pressable>
                 );
@@ -299,11 +300,12 @@ export default function OrderListScreen() {
             {/* Payment Status Section */}
             <View style={[styles.filterGroupHeader, { marginTop: 12 }]}>
               <Ionicons name="card-outline" size={16} color={colors.duskDeep} />
-              <Text style={styles.filterGroupTitle}>Payment Status</Text>
+              <Text style={styles.filterGroupTitle}>{t('orders.paymentStatus')}</Text>
             </View>
             <View style={styles.chipRow}>
               {(['All', 'Pending', 'Partial', 'Paid'] as const).map((ps) => {
                 const isSelected = paymentFilter === ps;
+                const label = ps === 'All' ? t('common.all') : t(`orders.pay${ps}`, ps);
                 return (
                   <Pressable
                     key={ps}
@@ -314,37 +316,7 @@ export default function OrderListScreen() {
                       <Ionicons name="checkmark-circle" size={13} color={colors.white} />
                     )}
                     <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                      {ps}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {/* Sort By Section */}
-            <View style={[styles.filterGroupHeader, { marginTop: 12 }]}>
-              <Ionicons name="swap-vertical-outline" size={16} color={colors.statusPlaced} />
-              <Text style={styles.filterGroupTitle}>Sort By</Text>
-            </View>
-            <View style={styles.chipRow}>
-              {[
-                { id: 'newest', label: 'Newest First' },
-                { id: 'oldest', label: 'Oldest' },
-                { id: 'highest', label: 'Highest Value' },
-                { id: 'due', label: 'Pending Due' },
-              ].map((s) => {
-                const isSelected = sortBy === s.id;
-                return (
-                  <Pressable
-                    key={s.id}
-                    style={[styles.chip, isSelected && styles.chipActive]}
-                    onPress={() => setSortBy(s.id as SortOption)}
-                  >
-                    {isSelected && (
-                      <Ionicons name="checkmark-circle" size={13} color={colors.white} />
-                    )}
-                    <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                      {s.label}
+                      {label}
                     </Text>
                   </Pressable>
                 );
@@ -356,25 +328,27 @@ export default function OrderListScreen() {
         {/* Live Filter Summary Strip */}
         {filteredOrders.length > 0 && (
           <View style={styles.summaryStrip}>
-            <View style={styles.summaryBadge}>
-              <Text style={styles.summaryStripText}>
-                Showing <Text style={styles.boldText}>{filteredOrders.length}</Text> order{filteredOrders.length === 1 ? '' : 's'}
-              </Text>
-            </View>
-            <View style={[styles.summaryBadge, { backgroundColor: '#E8F5E9' }]}>
-              <Ionicons name="cash-outline" size={14} color={colors.inflow} />
-              <Text style={[styles.summaryStripText, { color: colors.inflow }]}>
-                Total: <Text style={styles.boldText}>{formatCurrency(totalFilteredValue)}</Text>
-              </Text>
-            </View>
-            {totalFilteredDue > 0 && (
-              <View style={[styles.summaryBadge, { backgroundColor: '#FFEBEE' }]}>
-                <Ionicons name="time-outline" size={14} color={colors.danger} />
-                <Text style={[styles.summaryStripText, { color: colors.danger }]}>
-                  Due: <Text style={[styles.boldText, { color: colors.danger }]}>{formatCurrency(totalFilteredDue)}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.summaryStripScroll}>
+              <View style={styles.summaryBadge}>
+                <Text style={styles.summaryStripText}>
+                  {t('orders.title')}: <Text style={styles.boldText}>{filteredOrders.length}</Text>
                 </Text>
               </View>
-            )}
+              <View style={[styles.summaryBadge, { backgroundColor: '#E8F5E9' }]}>
+                <Ionicons name="cash-outline" size={14} color={colors.inflow} />
+                <Text style={[styles.summaryStripText, { color: colors.inflow }]}>
+                  {t('common.total')}: <Text style={styles.boldText}>{formatCurrency(totalFilteredValue)}</Text>
+                </Text>
+              </View>
+              {totalFilteredDue > 0 && (
+                <View style={[styles.summaryBadge, { backgroundColor: '#FFEBEE' }]}>
+                  <Ionicons name="time-outline" size={14} color={colors.danger} />
+                  <Text style={[styles.summaryStripText, { color: colors.danger }]}>
+                    {t('common.due')}: <Text style={[styles.boldText, { color: colors.danger }]}>{formatCurrency(totalFilteredDue)}</Text>
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
           </View>
         )}
 
@@ -396,12 +370,8 @@ export default function OrderListScreen() {
           ListEmptyComponent={
             !loading ? (
               <EmptyState
-                title={searchQuery || hasActiveFilters ? 'No matching orders' : 'No orders recorded yet'}
-                message={
-                  searchQuery || hasActiveFilters
-                    ? 'Try adjusting your search terms or clearing active filters.'
-                    : 'Tap the "+ New" button to create your first order.'
-                }
+                title={t('orders.noOrdersFound')}
+                message={t('orders.subtitle')}
               />
             ) : null
           }
@@ -413,7 +383,7 @@ export default function OrderListScreen() {
           onPress={() => navigation.navigate('OrderForm', undefined)}
         >
           <Ionicons name="cart" size={24} color={colors.white} />
-          <Text style={styles.fabText}>+ Order</Text>
+          <Text style={styles.fabText}>{t('orders.newOrderBtn')}</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -619,11 +589,12 @@ const styles = StyleSheet.create({
     color: colors.clayDeep,
   },
   summaryStrip: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 20,
     marginBottom: 6,
-    gap: 10,
+  },
+  summaryStripScroll: {
+    paddingHorizontal: 20,
+    gap: 8,
+    alignItems: 'center',
   },
   summaryBadge: {
     flexDirection: 'row',
@@ -631,7 +602,7 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: colors.paperCard,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.line,

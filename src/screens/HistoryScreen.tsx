@@ -23,6 +23,7 @@ import { colors, fonts, radius, shadow } from '../theme/theme';
 import { formatCurrency, formatDate } from '../utils/format';
 import GlassBackButton from '../components/GlassBackButton';
 import DesktopLayout from '../components/DesktopLayout';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -47,6 +48,7 @@ export interface ActivityEvent {
 
 export default function HistoryScreen() {
   const navigation = useNavigation<Nav>();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [events, setEvents] = useState<ActivityEvent[]>([]);
@@ -240,12 +242,10 @@ export default function HistoryScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <GlassBackButton label="Back" />
+              <GlassBackButton label={t('common.back')} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.title}>Store Activity & History</Text>
-                <Text style={styles.subtitle}>
-                  {loading ? 'Loading timeline…' : `${events.length} total activity log${events.length === 1 ? '' : 's'}`}
-                </Text>
+                <Text style={styles.title}>{t('history.title')}</Text>
+                <Text style={styles.subtitle}>{t('history.subtitle')}</Text>
               </View>
             </View>
           </View>
@@ -253,14 +253,14 @@ export default function HistoryScreen() {
           {/* Summary Cards Row */}
           <View style={styles.summaryRow}>
             <View style={[styles.summaryCard, { borderLeftColor: colors.inflow }]}>
-              <Text style={styles.summaryLabel}>Total Payments</Text>
+              <Text style={styles.summaryLabel}>{t('dashboard.collected')}</Text>
               <Text style={[styles.summaryValue, { color: colors.inflow }]}>
                 {formatCurrency(totalInflow)}
               </Text>
             </View>
 
             <View style={[styles.summaryCard, { borderLeftColor: colors.outflow }]}>
-              <Text style={styles.summaryLabel}>Total Outflows</Text>
+              <Text style={styles.summaryLabel}>{t('dashboard.totalExpenses')}</Text>
               <Text style={[styles.summaryValue, { color: colors.outflow }]}>
                 {formatCurrency(totalOutflow)}
               </Text>
@@ -273,7 +273,7 @@ export default function HistoryScreen() {
               <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search by order #, customer, amount…"
+                placeholder={t('history.searchPlaceholder')}
                 placeholderTextColor={colors.inkSoft}
                 value={searchQuery}
                 onChangeText={setSearchQuery}

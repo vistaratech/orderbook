@@ -19,12 +19,14 @@ import { formatDate, todayIso } from '../utils/format';
 import { colors, fonts, radius, shadow, categoryColor } from '../theme/theme';
 import { getBusinessProfile } from '../storage/businessProfileStorage';
 import { getBusinessPreset } from '../config/businessTypes';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExpenseForm'>;
 
 const PAYMENT_METHODS = ['UPI', 'Cash', 'Card', 'Bank Transfer', 'Other'];
 
 export default function ExpenseFormScreen({ navigation, route }: Props) {
+  const { t } = useLanguage();
   const expenseId = route.params?.expenseId;
   const isEditing = !!expenseId;
 
@@ -38,9 +40,9 @@ export default function ExpenseFormScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     navigation.setOptions({
-      title: isEditing ? 'Edit Outflow' : 'Record Outflow',
+      title: isEditing ? t('expenses.editExpense') : t('expenses.newExpense'),
     });
-  }, [isEditing, navigation]);
+  }, [isEditing, navigation, t]);
 
   useEffect(() => {
     getBusinessProfile().then((profile) => {
@@ -99,7 +101,7 @@ export default function ExpenseFormScreen({ navigation, route }: Props) {
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Ionicons name="wallet-outline" size={18} color={colors.outflow} />
-            <Text style={styles.sectionTitle}>Outflow Amount</Text>
+            <Text style={styles.sectionTitle}>{t('expenses.amount')}</Text>
           </View>
           <View style={styles.amountInputRow}>
             <Text style={styles.currencySymbol}>₹</Text>
@@ -120,7 +122,7 @@ export default function ExpenseFormScreen({ navigation, route }: Props) {
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Ionicons name="pricetag-outline" size={18} color={colors.duskDeep} />
-            <Text style={styles.sectionTitle}>Category</Text>
+            <Text style={styles.sectionTitle}>{t('expenses.category')}</Text>
           </View>
           <View style={styles.categoryGrid}>
             {categoriesList.map((cat) => {
@@ -149,16 +151,16 @@ export default function ExpenseFormScreen({ navigation, route }: Props) {
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Ionicons name="document-text-outline" size={18} color={colors.clayDeep} />
-            <Text style={styles.sectionTitle}>Details</Text>
+            <Text style={styles.sectionTitle}>{t('common.details')}</Text>
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Description / Notes</Text>
+            <Text style={styles.fieldLabel}>{t('expenses.description')}</Text>
             <TextInput
               style={[styles.input, { minHeight: 50 }]}
               value={description}
               onChangeText={setDescription}
-              placeholder="e.g. Cotton fabric roll, bubble wrap, shop electricity"
+              placeholder="e.g. Cotton fabric roll, bubble wrap, electricity"
               placeholderTextColor={colors.inkSoft}
               multiline
             />
@@ -166,7 +168,7 @@ export default function ExpenseFormScreen({ navigation, route }: Props) {
 
           <View style={styles.row}>
             <View style={[styles.field, { flex: 1 }]}>
-              <Text style={styles.fieldLabel}>Date</Text>
+              <Text style={styles.fieldLabel}>{t('common.date')}</Text>
               <TextInput
                 style={styles.input}
                 value={date}
@@ -178,7 +180,7 @@ export default function ExpenseFormScreen({ navigation, route }: Props) {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Payment Mode</Text>
+            <Text style={styles.fieldLabel}>{t('expenses.paymentMode')}</Text>
             <View style={styles.chipRow}>
               {PAYMENT_METHODS.map((pm) => {
                 const active = pm === paymentMethod;
@@ -202,7 +204,7 @@ export default function ExpenseFormScreen({ navigation, route }: Props) {
           onPress={handleSave}
           disabled={saving}
         >
-          <Text style={styles.saveBtnText}>{saving ? 'Saving Outflow…' : isEditing ? 'Update Outflow' : 'Save Outflow Entry'}</Text>
+          <Text style={styles.saveBtnText}>{saving ? t('common.loading') : isEditing ? t('common.update') : t('expenses.saveExpenseBtn')}</Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>

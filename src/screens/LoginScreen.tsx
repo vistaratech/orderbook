@@ -25,6 +25,7 @@ import {
 } from '../storage/authStorage';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import AppLogo from '../components/AppLogo';
+import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
@@ -32,6 +33,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 type LoginMode = 'email' | 'pin';
 
 export default function LoginScreen({ navigation }: Props) {
+  const { language, setLanguage, t, currentLangOption, availableLanguages } = useLanguage();
+  const [showLangModal, setShowLangModal] = useState(false);
   const [mode, setMode] = useState<LoginMode>('email');
 
   // Email state
@@ -174,263 +177,198 @@ export default function LoginScreen({ navigation }: Props) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* ── Top Bar with Language Selector ────────── */}
+          <View style={styles.topBarRow}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.langDropdownBtn,
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={() => setShowLangModal(true)}
+            >
+              <Ionicons name="globe-outline" size={15} color={colors.clayDeep} />
+              <Text style={styles.langDropdownText}>
+                {currentLangOption.flag} {currentLangOption.nativeLabel}
+              </Text>
+              <Ionicons name="chevron-down" size={13} color={colors.inkSoft} />
+            </Pressable>
+          </View>
+
           {/* ── Logo & Brand ─────────────────────────────── */}
           <View style={styles.brandHeader}>
             <AppLogo
               size={84}
               variant="vertical"
-              taglineText="Smart Business & Order Management"
+              taglineText={t('auth.subtitle')}
             />
           </View>
 
-          {/* ── Mode Switcher ────────────────────────────── */}
+          {/* ── Top Auth Tabs (Sign In / Create Account) ──── */}
           <View style={styles.modeTabs}>
             <Pressable
-              style={[styles.modeTab, mode === 'email' && styles.modeTabActive]}
-              onPress={() => {
-                setMode('email');
-                setErrorMessage(null);
-              }}
+              style={[styles.modeTab, styles.modeTabActive]}
+              onPress={() => setErrorMessage(null)}
             >
               <Ionicons
-                name="mail-outline"
+                name="log-in-outline"
                 size={16}
-                color={mode === 'email' ? colors.white : colors.inkSoft}
+                color={colors.white}
               />
               <Text
                 style={[
                   styles.modeTabText,
-                  mode === 'email' && styles.modeTabTextActive,
+                  styles.modeTabTextActive,
                 ]}
               >
-                Email & Password
+                {t('auth.signInTab')}
               </Text>
             </Pressable>
 
             <Pressable
-              style={[styles.modeTab, mode === 'pin' && styles.modeTabActive]}
-              onPress={() => {
-                setMode('pin');
-                setPin('');
-                setErrorMessage(null);
-              }}
+              style={styles.modeTab}
+              onPress={() => navigation.navigate('Register')}
             >
               <Ionicons
-                name="keypad-outline"
-                size={16}
-                color={mode === 'pin' ? colors.white : colors.inkSoft}
+                name="person-add-outline"
+                size={15}
+                color={colors.inkSoft}
               />
-              <Text
-                style={[
-                  styles.modeTabText,
-                  mode === 'pin' && styles.modeTabTextActive,
-                ]}
-              >
-                Quick PIN
+              <Text style={styles.modeTabText}>
+                {t('auth.createAccountTab')}
               </Text>
             </Pressable>
           </View>
 
-          {/* ── Email Login Form ─────────────────────────── */}
-          {mode === 'email' ? (
-            <View style={styles.emailCard}>
-              {/* Inline Error Message */}
-              {errorMessage ? (
-                <View style={styles.errorContainer}>
-                  <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={styles.errorIcon} />
-                  <Text style={styles.errorText}>{errorMessage}</Text>
-                  <Pressable onPress={() => setErrorMessage(null)} style={styles.errorDismissBtn} hitSlop={8}>
-                    <Ionicons name="close-circle" size={18} color={colors.danger} />
-                  </Pressable>
-                </View>
-              ) : null}
-
-              {/* Google Sign In Button */}
-              <Pressable
-                style={({ pressed }) => [
-                  styles.googleBtn,
-                  googleLoading && styles.googleBtnDisabled,
-                  pressed && { opacity: 0.85 },
-                ]}
-                onPress={handleGoogleSignIn}
-                disabled={googleLoading || loading}
-              >
-                {googleLoading ? (
-                  <ActivityIndicator size="small" color={colors.ink} />
-                ) : (
-                  <>
-                    <Ionicons name="logo-google" size={18} color="#EA4335" />
-                    <Text style={styles.googleBtnText}>Continue with Google</Text>
-                  </>
-                )}
-              </Pressable>
-
-              {/* Divider */}
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or sign in with email</Text>
-                <View style={styles.dividerLine} />
+          {/* ── Login Form Card ─────────────────────────── */}
+          <View style={styles.emailCard}>
+            {/* Inline Error Message */}
+            {errorMessage ? (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={styles.errorIcon} />
+                <Text style={styles.errorText}>{errorMessage}</Text>
+                <Pressable onPress={() => setErrorMessage(null)} style={styles.errorDismissBtn} hitSlop={8}>
+                  <Ionicons name="close-circle" size={18} color={colors.danger} />
+                </Pressable>
               </View>
+            ) : null}
 
-              {/* Email */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Email Address</Text>
-                <View style={styles.inputWrap}>
-                  <Ionicons name="mail-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.textInput}
-                    value={email}
-                    onChangeText={(val) => {
-                      setEmail(val);
-                      if (errorMessage) setErrorMessage(null);
-                    }}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    placeholder="your.email@example.com"
-                    placeholderTextColor={colors.inkSoft}
-                  />
-                </View>
-              </View>
+            {/* Google Sign In Button */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.googleBtn,
+                googleLoading && styles.googleBtnDisabled,
+                pressed && { opacity: 0.85 },
+              ]}
+              onPress={handleGoogleSignIn}
+              disabled={googleLoading || loading}
+            >
+              {googleLoading ? (
+                <ActivityIndicator size="small" color={colors.ink} />
+              ) : (
+                <>
+                  <Ionicons name="logo-google" size={18} color="#EA4335" />
+                  <Text style={styles.googleBtnText}>{t('auth.googleSignIn')}</Text>
+                </>
+              )}
+            </Pressable>
 
-              {/* Password */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Password</Text>
-                <View style={styles.inputWrap}>
-                  <Ionicons name="lock-closed-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.textInput, { flex: 1 }]}
-                    value={password}
-                    onChangeText={(val) => {
-                      setPassword(val);
-                      if (errorMessage) setErrorMessage(null);
-                    }}
-                    secureTextEntry={!showPassword}
-                    autoComplete="password"
-                    placeholder="Enter your password"
-                    placeholderTextColor={colors.inkSoft}
-                  />
-                  <Pressable
-                    onPress={() => setShowPassword(!showPassword)}
-                    style={styles.eyeBtn}
-                    hitSlop={8}
-                  >
-                    <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={colors.inkSoft}
-                    />
-                  </Pressable>
-                </View>
-              </View>
-
-              {/* Forgot Password */}
-              <Pressable style={styles.forgotBtn} onPress={handleForgotPassword}>
-                <Text style={styles.forgotText}>Forgot password?</Text>
-              </Pressable>
-
-              {/* Sign In Button */}
-              <Pressable
-                style={({ pressed }) => [
-                  styles.signInBtn,
-                  loading && styles.signInBtnDisabled,
-                  pressed && { opacity: 0.85 },
-                ]}
-                onPress={handleEmailLogin}
-                disabled={loading || googleLoading}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color={colors.white} />
-                ) : (
-                  <>
-                    <Ionicons name="log-in-outline" size={20} color={colors.white} />
-                    <Text style={styles.signInBtnText}>Sign In</Text>
-                  </>
-                )}
-              </Pressable>
-
-              {/* Divider */}
-              <View style={[styles.divider, { marginVertical: 14 }]}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              {/* Guest Explore */}
-              <Pressable style={styles.guestBtn} onPress={handleGuestExplore}>
-                <Ionicons name="eye-outline" size={16} color={colors.duskDeep} />
-                <Text style={styles.guestBtnText}>Explore as Visitor (no account)</Text>
-              </Pressable>
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>{t('auth.orEmailSignIn')}</Text>
+              <View style={styles.dividerLine} />
             </View>
-          ) : (
-            /* ── PIN Login ──────────────────────────────── */
-            <View style={styles.pinSection}>
-              <Text style={styles.pinInstruction}>
-                Enter your 4-digit unlock passcode
-              </Text>
 
-              {/* Inline Error Message */}
-              {errorMessage ? (
-                <View style={styles.errorContainer}>
-                  <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={styles.errorIcon} />
-                  <Text style={styles.errorText}>{errorMessage}</Text>
-                  <Pressable onPress={() => setErrorMessage(null)} style={styles.errorDismissBtn} hitSlop={8}>
-                    <Ionicons name="close-circle" size={18} color={colors.danger} />
-                  </Pressable>
-                </View>
-              ) : null}
-
-              <View style={styles.pinDotsRow}>
-                {[0, 1, 2, 3].map((idx) => (
-                  <View
-                    key={idx}
-                    style={[styles.pinDot, pin.length > idx && styles.pinDotFilled]}
-                  />
-                ))}
+            {/* Email */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>{t('auth.email')}</Text>
+              <View style={styles.inputWrap}>
+                <Ionicons name="mail-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.textInput}
+                  value={email}
+                  onChangeText={(val) => {
+                    setEmail(val);
+                    if (errorMessage) setErrorMessage(null);
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  placeholder={t('auth.emailPlaceholder')}
+                  placeholderTextColor={colors.inkSoft}
+                />
               </View>
-
-              <View style={styles.keypad}>
-                {[
-                  ['1', '2', '3'],
-                  ['4', '5', '6'],
-                  ['7', '8', '9'],
-                  ['', '0', 'del'],
-                ].map((row, rIdx) => (
-                  <View key={rIdx} style={styles.keypadRow}>
-                    {row.map((btn, cIdx) => {
-                      if (btn === '') {
-                        return <View key={cIdx} style={styles.keypadBtnEmpty} />;
-                      }
-                      if (btn === 'del') {
-                        return (
-                          <Pressable
-                            key={cIdx}
-                            style={({ pressed }) => [styles.keypadBtn, pressed && { opacity: 0.7 }]}
-                            onPress={handlePinDelete}
-                          >
-                            <Ionicons name="backspace-outline" size={24} color={colors.ink} />
-                          </Pressable>
-                        );
-                      }
-                      return (
-                        <Pressable
-                          key={cIdx}
-                          style={({ pressed }) => [styles.keypadBtn, pressed && { opacity: 0.7 }]}
-                          onPress={() => handlePinDigit(btn)}
-                        >
-                          <Text style={styles.keypadBtnText}>{btn}</Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                ))}
-              </View>
-
-              <Text style={styles.pinHint}>
-                Use the PIN you set during registration
-              </Text>
             </View>
-          )}
+
+            {/* Password */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>{t('auth.password')}</Text>
+              <View style={styles.inputWrap}>
+                <Ionicons name="lock-closed-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.textInput, { flex: 1 }]}
+                  value={password}
+                  onChangeText={(val) => {
+                    setPassword(val);
+                    if (errorMessage) setErrorMessage(null);
+                  }}
+                  secureTextEntry={!showPassword}
+                  autoComplete="password"
+                  placeholder={t('auth.passwordPlaceholder')}
+                  placeholderTextColor={colors.inkSoft}
+                />
+                <Pressable
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeBtn}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={colors.inkSoft}
+                  />
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Forgot Password */}
+            <Pressable style={styles.forgotBtn} onPress={handleForgotPassword}>
+              <Text style={styles.forgotText}>{t('auth.forgotPassword')}</Text>
+            </Pressable>
+
+            {/* Sign In Button */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.signInBtn,
+                loading && styles.signInBtnDisabled,
+                pressed && { opacity: 0.85 },
+              ]}
+              onPress={handleEmailLogin}
+              disabled={loading || googleLoading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <>
+                  <Ionicons name="log-in-outline" size={20} color={colors.white} />
+                  <Text style={styles.signInBtnText}>{t('auth.signInBtn')}</Text>
+                </>
+              )}
+            </Pressable>
+
+            {/* Divider */}
+            <View style={[styles.divider, { marginVertical: 14 }]}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>{t('auth.or')}</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Guest Explore */}
+            <Pressable style={styles.guestBtn} onPress={handleGuestExplore}>
+              <Ionicons name="eye-outline" size={16} color={colors.duskDeep} />
+              <Text style={styles.guestBtnText}>{t('auth.guestExplore')}</Text>
+            </Pressable>
+          </View>
 
           {/* ── Bottom Links ─────────────────────────────── */}
           <View style={styles.footerLinks}>
@@ -439,8 +377,8 @@ export default function LoginScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('Register')}
             >
               <Text style={styles.createAccountText}>
-                Don't have an account?{' '}
-                <Text style={styles.createAccountBold}>Create Account</Text>
+                {t('auth.noAccount')}{' '}
+                <Text style={styles.createAccountBold}>{t('auth.createAccount')}</Text>
               </Text>
             </Pressable>
 
@@ -449,7 +387,7 @@ export default function LoginScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('OnboardingWizard')}
             >
               <Ionicons name="sparkles-outline" size={14} color={colors.clayDeep} />
-              <Text style={styles.wizardLinkText}>Launch Setup Wizard</Text>
+              <Text style={styles.wizardLinkText}>{t('auth.launchWizard')}</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -473,9 +411,9 @@ export default function LoginScreen({ navigation }: Props) {
                   <Ionicons name="key-outline" size={22} color={colors.clayDeep} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.modalTitle}>Reset Password</Text>
+                  <Text style={styles.modalTitle}>{t('auth.resetPasswordTitle')}</Text>
                   <Text style={styles.modalSub}>
-                    Enter your email to receive a password reset link
+                    {t('auth.resetPasswordSub')}
                   </Text>
                 </View>
                 <Pressable
@@ -506,7 +444,7 @@ export default function LoginScreen({ navigation }: Props) {
               {!forgotSuccess ? (
                 <>
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Registered Email Address</Text>
+                    <Text style={styles.inputLabel}>{t('auth.registeredEmail')}</Text>
                     <View style={styles.inputWrap}>
                       <Ionicons name="mail-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
                       <TextInput
@@ -545,7 +483,7 @@ export default function LoginScreen({ navigation }: Props) {
                     ) : (
                       <>
                         <Ionicons name="paper-plane-outline" size={18} color={colors.white} style={{ marginRight: 6 }} />
-                        <Text style={styles.sendResetBtnText}>Send Reset Link</Text>
+                        <Text style={styles.sendResetBtnText}>{t('auth.sendResetLink')}</Text>
                       </>
                     )}
                   </Pressable>
@@ -559,11 +497,78 @@ export default function LoginScreen({ navigation }: Props) {
                   ]}
                   onPress={() => setShowForgotModal(false)}
                 >
-                  <Text style={styles.sendResetBtnText}>Back to Sign In</Text>
+                  <Text style={styles.sendResetBtnText}>{t('auth.backToSignIn')}</Text>
                 </Pressable>
               )}
             </View>
           </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      {/* ─── Choose Language Modal ─── */}
+      <Modal
+        visible={showLangModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLangModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowLangModal(false)} />
+          <View style={styles.langModalCard}>
+            <View style={styles.langModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={styles.langIconCircle}>
+                  <Ionicons name="language" size={20} color={colors.clayDeep} />
+                </View>
+                <View>
+                  <Text style={styles.langModalTitle}>Choose Language / மொழி</Text>
+                  <Text style={styles.langModalSub}>Select your preferred language</Text>
+                </View>
+              </View>
+              <Pressable
+                onPress={() => setShowLangModal(false)}
+                style={styles.modalCloseBtn}
+                hitSlop={8}
+              >
+                <Ionicons name="close" size={20} color={colors.inkSoft} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+              <View style={styles.langGrid}>
+                {availableLanguages.map((item) => {
+                  const isActive = language === item.code;
+                  return (
+                    <Pressable
+                      key={item.code}
+                      style={({ pressed }) => [
+                        styles.langGridCard,
+                        isActive && styles.langGridCardActive,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                      onPress={() => {
+                        setLanguage(item.code);
+                        setShowLangModal(false);
+                      }}
+                    >
+                      <Text style={styles.langGridFlag}>{item.flag}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.langGridNative, isActive && styles.langGridNativeActive]}>
+                          {item.nativeLabel}
+                        </Text>
+                        <Text style={[styles.langGridEnglish, isActive && styles.langGridEnglishActive]}>
+                          {item.label}
+                        </Text>
+                      </View>
+                      {isActive && (
+                        <Ionicons name="checkmark-circle" size={18} color={colors.clayDeep} />
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -580,12 +585,37 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 28,
+    paddingTop: 16,
     paddingBottom: 40,
     alignItems: 'center',
     width: '100%',
     maxWidth: 480,
     alignSelf: 'center',
+  },
+
+  // ── Top Bar with Language Selector ──
+  topBarRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 12,
+  },
+  langDropdownBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.paperCard,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    ...shadow.card,
+  },
+  langDropdownText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.ink,
   },
 
   // ── Brand Header ──
@@ -634,7 +664,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 20,
+    padding: 22,
     ...shadow.card,
   },
   // ── Error Banner ──
@@ -688,21 +718,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
     color: colors.inkSoft,
     marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.paper,
-    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
+    height: 48,
   },
   inputIcon: {
     marginRight: 8,
@@ -710,9 +739,9 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontFamily: fonts.body,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.ink,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 10,
+    height: '100%',
   },
   eyeBtn: {
     padding: 4,
@@ -730,23 +759,29 @@ const styles = StyleSheet.create({
   },
   signInBtn: {
     flexDirection: 'row',
-    backgroundColor: colors.clayDeep,
-    borderRadius: radius.md,
-    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    backgroundColor: colors.clayDeep,
+    paddingVertical: 14,
+    borderRadius: radius.md,
     ...shadow.card,
   },
   signInBtnDisabled: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
   signInBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.white,
   },
+  // ── Divider ──
   divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 16,
@@ -758,25 +793,25 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontFamily: fonts.body,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.inkSoft,
-    marginHorizontal: 12,
+    paddingHorizontal: 12,
   },
+  // ── Guest Button ──
   guestBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.line,
     paddingVertical: 12,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.duskDeep,
-    backgroundColor: colors.paper,
   },
   guestBtnText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
-    color: colors.duskDeep,
+    color: colors.inkSoft,
   },
 
   // ── PIN Section ──
@@ -793,15 +828,15 @@ const styles = StyleSheet.create({
   pinDotsRow: {
     flexDirection: 'row',
     gap: 16,
-    marginBottom: 24,
+    marginBottom: 28,
   },
   pinDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: colors.line,
-    backgroundColor: 'transparent',
+    backgroundColor: colors.paper,
   },
   pinDotFilled: {
     backgroundColor: colors.clayDeep,
@@ -874,7 +909,7 @@ const styles = StyleSheet.create({
     color: colors.clayDeep,
   },
 
-  // ── Forgot Password Modal Styles ──
+  // ── Modals & Overlay ──
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
@@ -887,11 +922,12 @@ const styles = StyleSheet.create({
     maxWidth: 440,
   },
   modalCard: {
+    width: '100%',
     backgroundColor: colors.paperCard,
     borderRadius: radius.lg,
-    padding: 24,
     borderWidth: 1,
     borderColor: colors.line,
+    padding: 24,
     ...shadow.card,
   },
   modalHeader: {
@@ -971,5 +1007,118 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.white,
   },
+
+  // ── Language Selection Modal Styles ──
+  langModalCard: {
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: colors.paperCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 20,
+    ...shadow.card,
+  },
+  langModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  langIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.clayLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langModalTitle: {
+    fontFamily: fonts.display,
+    fontSize: 16,
+    color: colors.ink,
+  },
+  langModalSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
+  langGrid: {
+    gap: 8,
+  },
+  langGridCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  langGridCardActive: {
+    backgroundColor: colors.clayLight,
+    borderColor: colors.clayDeep,
+  },
+  langGridFlag: {
+    fontSize: 20,
+  },
+  langGridNative: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  langGridNativeActive: {
+    color: colors.clayDeep,
+  },
+  langGridEnglish: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+  },
+  langGridEnglishActive: {
+    color: colors.clayDeep,
+  },
+  langSelectorRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+    flexWrap: 'wrap',
+  },
+  langPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  langPillActive: {
+    backgroundColor: colors.clayLight,
+    borderColor: colors.clayDeep,
+  },
+  langPillFlag: {
+    fontSize: 15,
+  },
+  langPillText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.inkSoft,
+  },
+  langPillTextActive: {
+    fontFamily: fonts.bodyBold,
+    color: colors.clayDeep,
+  },
 });
+
 

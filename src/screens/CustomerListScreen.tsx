@@ -23,11 +23,13 @@ import EmptyState from '../components/EmptyState';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { formatCurrency } from '../utils/format';
 import DesktopLayout from '../components/DesktopLayout';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function CustomerListScreen() {
   const navigation = useNavigation<Nav>();
+  const { t } = useLanguage();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,12 +112,8 @@ export default function CustomerListScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Customers</Text>
-              <Text style={styles.subtitle}>
-                {loading
-                  ? 'Loading…'
-                  : `${filteredCustomers.length} contact${filteredCustomers.length === 1 ? '' : 's'}`}
-              </Text>
+              <Text style={styles.title}>{t('customers.title')}</Text>
+              <Text style={styles.subtitle}>{t('customers.subtitle')}</Text>
             </View>
           </View>
 
@@ -124,7 +122,7 @@ export default function CustomerListScreen() {
             <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search customers by name or phone…"
+              placeholder={t('customers.searchPlaceholder')}
               placeholderTextColor={colors.inkSoft}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -184,12 +182,12 @@ export default function CustomerListScreen() {
                   {/* Micro Stats Row */}
                   <View style={styles.statsRow}>
                     <View style={styles.statItem}>
-                      <Text style={styles.statLabel}>Orders</Text>
+                      <Text style={styles.statLabel}>{t('nav.orders')}</Text>
                       <Text style={styles.statValue}>{stats.orderCount}</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                      <Text style={styles.statLabel}>Total Spend</Text>
+                      <Text style={styles.statLabel}>{t('customers.totalPurchases')}</Text>
                       <Text style={[styles.statValue, { color: colors.inflow }]}>
                         {formatCurrency(stats.totalSpend)}
                       </Text>
@@ -198,7 +196,7 @@ export default function CustomerListScreen() {
                       <>
                         <View style={styles.statDivider} />
                         <View style={styles.statItem}>
-                          <Text style={styles.statLabel}>Pending Due</Text>
+                          <Text style={styles.statLabel}>{t('customers.dueBalance')}</Text>
                           <Text style={[styles.statValue, { color: colors.danger }]}>
                             {formatCurrency(stats.pendingDue)}
                           </Text>
@@ -216,7 +214,7 @@ export default function CustomerListScreen() {
                           onPress={() => handleCall(item.phone)}
                         >
                           <Ionicons name="call" size={14} color={colors.clayDeep} />
-                          <Text style={styles.actionPillText}>Call</Text>
+                          <Text style={styles.actionPillText}>{t('customers.call')}</Text>
                         </Pressable>
 
                         <Pressable
@@ -225,7 +223,7 @@ export default function CustomerListScreen() {
                         >
                           <Ionicons name="logo-whatsapp" size={14} color={colors.success} />
                           <Text style={[styles.actionPillText, { color: colors.success }]}>
-                            WhatsApp
+                            {t('customers.whatsapp')}
                           </Text>
                         </Pressable>
                       </>
@@ -242,7 +240,7 @@ export default function CustomerListScreen() {
                     >
                       <Ionicons name="add" size={14} color={colors.duskDeep} />
                       <Text style={[styles.actionPillText, { color: colors.duskDeep }]}>
-                        New Order
+                        {t('dashboard.newOrder')}
                       </Text>
                     </Pressable>
                   </View>
@@ -253,12 +251,8 @@ export default function CustomerListScreen() {
               !loading ? (
                 <EmptyState
                   icon="people-outline"
-                  title={searchQuery ? 'No customers found' : 'No customers yet'}
-                  message={
-                    searchQuery
-                      ? 'Try searching with a different name or phone number.'
-                      : 'Customers are automatically saved when you create orders, or you can add them directly.'
-                  }
+                  title={t('customers.noCustomers')}
+                  message={t('customers.subtitle')}
                 />
               ) : null
             }
@@ -270,7 +264,7 @@ export default function CustomerListScreen() {
             onPress={() => navigation.navigate('CustomerForm', undefined)}
           >
             <Ionicons name="person-add" size={20} color={colors.white} />
-            <Text style={styles.fabText}>+ Customer</Text>
+            <Text style={styles.fabText}>{t('customers.addCustomerBtn')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>

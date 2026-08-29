@@ -18,11 +18,13 @@ import { RootStackParamList } from '../navigation/types';
 import { registerUser } from '../storage/authStorage';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import AppLogo from '../components/AppLogo';
+import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
 export default function RegisterScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const [businessName, setBusinessName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [email, setEmail] = useState('');
@@ -115,10 +117,45 @@ export default function RegisterScreen({ navigation }: Props) {
             <View style={{ alignItems: 'center', marginBottom: 12 }}>
               <AppLogo size={56} variant="icon" />
             </View>
-            <Text style={styles.title}>Create Store Account</Text>
+            <Text style={styles.title}>{t('auth.registerTitle')}</Text>
             <Text style={styles.subtitle}>
-              Set up your KadaiBook account and secure passcode
+              {t('auth.registerSubtitle')}
             </Text>
+          </View>
+
+          {/* ── Top Auth Tabs (Sign In / Create Account) ──── */}
+          <View style={styles.modeTabs}>
+            <Pressable
+              style={styles.modeTab}
+              onPress={() => navigation.navigate('Login')}
+            >
+              <Ionicons
+                name="log-in-outline"
+                size={16}
+                color={colors.inkSoft}
+              />
+              <Text style={styles.modeTabText}>
+                {t('auth.signInTab')}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.modeTab, styles.modeTabActive]}
+            >
+              <Ionicons
+                name="person-add-outline"
+                size={15}
+                color={colors.white}
+              />
+              <Text
+                style={[
+                  styles.modeTabText,
+                  styles.modeTabTextActive,
+                ]}
+              >
+                {t('auth.createAccountTab')}
+              </Text>
+            </Pressable>
           </View>
 
           {/* Google Sign Up Button */}
@@ -133,80 +170,80 @@ export default function RegisterScreen({ navigation }: Props) {
           >
             <Ionicons name="logo-google" size={18} color="#EA4335" />
             <Text style={styles.googleBtnText}>
-              {googleLoading ? 'Connecting…' : 'Sign up with Google'}
+              {googleLoading ? 'Connecting…' : t('auth.googleSignUp')}
             </Text>
           </Pressable>
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or register with email</Text>
+            <Text style={styles.dividerText}>{t('auth.orEmailSignUp')}</Text>
             <View style={styles.dividerLine} />
           </View>
 
           {/* Form Card */}
           <View style={styles.card}>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Business / Store Name *</Text>
+              <Text style={styles.fieldLabel}>{t('auth.businessName')} *</Text>
               <TextInput
                 style={styles.input}
                 value={businessName}
                 onChangeText={setBusinessName}
-                placeholder="e.g. Modern Craft Boutique"
+                placeholder={t('auth.businessNamePlaceholder')}
                 placeholderTextColor={colors.inkSoft}
                 autoFocus
               />
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Owner Name *</Text>
+              <Text style={styles.fieldLabel}>{t('auth.ownerName')} *</Text>
               <TextInput
                 style={styles.input}
                 value={ownerName}
                 onChangeText={setOwnerName}
-                placeholder="e.g. Priya"
+                placeholder={t('auth.ownerNamePlaceholder')}
                 placeholderTextColor={colors.inkSoft}
               />
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Email Address *</Text>
+              <Text style={styles.fieldLabel}>{t('auth.email')} *</Text>
               <TextInput
                 style={styles.input}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                placeholder="e.g. store@orderbook.com"
+                placeholder={t('auth.emailPlaceholder')}
                 placeholderTextColor={colors.inkSoft}
               />
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Phone Number</Text>
+              <Text style={styles.fieldLabel}>{t('auth.phone')}</Text>
               <TextInput
                 style={styles.input}
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
-                placeholder="10-digit mobile number"
+                placeholder={t('auth.phonePlaceholder')}
                 placeholderTextColor={colors.inkSoft}
               />
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Password * (min 6 characters)</Text>
+              <Text style={styles.fieldLabel}>{t('auth.password')} * (min 6)</Text>
               <TextInput
                 style={styles.input}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
-                placeholder="Create a password"
+                placeholder={t('auth.passwordPlaceholder')}
                 placeholderTextColor={colors.inkSoft}
               />
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Quick 4-Digit PIN (Default: 1234)</Text>
+              <Text style={styles.fieldLabel}>{t('auth.quickPin')} {t('auth.pinOptional')}</Text>
               <TextInput
                 style={[styles.input, { letterSpacing: 8, fontSize: 18 }]}
                 value={pin}
@@ -226,7 +263,7 @@ export default function RegisterScreen({ navigation }: Props) {
             disabled={saving}
           >
             <Text style={styles.submitBtnText}>
-              {saving ? 'Creating Account…' : 'Register & Enter KadaiBook'}
+              {saving ? 'Creating Account…' : t('auth.createAccountBtn')}
             </Text>
           </Pressable>
 
@@ -235,7 +272,8 @@ export default function RegisterScreen({ navigation }: Props) {
             onPress={() => navigation.navigate('Login')}
           >
             <Text style={styles.loginLinkText}>
-              Already registered? <Text style={styles.loginBold}>Log In</Text>
+              {t('auth.haveAccount')}{' '}
+              <Text style={styles.loginBold}>{t('auth.signIn')}</Text>
             </Text>
           </Pressable>
         </ScrollView>
@@ -274,6 +312,37 @@ const styles = StyleSheet.create({
     color: colors.inkSoft,
     marginTop: 2,
     textAlign: 'center',
+  },
+  modeTabs: {
+    flexDirection: 'row',
+    backgroundColor: colors.paperCard,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 3,
+    width: '100%',
+    marginBottom: 20,
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 18,
+  },
+  modeTabActive: {
+    backgroundColor: colors.clayDeep,
+  },
+  modeTabText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.inkSoft,
+  },
+  modeTabTextActive: {
+    color: colors.white,
+    fontFamily: fonts.bodyBold,
   },
   googleBtn: {
     flexDirection: 'row',

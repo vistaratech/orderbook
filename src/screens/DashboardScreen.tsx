@@ -30,6 +30,7 @@ import { addDataListener } from '../storage/firebaseSync';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
 import { formatCurrency, formatDate } from '../utils/format';
 import AppLogo from '../components/AppLogo';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -51,6 +52,7 @@ const statusIcons: Record<OrderStatus, string> = {
 
 export default function DashboardScreen() {
   const navigation = useNavigation<Nav>();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -269,7 +271,7 @@ export default function DashboardScreen() {
                   onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'All' })}
                 >
                   <Ionicons name="arrow-down-circle" size={18} color={colors.inflow} />
-                  <Text style={styles.metricTileLabel}>Sales</Text>
+                  <Text style={styles.metricTileLabel}>{t('dashboard.totalSales')}</Text>
                   <Text style={[styles.metricTileValue, { color: colors.inflow }]}>
                     {formatCurrency(totalSales)}
                   </Text>
@@ -284,7 +286,7 @@ export default function DashboardScreen() {
                   onPress={() => (navigation as any).navigate('ExpensesTab')}
                 >
                   <Ionicons name="arrow-up-circle" size={18} color={colors.outflow} />
-                  <Text style={styles.metricTileLabel}>Outflow</Text>
+                  <Text style={styles.metricTileLabel}>{t('expenses.totalExpenses')}</Text>
                   <Text style={[styles.metricTileValue, { color: colors.outflow }]}>
                     {formatCurrency(totalOutflow)}
                   </Text>
@@ -301,7 +303,7 @@ export default function DashboardScreen() {
                   onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Paid' })}
                 >
                   <Ionicons name="checkmark-circle" size={18} color={colors.duskDeep} />
-                  <Text style={styles.metricTileLabel}>Collected</Text>
+                  <Text style={styles.metricTileLabel}>{t('orders.payPaid')}</Text>
                   <Text style={styles.metricTileValue}>
                     {formatCurrency(totalCollected)}
                   </Text>
@@ -316,7 +318,7 @@ export default function DashboardScreen() {
                   onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Pending', initialSort: 'due' })}
                 >
                   <Ionicons name="time" size={18} color={colors.pending} />
-                  <Text style={styles.metricTileLabel}>Pending Dues</Text>
+                  <Text style={styles.metricTileLabel}>{t('dashboard.pendingDues')}</Text>
                   <Text style={[styles.metricTileValue, { color: colors.pending }]}>
                     {formatCurrency(pendingCollection)}
                   </Text>
@@ -337,7 +339,7 @@ export default function DashboardScreen() {
                   color={colors.clayDeep}
                 />
                 <Text style={styles.expandFinancialBtnText}>
-                  {showFinancialDetails ? 'Hide Financial Breakdown' : 'View Financial Breakdown & Cash Position'}
+                  {showFinancialDetails ? t('common.clear') : `${t('dashboard.cashFlow')} & Analysis`}
                 </Text>
               </Pressable>
 
@@ -346,7 +348,7 @@ export default function DashboardScreen() {
                   <View style={styles.breakdownItemRow}>
                     <View style={styles.breakdownLabelGroup}>
                       <Ionicons name="cash" size={15} color={colors.inflow} />
-                      <Text style={styles.breakdownLabelText}>Liquid Cash In-Hand / Bank</Text>
+                      <Text style={styles.breakdownLabelText}>{t('dashboard.liquidCash')}</Text>
                     </View>
                     <Text
                       style={[
@@ -361,23 +363,15 @@ export default function DashboardScreen() {
                   <View style={styles.breakdownItemRow}>
                     <View style={styles.breakdownLabelGroup}>
                       <Ionicons name="pie-chart" size={15} color={colors.duskDeep} />
-                      <Text style={styles.breakdownLabelText}>Net Profit Margin</Text>
+                      <Text style={styles.breakdownLabelText}>{t('dashboard.netProfit')}</Text>
                     </View>
                     <Text style={styles.breakdownValText}>{profitMargin}%</Text>
                   </View>
 
                   <View style={styles.breakdownItemRow}>
                     <View style={styles.breakdownLabelGroup}>
-                      <Ionicons name="cart" size={15} color={colors.clayDeep} />
-                      <Text style={styles.breakdownLabelText}>Average Order Value (AOV)</Text>
-                    </View>
-                    <Text style={styles.breakdownValText}>{formatCurrency(avgOrderValue)}</Text>
-                  </View>
-
-                  <View style={styles.breakdownItemRow}>
-                    <View style={styles.breakdownLabelGroup}>
                       <Ionicons name="shield-checkmark" size={15} color={colors.statusDelivered} />
-                      <Text style={styles.breakdownLabelText}>Order Collection Efficiency</Text>
+                      <Text style={styles.breakdownLabelText}>{t('dashboard.collectionRate')}</Text>
                     </View>
                     <Text style={styles.breakdownValText}>{collectionRate}%</Text>
                   </View>
@@ -398,7 +392,7 @@ export default function DashboardScreen() {
                 <View style={styles.actionBtnIcon}>
                   <Ionicons name="cart" size={20} color={colors.white} />
                 </View>
-                <Text style={styles.actionBtnText}>New Order</Text>
+                <Text style={styles.actionBtnText}>{t('dashboard.newOrder')}</Text>
               </Pressable>
 
               <Pressable
@@ -413,7 +407,7 @@ export default function DashboardScreen() {
                   <Ionicons name="wallet" size={20} color={colors.white} />
                 </View>
                 <Text style={[styles.actionBtnText, { color: colors.duskDeep }]}>
-                  Add Outflow
+                  {t('dashboard.recordExpense')}
                 </Text>
               </Pressable>
             </View>
@@ -421,11 +415,17 @@ export default function DashboardScreen() {
             {/* ─── Order Pipeline ─── */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Order Pipeline</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Text style={styles.sectionHint}>Tap to manage</Text>
-                  <Ionicons name="options-outline" size={12} color={colors.clayDeep} />
-                </View>
+                <Text style={styles.sectionTitle}>{t('dashboard.pipelineTitle')}</Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.pipelineManageBadge,
+                    pressed && { opacity: 0.75 },
+                  ]}
+                  onPress={() => setActivePipelineStatus('Placed')}
+                >
+                  <Ionicons name="options-outline" size={13} color={colors.clayDeep} />
+                  <Text style={styles.pipelineManageText}>{t('dashboard.pipelineTapToManage')}</Text>
+                </Pressable>
               </View>
               <View style={styles.pipelineRow}>
                 {ORDER_STATUS_STEPS.map((st, idx) => {
@@ -449,7 +449,9 @@ export default function DashboardScreen() {
                           />
                         </View>
                         <Text style={[styles.pipelineCount, cnt > 0 && { color }]}>{cnt}</Text>
-                        <Text style={styles.pipelineName}>{st}</Text>
+                        <Text style={styles.pipelineName} numberOfLines={1}>
+                          {t('status.' + st.toLowerCase()) || st}
+                        </Text>
                       </Pressable>
                       {!isLast && (
                         <View style={styles.pipelineConnector}>
@@ -466,12 +468,12 @@ export default function DashboardScreen() {
             {/* ─── Recent Orders ─── */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Recent Orders</Text>
+                <Text style={styles.sectionTitle}>{t('dashboard.recentOrders')}</Text>
                 <Pressable
                   style={styles.viewAllBtn}
                   onPress={() => navigation.navigate('OrderList')}
                 >
-                  <Text style={styles.viewAllText}>All ({orders.length})</Text>
+                  <Text style={styles.viewAllText}>{t('common.all')} ({orders.length})</Text>
                   <Ionicons name="chevron-forward" size={14} color={colors.duskDeep} />
                 </Pressable>
               </View>
@@ -479,10 +481,7 @@ export default function DashboardScreen() {
               {recentOrders.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Ionicons name="document-text-outline" size={40} color={colors.line} />
-                  <Text style={styles.emptyTitle}>No orders yet</Text>
-                  <Text style={styles.emptyDesc}>
-                    Tap "New Order" to create your first order!
-                  </Text>
+                  <Text style={styles.emptyTitle}>{t('dashboard.noOrdersYet')}</Text>
                 </View>
               ) : (
                 recentOrders.map((o, idx) => {
@@ -521,12 +520,12 @@ export default function DashboardScreen() {
                                 { backgroundColor: statusColor[o.status] || colors.clay },
                               ]}
                             >
-                              <Text style={styles.statusChipText}>{o.status}</Text>
+                              <Text style={styles.statusChipText}>{t('status.' + o.status.toLowerCase()) || o.status}</Text>
                             </View>
                             {bal > 0 ? (
-                              <Text style={styles.dueBadge}>₹{bal.toLocaleString('en-IN')} due</Text>
+                              <Text style={styles.dueBadge}>₹{bal.toLocaleString('en-IN')} {t('common.due') || 'due'}</Text>
                             ) : (
-                              <Text style={styles.paidBadge}>Paid ✓</Text>
+                              <Text style={styles.paidBadge}>{t('common.paid') || 'Paid'} ✓</Text>
                             )}
                           </View>
                         </View>
@@ -550,7 +549,7 @@ export default function DashboardScreen() {
                 <View style={[styles.toolIconWrap, { backgroundColor: colors.clayLight }]}>
                   <Ionicons name="people" size={22} color={colors.clayDeep} />
                 </View>
-                <Text style={styles.toolName}>Customers</Text>
+                <Text style={styles.toolName}>{t('nav.customers')}</Text>
                 <Text style={styles.toolDesc}>Directory & history</Text>
               </Pressable>
 
@@ -564,7 +563,7 @@ export default function DashboardScreen() {
                 <View style={[styles.toolIconWrap, { backgroundColor: colors.duskLight }]}>
                   <Ionicons name="pricetags" size={22} color={colors.duskDeep} />
                 </View>
-                <Text style={styles.toolName}>Catalog</Text>
+                <Text style={styles.toolName}>{t('nav.products')}</Text>
                 <Text style={styles.toolDesc}>Products & prices</Text>
               </Pressable>
             </View>
@@ -1152,9 +1151,26 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   pipelineName: {
-    fontFamily: fonts.body,
-    fontSize: 10,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
     color: colors.inkSoft,
+    textAlign: 'center',
+  },
+  pipelineManageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.clayLight,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(184, 80, 66, 0.15)',
+  },
+  pipelineManageText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.clayDeep,
   },
   pipelineConnector: {
     flexDirection: 'row',

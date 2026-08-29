@@ -36,12 +36,14 @@ import { confirmAction } from '../utils/dialog';
 import AppLogo from '../components/AppLogo';
 import GlassBackButton from '../components/GlassBackButton';
 import DesktopLayout from '../components/DesktopLayout';
+import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
+  const { language, setLanguage, t, currentLangOption, availableLanguages } = useLanguage();
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [newPin, setNewPin] = useState('');
   const [profile, setProfile] = useState<BusinessProfile>({
@@ -243,15 +245,16 @@ export default function SettingsScreen() {
       onConfirm: async () => {
         await clearAllData();
         Alert.alert('Cleared', 'All records have been removed.');
+        await loadSettings();
       },
     });
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.screen}>
-        <ActivityIndicator color={colors.clayDeep} style={{ marginTop: 40 }} />
-      </SafeAreaView>
+      <View style={[styles.screen, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator color={colors.clayDeep} size="large" />
+      </View>
     );
   }
 
@@ -260,20 +263,75 @@ export default function SettingsScreen() {
       <SafeAreaView style={styles.screen} edges={['top']}>
         {/* Top Header Bar */}
         <View style={styles.topHeader}>
-          <GlassBackButton label="Back" />
+          <GlassBackButton label={t('common.back')} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.topHeaderTitle}>Settings & Cloud Backup</Text>
-            <Text style={styles.topHeaderSub}>Passcode PIN, cloud backup, restore & data export</Text>
+            <Text style={styles.topHeaderTitle}>{t('settings.title')}</Text>
+            <Text style={styles.topHeaderSub}>{t('settings.subtitle')}</Text>
           </View>
         </View>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {/* Account & Security Section */}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ─── App Language Selection Card ─── */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="language-outline" size={18} color={colors.clayDeep} />
+                <Text style={styles.sectionTitle}>{t('settings.languageSection')}</Text>
+              </View>
+              <View style={styles.activeLangBadge}>
+                <Text style={styles.activeLangBadgeText}>{currentLangOption.flag} {currentLangOption.nativeLabel}</Text>
+              </View>
+            </View>
+            <Text style={styles.sectionSub}>{t('settings.languageSubtitle')}</Text>
+
+            <View style={styles.langGrid}>
+              {availableLanguages.map((item) => {
+                const isActive = language === item.code;
+                return (
+                  <Pressable
+                    key={item.code}
+                    style={({ pressed }) => [
+                      styles.langCard,
+                      isActive && styles.langCardActive,
+                      pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+                    ]}
+                    onPress={() => setLanguage(item.code)}
+                  >
+                    <View style={styles.langTopRow}>
+                      <Text style={styles.langFlag}>{item.flag}</Text>
+                      {isActive && (
+                        <Ionicons name="checkmark-circle" size={14} color={colors.white} />
+                      )}
+                    </View>
+                    <Text
+                      style={[styles.langNative, isActive && styles.langNativeActive]}
+                      numberOfLines={1}
+                    >
+                      {item.nativeLabel}
+                    </Text>
+                    <Text
+                      style={[styles.langEnglish, isActive && styles.langEnglishActive]}
+                      numberOfLines={1}
+                    >
+                      {item.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* ─── Account & Security Section ─── */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Ionicons name="key-outline" size={18} color={colors.clayDeep} />
-                <Text style={styles.sectionTitle}>Account & Security</Text>
+                <Text style={styles.sectionTitle}>{t('settings.accountSecurity')}</Text>
               </View>
               <View
                 style={[
@@ -287,11 +345,10 @@ export default function SettingsScreen() {
                     { color: currentUser?.role === 'guest' ? colors.duskDeep : colors.clayDeep },
                   ]}
                 >
-                  {currentUser?.role === 'guest' ? 'Public Visitor' : 'Store Owner'}
+                  {currentUser?.role === 'guest' ? t('settings.publicVisitor') : t('settings.storeOwner')}
                 </Text>
               </View>
             </View>
-            <Text style={styles.sectionSub}>Manage your unlock PIN and session access</Text>
 
             {currentUser?.name ? (
               <View style={styles.userCard}>
@@ -300,473 +357,401 @@ export default function SettingsScreen() {
                 </View>
                 <View style={styles.userInfo}>
                   <Text style={styles.userName}>{currentUser.name}</Text>
-                  <Text style={styles.userEmail}>{currentUser.email || 'No email'}</Text>
+                  <Text style={styles.userEmail}>{currentUser.email || currentUser.phone || 'KadaiBook User'}</Text>
                 </View>
               </View>
             ) : null}
 
-            {/* ─── Expandable Business Profile Section ─── */}
-            <View style={styles.section}>
-              <Pressable
-                style={styles.accordionHeader}
-                onPress={() => setShowBusinessProfile(!showBusinessProfile)}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                  <Ionicons name="business-outline" size={18} color={colors.clayDeep} />
-                  <View>
-                    <Text style={styles.sectionTitle}>Business Profile</Text>
-                    <Text style={styles.sectionSub}>
-                      {profile.businessName ? profile.businessName : 'Edit Shop Name, GSTIN, Address & Logo'}
-                    </Text>
-                  </View>
+            {/* Quick PIN Security Box */}
+            <View style={styles.pinSecurityCard}>
+              <View style={styles.pinSecurityHeader}>
+                <Ionicons name="shield-checkmark-outline" size={16} color={colors.duskDeep} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.pinSecurityTitle}>{t('settings.securityPinTitle')}</Text>
+                  <Text style={styles.pinSecuritySub}>{t('settings.securityPinSub')}</Text>
                 </View>
-                <Ionicons
-                  name={showBusinessProfile ? 'chevron-up' : 'chevron-down'}
-                  size={20}
-                  color={colors.clayDeep}
-                />
-              </Pressable>
+              </View>
 
-              {showBusinessProfile && (
-                <View style={{ marginTop: 14 }}>
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Business / Shop Name *</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={profile.businessName}
-                      onChangeText={(v) => setProfile((prev) => ({ ...prev, businessName: v }))}
-                      placeholder="e.g. Vistara Tech & Textiles"
-                      placeholderTextColor={colors.inkSoft}
-                    />
-                  </View>
-
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Tagline / Slogan</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={profile.tagline || ''}
-                      onChangeText={(v) => setProfile((prev) => ({ ...prev, tagline: v }))}
-                      placeholder="e.g. Quality Wholesale Fabrics & Apparel"
-                      placeholderTextColor={colors.inkSoft}
-                    />
-                  </View>
-
-                  {/* Company Logo Photo Picker */}
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Company Logo Photo</Text>
-                    <View style={styles.logoPickerRow}>
-                      {profile.logoUri ? (
-                        <View style={styles.logoPreviewWrap}>
-                          <Image source={{ uri: profile.logoUri }} style={styles.logoPreviewImage} />
-                          <Pressable
-                            style={styles.logoRemoveBtn}
-                            onPress={() => setProfile((prev) => ({ ...prev, logoUri: '' }))}
-                          >
-                            <Ionicons name="close-circle" size={20} color={colors.danger} />
-                          </Pressable>
-                        </View>
-                      ) : (
-                        <View style={styles.logoPlaceholderBox}>
-                          <Ionicons name="image-outline" size={24} color={colors.inkSoft} />
-                          <Text style={styles.logoPlaceholderText}>No Logo</Text>
-                        </View>
-                      )}
-
-                      <View style={styles.logoPickerActions}>
-                        <Pressable
-                          style={({ pressed }) => [styles.pickLogoBtn, pressed && { opacity: 0.85 }]}
-                          onPress={handlePickLogo}
-                        >
-                          <Ionicons name="camera-outline" size={15} color={colors.white} />
-                          <Text style={styles.pickLogoBtnText}>
-                            {profile.logoUri ? 'Change Logo Photo' : 'Choose Logo Photo'}
-                          </Text>
-                        </Pressable>
-                        <Text style={styles.hint}>
-                          Select logo photo from gallery. Printed on top of customer invoices!
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Contact Phone Number</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={profile.phone}
-                      onChangeText={(v) => setProfile((prev) => ({ ...prev, phone: v }))}
-                      placeholder="e.g. +91 9876543210"
-                      placeholderTextColor={colors.inkSoft}
-                      keyboardType="phone-pad"
-                    />
-                  </View>
-
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Business Email</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={profile.email || ''}
-                      onChangeText={(v) => setProfile((prev) => ({ ...prev, email: v }))}
-                      placeholder="e.g. sales@mybusiness.com"
-                      placeholderTextColor={colors.inkSoft}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                    />
-                  </View>
-
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Shop / Business Address</Text>
-                    <TextInput
-                      style={[styles.input, { minHeight: 54, textAlignVertical: 'top' }]}
-                      value={profile.address}
-                      onChangeText={(v) => setProfile((prev) => ({ ...prev, address: v }))}
-                      placeholder="e.g. No 42, Main Street, Commercial Bazaar, Chennai"
-                      placeholderTextColor={colors.inkSoft}
-                      multiline
-                      numberOfLines={2}
-                    />
-                  </View>
-
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>GSTIN / Tax Identification No</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={profile.gstin || ''}
-                      onChangeText={(v) => setProfile((prev) => ({ ...prev, gstin: v }))}
-                      placeholder="e.g. 33AAAAA0000A1Z5"
-                      placeholderTextColor={colors.inkSoft}
-                      autoCapitalize="characters"
-                    />
-                  </View>
-
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Bank Account / UPI Payment Details</Text>
-                    <TextInput
-                      style={[styles.input, { minHeight: 54, textAlignVertical: 'top' }]}
-                      value={profile.bankDetails || ''}
-                      onChangeText={(v) => setProfile((prev) => ({ ...prev, bankDetails: v }))}
-                      placeholder="e.g. UPI ID: mybusiness@upi • GPay/PhonePe: 9876543210"
-                      placeholderTextColor={colors.inkSoft}
-                      multiline
-                      numberOfLines={2}
-                    />
-                  </View>
-
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.saveProfileBtn,
-                      savingProfile && { opacity: 0.6 },
-                      pressed && { opacity: 0.88, transform: [{ scale: 0.99 }] },
-                    ]}
-                    onPress={handleSaveProfile}
-                    disabled={savingProfile}
-                  >
-                    {savingProfile ? (
-                      <ActivityIndicator color={colors.white} size="small" />
-                    ) : (
-                      <>
-                        <Ionicons name="checkmark-circle" size={18} color={colors.white} />
-                        <Text style={styles.saveProfileBtnText}>Save Business Branding</Text>
-                      </>
-                    )}
-                  </Pressable>
-
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Contact Phone Number</Text>
-              <TextInput
-                style={styles.input}
-                value={profile.phone}
-                onChangeText={(v) => setProfile((prev) => ({ ...prev, phone: v }))}
-                placeholder="e.g. +91 9876543210"
-                placeholderTextColor={colors.inkSoft}
-                keyboardType="phone-pad"
-              />
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Business Email</Text>
-              <TextInput
-                style={styles.input}
-                value={profile.email || ''}
-                onChangeText={(v) => setProfile((prev) => ({ ...prev, email: v }))}
-                placeholder="e.g. sales@mybusiness.com"
-                placeholderTextColor={colors.inkSoft}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Shop / Business Address</Text>
-              <TextInput
-                style={[styles.input, { minHeight: 54, textAlignVertical: 'top' }]}
-                value={profile.address}
-                onChangeText={(v) => setProfile((prev) => ({ ...prev, address: v }))}
-                placeholder="e.g. No 42, Main Street, Commercial Bazaar, Chennai"
-                placeholderTextColor={colors.inkSoft}
-                multiline
-                numberOfLines={2}
-              />
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>GSTIN / Tax Identification No</Text>
-              <TextInput
-                style={styles.input}
-                value={profile.gstin || ''}
-                onChangeText={(v) => setProfile((prev) => ({ ...prev, gstin: v }))}
-                placeholder="e.g. 33AAAAA0000A1Z5"
-                placeholderTextColor={colors.inkSoft}
-                autoCapitalize="characters"
-              />
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Bank Account / UPI Payment Details</Text>
-              <TextInput
-                style={[styles.input, { minHeight: 54, textAlignVertical: 'top' }]}
-                value={profile.bankDetails || ''}
-                onChangeText={(v) => setProfile((prev) => ({ ...prev, bankDetails: v }))}
-                placeholder="e.g. UPI ID: mybusiness@upi • GPay/PhonePe: 9876543210"
-                placeholderTextColor={colors.inkSoft}
-                multiline
-                numberOfLines={2}
-              />
-            </View>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.saveProfileBtn,
-                savingProfile && { opacity: 0.6 },
-                pressed && { opacity: 0.88, transform: [{ scale: 0.99 }] },
-              ]}
-              onPress={handleSaveProfile}
-              disabled={savingProfile}
-            >
-              {savingProfile ? (
-                <ActivityIndicator color={colors.white} size="small" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-circle" size={18} color={colors.white} />
-                  <Text style={styles.saveProfileBtnText}>Save Business Branding</Text>
-                </>
-              )}
-            </Pressable>
-          </View>
-        )}
-      </View>
-
-        {/* Change PIN Box */}
-        <View style={styles.pinChangeBox}>
-          <Text style={styles.fieldLabel}>Set New 4-Digit Unlock PIN</Text>
-          <View style={styles.pinInputRow}>
-            <TextInput
-              style={styles.pinInput}
-              value={newPin}
-              onChangeText={setNewPin}
-              keyboardType="number-pad"
-              maxLength={4}
-              placeholder="e.g. 5678"
-              placeholderTextColor={colors.inkSoft}
-              secureTextEntry
-            />
-            <Pressable
-              style={({ pressed }) => [styles.updatePinBtn, pressed && { opacity: 0.8 }]}
-              onPress={handleUpdatePin}
-            >
-              <Text style={styles.updatePinBtnText}>Update PIN</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Onboarding Wizard shortcut */}
-        <Pressable
-          style={({ pressed }) => [styles.wizardBtn, pressed && { opacity: 0.8 }]}
-          onPress={handleRelaunchWizard}
-        >
-          <Ionicons name="sparkles-outline" size={16} color={colors.duskDeep} />
-          <Text style={styles.wizardBtnText}>Re-open Setup Wizard / Feature Tour</Text>
-        </Pressable>
-
-        {/* Logout Button */}
-        <Pressable
-          style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.8 }]}
-          onPress={handleLogout}
-        >
-          <Ionicons name="log-out-outline" size={16} color={colors.danger} />
-          <Text style={styles.logoutBtnText}>Log Out of Session</Text>
-        </Pressable>
-      </View>
-
-      {/* ─── Expandable Firebase Cloud Sync & Backup Section ─── */}
-      <View style={[styles.section, { borderColor: '#E0C895', backgroundColor: '#FCF9F3' }]}>
-        <Pressable
-          style={styles.accordionHeader}
-          onPress={() => setShowCloudBackup(!showCloudBackup)}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-            <Ionicons name="cloud-done" size={20} color={colors.clayDeep} />
-            <View>
-              <Text style={styles.sectionTitle}>Firebase Cloud Backup</Text>
-              <Text style={styles.sectionSub}>Sync your orders & ledger to Cloud Firestore</Text>
-            </View>
-          </View>
-          <Ionicons
-            name={showCloudBackup ? 'chevron-up' : 'chevron-down'}
-            size={20}
-            color={colors.clayDeep}
-          />
-        </Pressable>
-
-        {showCloudBackup && (
-          <View style={[styles.backupActions, { marginTop: 14 }]}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.backupBtn,
-                { backgroundColor: colors.clayDeep },
-                pressed && { opacity: 0.85 },
-              ]}
-              onPress={handleCloudBackup}
-              disabled={cloudSyncing}
-            >
-              {cloudSyncing ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <>
-                  <Ionicons name="cloud-upload" size={18} color={colors.white} />
-                  <Text style={styles.backupBtnText}>Backup to Cloud</Text>
-                </>
-              )}
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.backupBtn,
-                { backgroundColor: colors.paperCard, borderWidth: 1, borderColor: colors.clayDeep },
-                pressed && { opacity: 0.85 },
-              ]}
-              onPress={handleCloudRestore}
-              disabled={cloudSyncing}
-            >
-              <Ionicons name="cloud-download" size={18} color={colors.clayDeep} />
-              <Text style={[styles.backupBtnText, { color: colors.clayDeep }]}>Restore Cloud</Text>
-            </Pressable>
-          </View>
-        )}
-      </View>
-
-      {/* ─── Expandable Local JSON File Backup Section ─── */}
-      <View style={styles.section}>
-        <Pressable
-          style={styles.accordionHeader}
-          onPress={() => setShowLocalBackup(!showLocalBackup)}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-            <Ionicons name="document-text-outline" size={18} color={colors.duskDeep} />
-            <View>
-              <Text style={styles.sectionTitle}>Local File Backup</Text>
-              <Text style={styles.sectionSub}>Export & import JSON backup files locally</Text>
-            </View>
-          </View>
-          <Ionicons
-            name={showLocalBackup ? 'chevron-up' : 'chevron-down'}
-            size={20}
-            color={colors.duskDeep}
-          />
-        </Pressable>
-
-        {showLocalBackup && (
-          <View style={{ marginTop: 14 }}>
-            <View style={styles.backupActions}>
-              <Pressable
-                style={({ pressed }) => [styles.backupBtn, pressed && { opacity: 0.85 }]}
-                onPress={handleExport}
-              >
-                <Ionicons name="download-outline" size={18} color={colors.white} />
-                <Text style={styles.backupBtnText}>Export Backup JSON</Text>
-              </Pressable>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.backupBtn,
-                  { backgroundColor: colors.paperCard, borderWidth: 1, borderColor: colors.duskDeep },
-                  pressed && { opacity: 0.85 },
-                ]}
-                onPress={() => setShowImportBox(!showImportBox)}
-              >
-                <Ionicons name="code-download-outline" size={18} color={colors.duskDeep} />
-                <Text style={[styles.backupBtnText, { color: colors.duskDeep }]}>
-                  {showImportBox ? 'Hide Import Box' : 'Import JSON'}
-                </Text>
-              </Pressable>
-            </View>
-
-            {showImportBox && (
-              <View style={styles.importBox}>
-                <Text style={styles.fieldLabel}>Paste Backup JSON text here:</Text>
+              <View style={styles.pinInputRow}>
                 <TextInput
-                  style={styles.jsonInput}
-                  value={importJsonText}
-                  onChangeText={setImportJsonText}
-                  placeholder="Paste the exported JSON data here…"
+                  style={styles.pinInput}
+                  value={newPin}
+                  onChangeText={setNewPin}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  placeholder="••••"
                   placeholderTextColor={colors.inkSoft}
-                  multiline
+                  secureTextEntry
                 />
                 <Pressable
-                  style={({ pressed }) => [styles.applyRestoreBtn, pressed && { opacity: 0.85 }]}
-                  onPress={handleImport}
+                  style={({ pressed }) => [
+                    styles.updatePinBtn,
+                    pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+                  ]}
+                  onPress={handleUpdatePin}
                 >
-                  <Text style={styles.applyRestoreText}>Apply Restore</Text>
+                  <Text style={styles.updatePinBtnText}>{t('settings.updatePinBtn')}</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Onboarding Wizard shortcut */}
+            <Pressable
+              style={({ pressed }) => [styles.wizardBtn, pressed && { opacity: 0.8 }]}
+              onPress={handleRelaunchWizard}
+            >
+              <Ionicons name="sparkles-outline" size={16} color={colors.duskDeep} />
+              <Text style={styles.wizardBtnText}>{t('settings.reopenWizard')}</Text>
+            </Pressable>
+
+            {/* Logout Button */}
+            <Pressable
+              style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.8 }]}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={16} color={colors.danger} />
+              <Text style={styles.logoutBtnText}>{t('settings.logoutBtn')}</Text>
+            </Pressable>
+          </View>
+
+          {/* ─── Expandable Business Profile Section ─── */}
+          <View style={styles.section}>
+            <Pressable
+              style={styles.accordionHeader}
+              onPress={() => setShowBusinessProfile(!showBusinessProfile)}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <Ionicons name="business-outline" size={18} color={colors.clayDeep} />
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={styles.sectionTitle}>{t('settings.businessProfile')}</Text>
+                  <Text style={styles.sectionSub} numberOfLines={1}>
+                    {profile.businessName ? profile.businessName : t('settings.businessProfileSub')}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons
+                name={showBusinessProfile ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={colors.clayDeep}
+              />
+            </Pressable>
+
+            {showBusinessProfile && (
+              <View style={{ marginTop: 14 }}>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>{t('settings.shopName')} *</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={profile.businessName}
+                    onChangeText={(v) => setProfile((prev) => ({ ...prev, businessName: v }))}
+                    placeholder="e.g. KadaiBook Store"
+                    placeholderTextColor={colors.inkSoft}
+                  />
+                </View>
+
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>{t('settings.tagline')}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={profile.tagline || ''}
+                    onChangeText={(v) => setProfile((prev) => ({ ...prev, tagline: v }))}
+                    placeholder="e.g. Quality Wholesale Fabrics & Retail"
+                    placeholderTextColor={colors.inkSoft}
+                  />
+                </View>
+
+                {/* Company Logo Photo Picker */}
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>{t('settings.logo')}</Text>
+                  <View style={styles.logoPickerRow}>
+                    {profile.logoUri ? (
+                      <View style={styles.logoPreviewWrap}>
+                        <Image source={{ uri: profile.logoUri }} style={styles.logoPreviewImage} />
+                        <Pressable
+                          style={styles.logoRemoveBtn}
+                          onPress={() => setProfile((prev) => ({ ...prev, logoUri: '' }))}
+                        >
+                          <Ionicons name="close-circle" size={20} color={colors.danger} />
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <View style={styles.logoPlaceholderBox}>
+                        <Ionicons name="image-outline" size={24} color={colors.inkSoft} />
+                        <Text style={styles.logoPlaceholderText}>No Logo</Text>
+                      </View>
+                    )}
+
+                    <View style={styles.logoPickerActions}>
+                      <Pressable
+                        style={({ pressed }) => [styles.pickLogoBtn, pressed && { opacity: 0.85 }]}
+                        onPress={handlePickLogo}
+                      >
+                        <Ionicons name="camera-outline" size={15} color={colors.white} />
+                        <Text style={styles.pickLogoBtnText}>
+                          {profile.logoUri ? 'Change Logo Photo' : 'Choose Logo Photo'}
+                        </Text>
+                      </Pressable>
+                      <Text style={styles.hint}>
+                        Logo photo printed on invoices and receipts!
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>{t('settings.phone')}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={profile.phone}
+                    onChangeText={(v) => setProfile((prev) => ({ ...prev, phone: v }))}
+                    placeholder="e.g. +91 9876543210"
+                    placeholderTextColor={colors.inkSoft}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>{t('settings.email')}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={profile.email || ''}
+                    onChangeText={(v) => setProfile((prev) => ({ ...prev, email: v }))}
+                    placeholder="e.g. sales@mybusiness.com"
+                    placeholderTextColor={colors.inkSoft}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>{t('settings.address')}</Text>
+                  <TextInput
+                    style={[styles.input, { minHeight: 54, textAlignVertical: 'top' }]}
+                    value={profile.address}
+                    onChangeText={(v) => setProfile((prev) => ({ ...prev, address: v }))}
+                    placeholder="e.g. No 42, Main Bazaar, City"
+                    placeholderTextColor={colors.inkSoft}
+                    multiline
+                    numberOfLines={2}
+                  />
+                </View>
+
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>{t('settings.gstin')}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={profile.gstin || ''}
+                    onChangeText={(v) => setProfile((prev) => ({ ...prev, gstin: v }))}
+                    placeholder="e.g. 33AAAAA0000A1Z5"
+                    placeholderTextColor={colors.inkSoft}
+                    autoCapitalize="characters"
+                  />
+                </View>
+
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>{t('settings.bankDetails')}</Text>
+                  <TextInput
+                    style={[styles.input, { minHeight: 54, textAlignVertical: 'top' }]}
+                    value={profile.bankDetails || ''}
+                    onChangeText={(v) => setProfile((prev) => ({ ...prev, bankDetails: v }))}
+                    placeholder="e.g. UPI ID: mybusiness@upi • GPay: 9876543210"
+                    placeholderTextColor={colors.inkSoft}
+                    multiline
+                    numberOfLines={2}
+                  />
+                </View>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.saveProfileBtn,
+                    savingProfile && { opacity: 0.6 },
+                    pressed && { opacity: 0.88, transform: [{ scale: 0.99 }] },
+                  ]}
+                  onPress={handleSaveProfile}
+                  disabled={savingProfile}
+                >
+                  {savingProfile ? (
+                    <ActivityIndicator color={colors.white} size="small" />
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle" size={18} color={colors.white} />
+                      <Text style={styles.saveProfileBtnText}>{t('settings.saveBranding')}</Text>
+                    </>
+                  )}
                 </Pressable>
               </View>
             )}
           </View>
-        )}
-      </View>
 
-      {/* ─── Expandable Danger Zone Section ─── */}
-      <View style={[styles.section, styles.dangerSection]}>
-        <Pressable
-          style={styles.accordionHeader}
-          onPress={() => setShowDangerZone(!showDangerZone)}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-            <Ionicons name="warning-outline" size={18} color={colors.danger} />
-            <View>
-              <Text style={[styles.sectionTitle, { color: colors.danger }]}>Danger Zone</Text>
-              <Text style={styles.sectionSub}>Irreversible actions on local & cloud records</Text>
-            </View>
-          </View>
-          <Ionicons
-            name={showDangerZone ? 'chevron-up' : 'chevron-down'}
-            size={20}
-            color={colors.danger}
-          />
-        </Pressable>
-
-        {showDangerZone && (
-          <View style={{ marginTop: 14 }}>
+          {/* ─── Expandable Firebase Cloud Sync & Backup Section ─── */}
+          <View style={[styles.section, { borderColor: '#E0C895', backgroundColor: '#FCF9F3' }]}>
             <Pressable
-              style={({ pressed }) => [styles.clearBtn, pressed && { opacity: 0.85 }]}
-              onPress={handleClearAll}
+              style={styles.accordionHeader}
+              onPress={() => setShowCloudBackup(!showCloudBackup)}
             >
-              <Ionicons name="trash" size={16} color={colors.danger} />
-              <Text style={styles.clearBtnText}>Reset / Clear All Records</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <Ionicons name="cloud-done" size={20} color={colors.clayDeep} />
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={styles.sectionTitle}>{t('settings.cloudBackup')}</Text>
+                  <Text style={styles.sectionSub} numberOfLines={1}>{t('settings.cloudBackupSub')}</Text>
+                </View>
+              </View>
+              <Ionicons
+                name={showCloudBackup ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={colors.clayDeep}
+              />
             </Pressable>
-          </View>
-        )}
-      </View>
 
-      {/* Brand Footer */}
-      <View style={{ alignItems: 'center', marginTop: 16, marginBottom: 20 }}>
-        <AppLogo
-          size={50}
-          variant="vertical"
-          showTagline
-          taglineText="KadaiBook v1.2.0 • kadaibook.in"
-        />
-      </View>
-      </ScrollView>
+            {showCloudBackup && (
+              <View style={[styles.backupActions, { marginTop: 14 }]}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.backupBtn,
+                    { backgroundColor: colors.clayDeep },
+                    pressed && { opacity: 0.85 },
+                  ]}
+                  onPress={handleCloudBackup}
+                  disabled={cloudSyncing}
+                >
+                  {cloudSyncing ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <>
+                      <Ionicons name="cloud-upload" size={18} color={colors.white} />
+                      <Text style={styles.backupBtnText}>{t('settings.backupToCloud')}</Text>
+                    </>
+                  )}
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.backupBtn,
+                    { backgroundColor: colors.paperCard, borderWidth: 1, borderColor: colors.clayDeep },
+                    pressed && { opacity: 0.85 },
+                  ]}
+                  onPress={handleCloudRestore}
+                  disabled={cloudSyncing}
+                >
+                  <Ionicons name="cloud-download" size={18} color={colors.clayDeep} />
+                  <Text style={[styles.backupBtnText, { color: colors.clayDeep }]}>{t('settings.restoreCloud')}</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+
+          {/* ─── Expandable Local JSON File Backup Section ─── */}
+          <View style={styles.section}>
+            <Pressable
+              style={styles.accordionHeader}
+              onPress={() => setShowLocalBackup(!showLocalBackup)}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <Ionicons name="document-text-outline" size={18} color={colors.duskDeep} />
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={styles.sectionTitle}>{t('settings.localBackup')}</Text>
+                  <Text style={styles.sectionSub} numberOfLines={1}>{t('settings.localBackupSub')}</Text>
+                </View>
+              </View>
+              <Ionicons
+                name={showLocalBackup ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={colors.duskDeep}
+              />
+            </Pressable>
+
+            {showLocalBackup && (
+              <View style={{ marginTop: 14 }}>
+                <View style={styles.backupActions}>
+                  <Pressable
+                    style={({ pressed }) => [styles.backupBtn, pressed && { opacity: 0.85 }]}
+                    onPress={handleExport}
+                  >
+                    <Ionicons name="download-outline" size={18} color={colors.white} />
+                    <Text style={styles.backupBtnText}>{t('settings.exportJson')}</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.backupBtn,
+                      { backgroundColor: colors.paperCard, borderWidth: 1, borderColor: colors.duskDeep },
+                      pressed && { opacity: 0.85 },
+                    ]}
+                    onPress={() => setShowImportBox(!showImportBox)}
+                  >
+                    <Ionicons name="code-download-outline" size={18} color={colors.duskDeep} />
+                    <Text style={[styles.backupBtnText, { color: colors.duskDeep }]}>
+                      {showImportBox ? 'Hide Import Box' : t('settings.importJson')}
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {showImportBox && (
+                  <View style={styles.importBox}>
+                    <Text style={styles.fieldLabel}>Paste Backup JSON text here:</Text>
+                    <TextInput
+                      style={styles.jsonInput}
+                      value={importJsonText}
+                      onChangeText={setImportJsonText}
+                      placeholder="Paste the exported JSON data here…"
+                      placeholderTextColor={colors.inkSoft}
+                      multiline
+                    />
+                    <Pressable
+                      style={({ pressed }) => [styles.applyRestoreBtn, pressed && { opacity: 0.85 }]}
+                      onPress={handleImport}
+                    >
+                      <Text style={styles.applyRestoreText}>Apply Restore</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+
+          {/* ─── Expandable Danger Zone Section ─── */}
+          <View style={[styles.section, styles.dangerSection]}>
+            <Pressable
+              style={styles.accordionHeader}
+              onPress={() => setShowDangerZone(!showDangerZone)}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <Ionicons name="warning-outline" size={18} color={colors.danger} />
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={[styles.sectionTitle, { color: colors.danger }]}>{t('settings.dangerZone')}</Text>
+                  <Text style={styles.sectionSub} numberOfLines={1}>{t('settings.dangerZoneSub')}</Text>
+                </View>
+              </View>
+              <Ionicons
+                name={showDangerZone ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={colors.danger}
+              />
+            </Pressable>
+
+            {showDangerZone && (
+              <View style={{ marginTop: 14 }}>
+                <Pressable
+                  style={({ pressed }) => [styles.clearBtn, pressed && { opacity: 0.85 }]}
+                  onPress={handleClearAll}
+                >
+                  <Ionicons name="trash" size={16} color={colors.danger} />
+                  <Text style={styles.clearBtnText}>Reset / Clear All Records</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+
+          {/* Brand Footer */}
+          <View style={{ alignItems: 'center', marginTop: 16, marginBottom: 20 }}>
+            <AppLogo
+              size={50}
+              variant="vertical"
+              showTagline
+              taglineText="KadaiBook v1.2.0 • kadaibook.in"
+            />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </DesktopLayout>
   );
@@ -784,6 +769,26 @@ const styles = StyleSheet.create({
     maxWidth: 900,
     alignSelf: 'center',
   },
+  topHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.paper,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  topHeaderTitle: {
+    fontFamily: fonts.display,
+    fontSize: 22,
+    color: colors.ink,
+  },
+  topHeaderSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+  },
   section: {
     backgroundColor: colors.paperCard,
     borderRadius: radius.md,
@@ -799,6 +804,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 2,
   },
+  sectionTitle: {
+    fontFamily: fonts.display,
+    fontSize: 20,
+    color: colors.clayDeep,
+  },
+  sectionSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 2,
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   roleBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -813,21 +834,71 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: colors.danger,
   },
-  sectionTitle: {
-    fontFamily: fonts.display,
-    fontSize: 22,
+  activeLangBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    backgroundColor: colors.clayLight,
+    borderWidth: 1,
+    borderColor: 'rgba(184, 80, 66, 0.2)',
+  },
+  activeLangBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
     color: colors.clayDeep,
   },
-  sectionSub: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
-    marginTop: 1,
+  langGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
   },
-  accordionHeader: {
+  langCard: {
+    width: '31.5%',
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langCardActive: {
+    backgroundColor: colors.clayDeep,
+    borderColor: colors.clayDeep,
+    ...shadow.card,
+  },
+  langTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    gap: 4,
+    marginBottom: 3,
+  },
+  langFlag: {
+    fontSize: 14,
+    fontFamily: fonts.bodyBold,
+    color: colors.inkSoft,
+  },
+  langNative: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.ink,
+    textAlign: 'center',
+  },
+  langNativeActive: {
+    color: colors.white,
+  },
+  langEnglish: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.inkSoft,
+    textAlign: 'center',
+    marginTop: 1,
+  },
+  langEnglishActive: {
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   userCard: {
     flexDirection: 'row',
@@ -838,19 +909,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
+    marginTop: 12,
     marginBottom: 14,
   },
   userAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.clayDeep,
     alignItems: 'center',
     justifyContent: 'center',
   },
   userAvatarText: {
     fontFamily: fonts.display,
-    fontSize: 20,
+    fontSize: 22,
     color: colors.white,
   },
   userInfo: {
@@ -858,104 +930,104 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontFamily: fonts.bodyBold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.ink,
   },
   userEmail: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.inkSoft,
+    marginTop: 2,
   },
-  businessProfileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.clayLight,
-    padding: 12,
+  pinSecurityCard: {
+    backgroundColor: colors.paper,
     borderRadius: radius.md,
-    marginBottom: 14,
     borderWidth: 1,
-    borderColor: colors.clayDeep,
+    borderColor: colors.line,
+    padding: 12,
+    marginBottom: 14,
   },
-  businessProfileLeft: {
+  pinSecurityHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    flex: 1,
+    gap: 8,
+    marginBottom: 10,
   },
-  businessProfileTitle: {
+  pinSecurityTitle: {
     fontFamily: fonts.bodyBold,
     fontSize: 13,
-    color: colors.clayDeep,
+    color: colors.ink,
   },
-  businessProfileSub: {
+  pinSecuritySub: {
     fontFamily: fonts.body,
     fontSize: 11,
     color: colors.inkSoft,
     marginTop: 1,
   },
-  pinChangeBox: {
-    marginBottom: 14,
-  },
   pinInputRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 4,
+    alignItems: 'center',
   },
   pinInput: {
     flex: 1,
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     fontFamily: fonts.bodyBold,
     fontSize: 18,
-    letterSpacing: 6,
+    letterSpacing: 8,
     color: colors.ink,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    borderStyle: 'dashed' as any,
-    paddingVertical: 6,
+    textAlign: 'center',
   },
   updatePinBtn: {
     backgroundColor: colors.duskDeep,
-    paddingHorizontal: 14,
-    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 11,
     borderRadius: radius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
     ...shadow.card,
   },
   updatePinBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 12,
+    fontSize: 13,
     color: colors.white,
   },
   wizardBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: radius.sm,
-    paddingVertical: 10,
+    borderRadius: radius.md,
+    paddingVertical: 11,
     marginBottom: 10,
   },
   wizardBtnText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 12,
+    fontSize: 13,
     color: colors.duskDeep,
   },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.paper,
+    gap: 8,
+    backgroundColor: '#FFF5F5',
     borderWidth: 1,
-    borderColor: colors.dangerLight,
-    borderRadius: radius.sm,
-    paddingVertical: 10,
+    borderColor: 'rgba(235, 87, 87, 0.3)',
+    borderRadius: radius.md,
+    paddingVertical: 11,
   },
   logoutBtnText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
     color: colors.danger,
   },
   field: {
@@ -1126,29 +1198,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.danger,
   },
-
-  // Custom Header Styles
-  topHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.paper,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-  },
-  backBtn: {
-    padding: 4,
-  },
-  topHeaderTitle: {
-    fontFamily: fonts.display,
-    fontSize: 22,
-    color: colors.ink,
-  },
-  topHeaderSub: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
-  },
 });
+

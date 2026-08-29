@@ -40,11 +40,13 @@ import {
   generatePrintableInvoiceHtml,
 } from '../utils/invoiceGenerator';
 import StatusTracker from '../components/StatusTracker';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OrderDetail'>;
 
 export default function OrderDetailScreen({ navigation, route }: Props) {
   const { orderId } = route.params;
+  const { t } = useLanguage();
   const [order, setOrder] = useState<Order | null>(null);
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
 
@@ -254,7 +256,7 @@ Thank you for your business!`;
       <View style={styles.invoiceActionCard}>
         <View style={styles.invoiceActionCardHeader}>
           <Ionicons name="receipt-outline" size={18} color={colors.clayDeep} />
-          <Text style={styles.invoiceActionCardTitle}>Invoice & Receipt Actions</Text>
+          <Text style={styles.invoiceActionCardTitle}>{t('orders.orderDetailsTitle')}</Text>
         </View>
 
         {/* Primary WhatsApp PDF Document Sharing Card */}
@@ -270,11 +272,11 @@ Thank you for your business!`;
               <Ionicons name="document-attach" size={22} color={colors.white} />
             </View>
             <View style={styles.waBannerTextBlock}>
-              <Text style={styles.waBannerTitle}>Send PDF Invoice to WhatsApp</Text>
+              <Text style={styles.waBannerTitle}>{t('orders.downloadPdf')}</Text>
               <Text style={styles.waBannerSubtitle}>
                 {order.phoneNumber
-                  ? `Generates PDF file & sends to ${order.customerName || 'Customer'}`
-                  : 'Generates & shares PDF invoice document file'}
+                  ? `${order.customerName || 'Customer'} (${order.phoneNumber})`
+                  : t('orders.shareInvoice')}
               </Text>
             </View>
           </View>
@@ -291,7 +293,7 @@ Thank you for your business!`;
             onPress={() => setShowPdfModal(true)}
           >
             <Ionicons name="eye-outline" size={16} color={colors.clayDeep} />
-            <Text style={styles.pdfActionBtnText}>Preview / Print</Text>
+            <Text style={styles.pdfActionBtnText}>{t('common.details')}</Text>
           </Pressable>
 
           <Pressable
@@ -303,7 +305,7 @@ Thank you for your business!`;
           >
             <Ionicons name="logo-whatsapp" size={16} color={colors.success} />
             <Text style={[styles.shareActionBtnText, { color: colors.success, fontFamily: fonts.bodyBold }]}>
-              Send Text Bill
+              {t('orders.shareInvoice')}
             </Text>
           </Pressable>
 
@@ -316,7 +318,7 @@ Thank you for your business!`;
               onPress={callCustomer}
             >
               <Ionicons name="call-outline" size={16} color={colors.duskDeep} />
-              <Text style={styles.callActionBtnText}>Call</Text>
+              <Text style={styles.callActionBtnText}>{t('customers.call')}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -326,7 +328,7 @@ Thank you for your business!`;
       <View style={styles.card}>
         <View style={styles.cardHeaderRow}>
           <Ionicons name="git-commit-outline" size={18} color={colors.clayDeep} />
-          <Text style={styles.cardTitle}>Fulfillment Pipeline</Text>
+          <Text style={styles.cardTitle}>{t('orders.orderStatus')}</Text>
         </View>
         <StatusTracker status={order.status} onChange={handleStatusChange} />
       </View>
@@ -335,36 +337,36 @@ Thank you for your business!`;
       <View style={styles.card}>
         <View style={styles.cardHeaderRow}>
           <Ionicons name="person-outline" size={18} color={colors.clayDeep} />
-          <Text style={styles.cardTitle}>Customer Information</Text>
+          <Text style={styles.cardTitle}>{t('orders.customerInfo')}</Text>
         </View>
-        <DetailRow label="Name" value={order.customerName} bold />
-        <DetailRow label="Phone" value={order.phoneNumber || '—'} />
-        {order.trackingNumber ? <DetailRow label="Tracking #" value={order.trackingNumber} /> : null}
+        <DetailRow label={t('customers.name')} value={order.customerName} bold />
+        <DetailRow label={t('customers.phone')} value={order.phoneNumber || '—'} />
+        {order.trackingNumber ? <DetailRow label={t('orders.trackingNumber')} value={order.trackingNumber} /> : null}
       </View>
 
       {/* Payment & Dispatch Info */}
       <View style={styles.card}>
         <View style={styles.cardHeaderRow}>
           <Ionicons name="card-outline" size={18} color={colors.duskDeep} />
-          <Text style={styles.cardTitle}>Payment & Dispatch Details</Text>
+          <Text style={styles.cardTitle}>{t('orders.paymentDetails')}</Text>
         </View>
-        <DetailRow label="Payment Method" value={order.paymentMethod} />
-        <DetailRow label="Payment Status" value={order.paymentStatus} />
-        {order.dispatchMethod ? <DetailRow label="Dispatch Method" value={order.dispatchMethod} /> : null}
-        {order.dispatchDate ? <DetailRow label="Dispatch Date" value={order.dispatchDate} /> : null}
+        <DetailRow label={t('orders.paymentMethod')} value={order.paymentMethod} />
+        <DetailRow label={t('orders.paymentStatus')} value={order.paymentStatus} />
+        {order.dispatchMethod ? <DetailRow label={t('orders.dispatchMethod')} value={order.dispatchMethod} /> : null}
+        {order.dispatchDate ? <DetailRow label={t('orders.dispatchDate')} value={order.dispatchDate} /> : null}
       </View>
 
       {/* Order Items Table */}
       <View style={styles.card}>
         <View style={styles.cardHeaderRow}>
           <Ionicons name="basket-outline" size={18} color={colors.clayDeep} />
-          <Text style={styles.cardTitle}>Ordered Items ({order.items.length})</Text>
+          <Text style={styles.cardTitle}>{t('orders.items')} ({order.items.length})</Text>
         </View>
 
         <View style={styles.itemHeaderRow}>
-          <Text style={[styles.itemHeaderCell, { flex: 3 }]}>Item</Text>
-          <Text style={[styles.itemHeaderCell, { flex: 1, textAlign: 'center' }]}>Qty</Text>
-          <Text style={[styles.itemHeaderCell, { flex: 1.4, textAlign: 'right' }]}>Total</Text>
+          <Text style={[styles.itemHeaderCell, { flex: 3 }]}>{t('orders.itemName')}</Text>
+          <Text style={[styles.itemHeaderCell, { flex: 1, textAlign: 'center' }]}>{t('orders.quantity')}</Text>
+          <Text style={[styles.itemHeaderCell, { flex: 1.4, textAlign: 'right' }]}>{t('common.total')}</Text>
         </View>
         {order.items.map((item) => (
           <View key={item.id} style={styles.itemRow}>
@@ -377,10 +379,10 @@ Thank you for your business!`;
         ))}
 
         <View style={styles.divider} />
-        <DetailRow label="Total Amount" value={formatCurrency(total)} bold />
-        <DetailRow label="Advance Received" value={formatCurrency(order.advance)} />
+        <DetailRow label={t('orders.totalAmount')} value={formatCurrency(total)} bold />
+        <DetailRow label={t('orders.advancePaid')} value={formatCurrency(order.advance)} />
         <DetailRow
-          label="Balance Due"
+          label={t('orders.balanceDue')}
           value={formatCurrency(balance)}
           bold
           valueColor={balance > 0 ? colors.danger : colors.success}
@@ -392,7 +394,7 @@ Thank you for your business!`;
             onPress={() => setShowPaymentModal(true)}
           >
             <Ionicons name="cash-outline" size={18} color={colors.white} />
-            <Text style={styles.recordPayBtnText}>+ Record Payment Collection</Text>
+            <Text style={styles.recordPayBtnText}>+ {t('orders.markPaid')}</Text>
           </Pressable>
         )}
       </View>
@@ -402,7 +404,7 @@ Thank you for your business!`;
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
             <Ionicons name="receipt-outline" size={18} color={colors.inflow} />
-            <Text style={styles.cardTitle}>Collection History Log</Text>
+            <Text style={styles.cardTitle}>{t('orders.orderTimeline')}</Text>
           </View>
           {payments.map((p) => (
             <View key={p.id} style={styles.paymentLogRow}>
@@ -421,7 +423,7 @@ Thank you for your business!`;
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
             <Ionicons name="document-text-outline" size={18} color={colors.inkSoft} />
-            <Text style={styles.cardTitle}>Customer Note</Text>
+            <Text style={styles.cardTitle}>{t('orders.customerNote')}</Text>
           </View>
           <Text style={styles.note}>{order.customerNote}</Text>
         </View>
@@ -434,7 +436,7 @@ Thank you for your business!`;
           onPress={() => navigation.navigate('OrderForm', { orderId: order.id })}
         >
           <Ionicons name="pencil" size={16} color={colors.white} />
-          <Text style={styles.actionBtnText}>Edit Order</Text>
+          <Text style={styles.actionBtnText}>{t('common.edit')}</Text>
         </Pressable>
 
         <Pressable
@@ -442,7 +444,7 @@ Thank you for your business!`;
           onPress={handleDelete}
         >
           <Ionicons name="trash-outline" size={16} color={colors.danger} />
-          <Text style={[styles.actionBtnText, { color: colors.danger }]}>Delete</Text>
+          <Text style={[styles.actionBtnText, { color: colors.danger }]}>{t('common.delete')}</Text>
         </Pressable>
       </View>
 

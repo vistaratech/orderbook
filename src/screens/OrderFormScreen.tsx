@@ -23,6 +23,7 @@ import { colors, fonts, radius, shadow } from '../theme/theme';
 import StatusTracker from '../components/StatusTracker';
 import { getBusinessProfile } from '../storage/businessProfileStorage';
 import { getBusinessPreset } from '../config/businessTypes';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OrderForm'>;
 
@@ -34,7 +35,12 @@ function emptyItem(): OrderItem {
   return { id: generateId('itm_'), name: '', qty: 1, price: 0 };
 }
 
+function defaultFiveItems(): OrderItem[] {
+  return [emptyItem(), emptyItem(), emptyItem(), emptyItem(), emptyItem()];
+}
+
 export default function OrderFormScreen({ navigation, route }: Props) {
+  const { t } = useLanguage();
   const editingId = route.params?.orderId;
   const prefillName = route.params?.prefillCustomerName;
   const prefillPhone = route.params?.prefillPhone;
@@ -50,7 +56,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
   const [phoneNumber, setPhoneNumber] = useState(prefillPhone || '');
   const [dispatchMethod, setDispatchMethod] = useState('Courier');
   const [dispatchDate, setDispatchDate] = useState('');
-  const [items, setItems] = useState<OrderItem[]>([emptyItem()]);
+  const [items, setItems] = useState<OrderItem[]>(defaultFiveItems);
   const [customerNote, setCustomerNote] = useState('');
   const [advance, setAdvance] = useState('');
   const [status, setStatus] = useState<OrderStatus>('Placed');
@@ -62,8 +68,8 @@ export default function OrderFormScreen({ navigation, route }: Props) {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    navigation.setOptions({ title: isEditing ? 'Edit Order' : 'New Order' });
-  }, [isEditing, navigation]);
+    navigation.setOptions({ title: isEditing ? t('orders.editOrderTitle') : t('orders.newOrderTitle') });
+  }, [isEditing, navigation, t]);
 
   useEffect(() => {
     // Load catalog and customer list for suggestions
@@ -86,7 +92,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
         setPhoneNumber(order.phoneNumber);
         setDispatchMethod(order.dispatchMethod || '');
         setDispatchDate(order.dispatchDate || '');
-        setItems(order.items.length ? order.items : [emptyItem()]);
+        setItems(order.items.length ? order.items : defaultFiveItems());
         setCustomerNote(order.customerNote || '');
         setAdvance(order.advance ? String(order.advance) : '');
         setStatus(order.status);
@@ -142,14 +148,14 @@ export default function OrderFormScreen({ navigation, route }: Props) {
 
   const handleSave = async () => {
     if (!customerName.trim()) {
-      Alert.alert('Name required', "Enter the customer's name before saving.");
+      Alert.alert(t('common.required'), t('orders.customerName'));
       return;
     }
     const cleanItems = items
       .map((it) => ({ ...it, name: it.name.trim() }))
       .filter((it) => it.name.length > 0);
     if (cleanItems.length === 0) {
-      Alert.alert('Add an item', 'Add at least one item to the order.');
+      Alert.alert(t('common.required'), t('orders.items'));
       return;
     }
 
@@ -211,39 +217,80 @@ export default function OrderFormScreen({ navigation, route }: Props) {
     navigation.replace('OrderDetail', { orderId: saved.id });
   };
 
+  const getPaymentMethodLabel = (m: string) => {
+    switch (m) {
+      case 'Cash':
+        return t('orders.methodCash');
+      case 'UPI':
+        return t('orders.methodUpi');
+      case 'Card':
+        return t('orders.methodCard');
+      case 'Bank Transfer':
+        return t('orders.methodBankTransfer');
+      default:
+        return m;
+    }
+  };
+
+  const getPaymentStatusLabel = (s: string) => {
+    switch (s) {
+      case 'Paid':
+        return t('orders.payPaid');
+      case 'Partial':
+        return t('orders.payPartial');
+      case 'Pending':
+        return t('orders.payPending');
+      default:
+        return s;
+    }
+  };
+
+  const getDispatchMethodLabel = (d: string) => {
+    switch (d) {
+      case 'Courier':
+        return t('orders.methodCourier');
+      case 'Self Pickup':
+        return t('orders.methodSelfPickup');
+      case 'Local Delivery':
+        return t('orders.methodLocalDelivery');
+      default:
+        return d;
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Section title="Order Details" icon="receipt-outline">
+        <Section title={t('orders.orderDetailsTitle')} icon="receipt-outline">
           <Row>
-            <Field label="Order #" flex={1}>
+            <Field label={t('orders.orderNumber')} flex={1}>
               <TextInput style={styles.input} value={orderNumber} onChangeText={setOrderNumber} />
             </Field>
-            <Field label="Order Date" flex={1}>
+            <Field label={t('orders.orderDate')} flex={1}>
               <TextInput style={styles.input} value={orderDate} onChangeText={setOrderDate} />
             </Field>
           </Row>
-          <Field label="Tracking #">
+          <Field label={t('orders.trackingNumber')}>
             <TextInput
               style={styles.input}
               value={trackingNumber}
               onChangeText={setTrackingNumber}
-              placeholder="Courier tracking number"
+              placeholder={t('orders.trackingPlaceholder')}
               placeholderTextColor={colors.inkSoft}
             />
           </Field>
         </Section>
 
-        <Section title="Customer Info" icon="person-outline">
-          <Field label="Name">
+        <Section title={t('orders.customerInfo')} icon="person-outline">
+          <Field label={t('customers.name')}>
             <TextInput
               style={styles.input}
               value={customerName}
               onChangeText={setCustomerName}
-              placeholder="Customer name"
+              placeholder={t('customers.name')}
               placeholderTextColor={colors.inkSoft}
             />
           </Field>
@@ -251,7 +298,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           {/* Customer Suggestions */}
           {customerSuggestions.length > 0 && (
             <View style={styles.suggestionRow}>
-              <Text style={styles.suggestionLabel}>Suggested:</Text>
+              <Text style={styles.suggestionLabel}>{t('orders.suggested')}</Text>
               {customerSuggestions.map((c) => (
                 <Pressable
                   key={c.id}
@@ -264,7 +311,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
             </View>
           )}
 
-          <Field label="Phone No.">
+          <Field label={t('customers.phone')}>
             <TextInput
               style={styles.input}
               value={phoneNumber}
@@ -276,39 +323,40 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           </Field>
         </Section>
 
-        <Section title="Payment Details" icon="card-outline">
-          <Field label="Payment Method">
-            <ChipRow options={PAYMENT_METHODS} value={paymentMethod} onChange={setPaymentMethod} />
+        <Section title={t('orders.paymentDetails')} icon="card-outline">
+          <Field label={t('orders.paymentMethod')}>
+            <ChipRow options={PAYMENT_METHODS} value={paymentMethod} onChange={setPaymentMethod} getLabel={getPaymentMethodLabel} />
           </Field>
-          <Field label="Payment Status">
+          <Field label={t('orders.paymentStatus')}>
             <ChipRow
               options={PAYMENT_STATUSES}
               value={paymentStatus}
               onChange={(v) => setPaymentStatus(v as PaymentStatus)}
+              getLabel={getPaymentStatusLabel}
             />
           </Field>
         </Section>
 
-        <Section title="Dispatch Details" icon="airplane-outline">
-          <Field label="Dispatch Method">
-            <ChipRow options={DISPATCH_METHODS} value={dispatchMethod} onChange={setDispatchMethod} />
+        <Section title={t('orders.dispatchDetails')} icon="airplane-outline">
+          <Field label={t('orders.dispatchMethod')}>
+            <ChipRow options={DISPATCH_METHODS} value={dispatchMethod} onChange={setDispatchMethod} getLabel={getDispatchMethodLabel} />
           </Field>
-          <Field label="Dispatch Date">
+          <Field label={t('orders.dispatchDate')}>
             <TextInput
               style={styles.input}
               value={dispatchDate}
               onChangeText={setDispatchDate}
-              placeholder="Optional date / notes"
+              placeholder={t('orders.dispatchDatePlaceholder')}
               placeholderTextColor={colors.inkSoft}
             />
           </Field>
         </Section>
 
-        <Section title="Items & Products" icon="basket-outline">
+        <Section title={t('orders.itemsAndProducts')} icon="basket-outline">
           <View style={styles.itemHeaderRow}>
-            <Text style={[styles.itemHeaderCell, { flex: 3 }]}>Item Name</Text>
-            <Text style={[styles.itemHeaderCell, { flex: 1, textAlign: 'center' }]}>Qty ({defaultUnit})</Text>
-            <Text style={[styles.itemHeaderCell, { flex: 1.2, textAlign: 'right' }]}>Price</Text>
+            <Text style={[styles.itemHeaderCell, { flex: 3 }]}>{t('orders.itemName')}</Text>
+            <Text style={[styles.itemHeaderCell, { flex: 1, textAlign: 'center' }]}>{t('orders.quantity')} ({defaultUnit})</Text>
+            <Text style={[styles.itemHeaderCell, { flex: 1.2, textAlign: 'right' }]}>{t('orders.unitPrice')}</Text>
             <View style={{ width: 28 }} />
           </View>
 
@@ -327,7 +375,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                     style={[styles.itemInput, { flex: 3 }]}
                     value={item.name}
                     onChangeText={(v) => updateItem(item.id, { name: v })}
-                    placeholder="Product name"
+                    placeholder={t('orders.productNamePlaceholder')}
                     placeholderTextColor={colors.inkSoft}
                   />
                   <TextInput
@@ -361,7 +409,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
 
                 {prodMatches && prodMatches.length > 0 && item.price === 0 && (
                   <View style={styles.prodSuggestionRow}>
-                    <Text style={styles.suggestionLabel}>Catalog:</Text>
+                    <Text style={styles.suggestionLabel}>{t('orders.catalogSuggestion')}</Text>
                     {prodMatches.map((p) => (
                       <Pressable
                         key={p.id}
@@ -381,27 +429,27 @@ export default function OrderFormScreen({ navigation, route }: Props) {
 
           <Pressable style={styles.addItemBtn} onPress={addItem}>
             <Ionicons name="add-circle" size={18} color={colors.clayDeep} />
-            <Text style={styles.addItemText}>Add Another Item</Text>
+            <Text style={styles.addItemText}>{t('orders.addAnotherItem')}</Text>
           </Pressable>
         </Section>
 
-        <Section title="Customer Note" icon="document-text-outline">
+        <Section title={t('orders.customerNote')} icon="document-text-outline">
           <TextInput
             style={[styles.input, styles.noteInput]}
             value={customerNote}
             onChangeText={setCustomerNote}
-            placeholder="Special customizations, packaging notes…"
+            placeholder={t('orders.notePlaceholder')}
             placeholderTextColor={colors.inkSoft}
             multiline
           />
         </Section>
 
-        <Section title="Payment Summary" icon="wallet-outline">
+        <Section title={t('orders.paymentSummary')} icon="wallet-outline">
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Total Bill</Text>
+            <Text style={styles.summaryLabel}>{t('orders.totalBill')}</Text>
             <Text style={styles.summaryValue}>{formatCurrency(total)}</Text>
           </View>
-          <Field label="Advance Received (₹)">
+          <Field label={t('orders.advanceReceived')}>
             <TextInput
               style={styles.input}
               value={advance}
@@ -413,14 +461,14 @@ export default function OrderFormScreen({ navigation, route }: Props) {
             />
           </Field>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Balance Pending</Text>
+            <Text style={styles.summaryLabel}>{t('orders.balancePending')}</Text>
             <Text style={[styles.summaryValue, balance > 0 && { color: colors.danger }]}>
               {formatCurrency(balance)}
             </Text>
           </View>
         </Section>
 
-        <Section title="Fulfillment Status" icon="git-commit-outline">
+        <Section title={t('orders.orderStatus')} icon="git-commit-outline">
           <StatusTracker status={status} onChange={setStatus} />
         </Section>
 
@@ -429,7 +477,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           onPress={handleSave}
           disabled={saving}
         >
-          <Text style={styles.saveBtnText}>{saving ? 'Saving Order…' : 'Save Order'}</Text>
+          <Text style={styles.saveBtnText}>{saving ? t('orders.savingOrder') : t('orders.saveOrderBtn')}</Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -473,22 +521,25 @@ function ChipRow({
   options,
   value,
   onChange,
+  getLabel,
 }: {
   options: string[];
   value: string;
   onChange: (v: string) => void;
+  getLabel?: (opt: string) => string;
 }) {
   return (
     <View style={styles.chipRow}>
       {options.map((opt) => {
         const active = opt === value;
+        const label = getLabel ? getLabel(opt) : opt;
         return (
           <Pressable
             key={opt}
             style={[styles.chip, active && styles.chipActive]}
             onPress={() => onChange(opt)}
           >
-            <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt}</Text>
+            <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
           </Pressable>
         );
       })}

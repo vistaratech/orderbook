@@ -7,49 +7,51 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
 import AppLogo from '../components/AppLogo';
+import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function MoreScreen() {
   const navigation = useNavigation<Nav>();
+  const { t } = useLanguage();
 
   const menuItems = [
     {
-      title: 'Store Activity & History',
-      subtitle: 'Complete timeline of orders, payments received & outflows',
+      title: t('more.storeActivity'),
+      subtitle: t('more.storeActivitySub'),
       icon: 'time' as const,
       color: colors.inflow,
       bg: '#E8F5E9',
       action: () => navigation.navigate('History'),
     },
     {
-      title: 'Business Profile',
-      subtitle: 'Company name, GSTIN, logo photo & address details',
+      title: t('more.businessProfile'),
+      subtitle: t('more.businessProfileSub'),
       icon: 'business' as const,
       color: colors.clayDeep,
       bg: colors.clayLight,
       action: () => navigation.navigate('BusinessProfile'),
     },
     {
-      title: 'Customer Directory',
-      subtitle: 'Manage client directory, phone numbers & history',
+      title: t('more.customerDirectory'),
+      subtitle: t('more.customerDirectorySub'),
       icon: 'people' as const,
       color: colors.duskDeep,
       bg: colors.duskLight,
       action: () => navigation.navigate('CustomerList'),
     },
     {
-      title: 'Product Catalog',
-      subtitle: 'Saved items, units, and default selling prices',
+      title: t('more.productCatalog'),
+      subtitle: t('more.productCatalogSub'),
       icon: 'pricetags' as const,
       color: colors.statusPlaced,
       bg: '#FFF8E1',
       action: () => navigation.navigate('ProductList'),
     },
     {
-      title: 'Settings & Cloud Sync',
-      subtitle: 'Passcode PIN, cloud backup, restore & data export',
+      title: t('more.settingsAndBackup'),
+      subtitle: t('more.settingsAndBackupSub'),
       icon: 'settings' as const,
       color: colors.ink,
       bg: colors.paperCard,
@@ -64,8 +66,8 @@ export default function MoreScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <AppLogo size={42} variant="icon" />
             <View>
-              <Text style={styles.title}>More Tools</Text>
-              <Text style={styles.subtitle}>Business management & data administration</Text>
+              <Text style={styles.title}>{t('more.title')}</Text>
+              <Text style={styles.subtitle}>{t('more.subtitle')}</Text>
             </View>
           </View>
         </View>

@@ -18,10 +18,12 @@ import { getProduct, saveProduct } from '../storage/productStorage';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { getBusinessProfile } from '../storage/businessProfileStorage';
 import { getBusinessPreset } from '../config/businessTypes';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductForm'>;
 
 export default function ProductFormScreen({ navigation, route }: Props) {
+  const { t } = useLanguage();
   const productId = route.params?.productId;
   const isEditing = !!productId;
 
@@ -32,9 +34,9 @@ export default function ProductFormScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     navigation.setOptions({
-      title: isEditing ? 'Edit Catalog Item' : 'New Catalog Item',
+      title: isEditing ? t('products.editProduct') : t('products.addProductBtn'),
     });
-  }, [isEditing, navigation]);
+  }, [isEditing, navigation, t]);
 
   useEffect(() => {
     getBusinessProfile().then((profile) => {
@@ -88,11 +90,11 @@ export default function ProductFormScreen({ navigation, route }: Props) {
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Ionicons name="pricetag-outline" size={18} color={colors.duskDeep} />
-            <Text style={styles.sectionTitle}>Product Information</Text>
+            <Text style={styles.sectionTitle}>{t('products.productDetailsTitle')}</Text>
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Product / Item Name *</Text>
+            <Text style={styles.fieldLabel}>{t('products.productName')} *</Text>
             <TextInput
               style={styles.input}
               value={name}
@@ -104,7 +106,7 @@ export default function ProductFormScreen({ navigation, route }: Props) {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Default Selling Price (₹) *</Text>
+            <Text style={styles.fieldLabel}>{t('products.price')} (₹) *</Text>
             <TextInput
               style={styles.input}
               value={defaultPrice}
@@ -117,7 +119,7 @@ export default function ProductFormScreen({ navigation, route }: Props) {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Unit of Measurement</Text>
+            <Text style={styles.fieldLabel}>{t('products.unit')}</Text>
             <View style={styles.chipRow}>
               {PRODUCT_UNITS.map((u) => {
                 const active = u === unit;
@@ -141,7 +143,7 @@ export default function ProductFormScreen({ navigation, route }: Props) {
           disabled={saving}
         >
           <Text style={styles.saveBtnText}>
-            {saving ? 'Saving…' : isEditing ? 'Update Item' : 'Save to Catalog'}
+            {saving ? t('common.loading') : isEditing ? t('common.update') : t('products.saveProductBtn')}
           </Text>
         </Pressable>
       </ScrollView>

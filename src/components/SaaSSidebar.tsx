@@ -19,6 +19,7 @@ import AppLogo from './AppLogo';
 import { getAuthState, logout, UserAccount } from '../storage/authStorage';
 import { getBusinessProfile, BusinessProfile } from '../storage/businessProfileStorage';
 import { addDataListener } from '../storage/firebaseSync';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -38,6 +39,7 @@ export default function SaaSSidebar({
   onToggleCollapse: propOnToggleCollapse,
 }: SaaSSidebarProps) {
   const navigation = useNavigation<Nav>();
+  const { t } = useLanguage();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
@@ -108,28 +110,28 @@ export default function SaaSSidebar({
       items: [
         {
           key: 'DashboardTab',
-          label: 'Dashboard',
+          label: t('nav.dashboard'),
           icon: 'home-outline' as const,
           activeIcon: 'home' as const,
           action: () => handleNav('DashboardTab'),
         },
         {
           key: 'OrdersTab',
-          label: 'Orders & Pipeline',
+          label: t('nav.orders'),
           icon: 'receipt-outline' as const,
           activeIcon: 'receipt' as const,
           action: () => handleNav('OrdersTab'),
         },
         {
           key: 'ExpensesTab',
-          label: 'Expenses & Outflow',
+          label: t('nav.expenses'),
           icon: 'wallet-outline' as const,
           activeIcon: 'wallet' as const,
           action: () => handleNav('ExpensesTab'),
         },
         {
           key: 'ReportsTab',
-          label: 'Financial Reports',
+          label: t('nav.reports'),
           icon: 'bar-chart-outline' as const,
           activeIcon: 'bar-chart' as const,
           action: () => handleNav('ReportsTab'),
@@ -141,21 +143,21 @@ export default function SaaSSidebar({
       items: [
         {
           key: 'CustomerList',
-          label: 'Customers',
+          label: t('nav.customers'),
           icon: 'people-outline' as const,
           activeIcon: 'people' as const,
           action: () => handleNav('CustomerList', 'CustomerList'),
         },
         {
           key: 'ProductList',
-          label: 'Product Catalog',
+          label: t('nav.products'),
           icon: 'pricetags-outline' as const,
           activeIcon: 'pricetags' as const,
           action: () => handleNav('ProductList', 'ProductList'),
         },
         {
           key: 'History',
-          label: 'Store Activity',
+          label: t('nav.history'),
           icon: 'time-outline' as const,
           activeIcon: 'time' as const,
           action: () => handleNav('History', 'History'),
@@ -167,7 +169,7 @@ export default function SaaSSidebar({
       items: [
         {
           key: 'Settings',
-          label: 'Settings & Profile',
+          label: t('nav.settings'),
           icon: 'settings-outline' as const,
           activeIcon: 'settings' as const,
           action: () => handleNav('Settings', 'Settings'),

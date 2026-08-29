@@ -18,6 +18,7 @@ import { Expense, ExpenseCategory, EXPENSE_CATEGORIES } from '../types/order';
 import { getExpenses, deleteExpense } from '../storage/expenseStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import EmptyState from '../components/EmptyState';
+import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow, categoryColor } from '../theme/theme';
 import { confirmAction } from '../utils/dialog';
 import { formatCurrency, formatDate } from '../utils/format';
@@ -26,6 +27,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ExpensesScreen() {
   const navigation = useNavigation<Nav>();
+  const { t } = useLanguage();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -114,8 +116,8 @@ export default function ExpensesScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>Expenses</Text>
-            <Text style={styles.subtitle}>Track raw materials, rent, shipping & costs</Text>
+            <Text style={styles.title}>{t('expenses.title')}</Text>
+            <Text style={styles.subtitle}>{t('expenses.subtitle')}</Text>
           </View>
         </View>
 
@@ -123,9 +125,9 @@ export default function ExpensesScreen() {
         <View style={styles.summaryCard}>
           <View style={styles.summaryTop}>
             <Text style={styles.summaryLabel}>
-              {selectedCategory === 'All' ? 'Total Business Outflow' : `${selectedCategory} Outflow`}
+              {selectedCategory === 'All' ? t('expenses.totalExpenses') : selectedCategory}
             </Text>
-            <Text style={styles.summaryCount}>{filteredExpenses.length} entries</Text>
+            <Text style={styles.summaryCount}>{filteredExpenses.length}</Text>
           </View>
           <Text style={styles.summaryAmount}>{formatCurrency(totalOutflow)}</Text>
         </View>
@@ -135,7 +137,7 @@ export default function ExpensesScreen() {
           <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search outflow, notes, vendor…"
+            placeholder={t('expenses.searchPlaceholder')}
             placeholderTextColor={colors.inkSoft}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -158,6 +160,7 @@ export default function ExpensesScreen() {
             renderItem={({ item }) => {
               const isSelected = selectedCategory === item;
               const catAmt = item !== 'All' ? categoryTotals[item] : null;
+              const label = item === 'All' ? t('common.all') : item;
               return (
                 <Pressable
                   style={[
@@ -171,7 +174,7 @@ export default function ExpensesScreen() {
                   onPress={() => setSelectedCategory(item as ExpenseCategory | 'All')}
                 >
                   <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
-                    {item}
+                    {label}
                     {catAmt ? ` (${formatCurrency(catAmt)})` : ''}
                   </Text>
                 </Pressable>
@@ -201,7 +204,7 @@ export default function ExpensesScreen() {
                         <Text style={styles.catBadgeText}>{item.category}</Text>
                       </View>
                       <Text style={styles.expenseDesc} numberOfLines={2}>
-                        {item.description || 'Expense entry'}
+                        {item.description || t('expenses.description')}
                       </Text>
                     </View>
                     <Text style={styles.expenseAmount}>-{formatCurrency(item.amount)}</Text>
@@ -239,12 +242,8 @@ export default function ExpensesScreen() {
             !loading ? (
               <EmptyState
                 icon="wallet-outline"
-                title={searchQuery || selectedCategory !== 'All' ? 'No expenses match' : 'No expenses recorded yet'}
-                message={
-                  searchQuery || selectedCategory !== 'All'
-                    ? 'Try selecting a different category or clearing your search.'
-                    : 'Tap the "+ Add Outflow" button to record raw materials, rent, or shipping costs.'
-                }
+                title={t('expenses.noExpensesFound')}
+                message={t('expenses.subtitle')}
               />
             ) : null
           }
@@ -256,7 +255,7 @@ export default function ExpensesScreen() {
           onPress={() => navigation.navigate('ExpenseForm', undefined)}
         >
           <Ionicons name="wallet" size={22} color={colors.white} />
-          <Text style={styles.fabText}>+ Outflow</Text>
+          <Text style={styles.fabText}>{t('expenses.recordExpenseBtn')}</Text>
         </Pressable>
       </View>
     </SafeAreaView>

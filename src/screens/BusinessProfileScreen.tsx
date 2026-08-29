@@ -24,6 +24,7 @@ import {
 } from '../storage/businessProfileStorage';
 import AppLogo from '../components/AppLogo';
 import GlassBackButton from '../components/GlassBackButton';
+import { useLanguage } from '../i18n/LanguageContext';
 import {
   BusinessType,
   BUSINESS_TYPES_LIST,
@@ -32,6 +33,7 @@ import {
 
 export default function BusinessProfileScreen() {
   const navigation = useNavigation();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -137,10 +139,10 @@ export default function BusinessProfileScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       {/* Top Header Bar */}
       <View style={styles.topHeader}>
-        <GlassBackButton label="Back" />
+        <GlassBackButton label={t('common.back')} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.topHeaderTitle}>Business Profile & Branding</Text>
-          <Text style={styles.topHeaderSub}>Receipt headers, GSTIN & preset units</Text>
+          <Text style={styles.topHeaderTitle}>{t('profile.title')}</Text>
+          <Text style={styles.topHeaderSub}>{t('profile.subtitle')}</Text>
         </View>
       </View>
 
@@ -155,16 +157,14 @@ export default function BusinessProfileScreen() {
             )}
           </View>
           <View style={styles.bannerTextBlock}>
-            <Text style={styles.bannerTitle}>Business & Invoice Branding</Text>
-            <Text style={styles.bannerSubtitle}>
-              These details will automatically appear on customer WhatsApp receipts & PDF Invoices.
-            </Text>
+            <Text style={styles.bannerTitle}>{t('profile.title')}</Text>
+            <Text style={styles.bannerSubtitle}>{t('profile.subtitle')}</Text>
           </View>
         </View>
 
         {/* ─── Business Type Selector ─── */}
         <View style={styles.card}>
-          <Text style={styles.cardSectionTitle}>Business Category</Text>
+          <Text style={styles.cardSectionTitle}>{t('products.category')}</Text>
           <View style={styles.typeGrid}>
             {BUSINESS_TYPES_LIST.map((typeKey) => {
               const preset = BUSINESS_TYPE_PRESETS[typeKey];
@@ -202,21 +202,21 @@ export default function BusinessProfileScreen() {
 
         {/* ─── Basic Company Info ─── */}
         <View style={styles.card}>
-          <Text style={styles.cardSectionTitle}>Company Identity</Text>
+          <Text style={styles.cardSectionTitle}>{t('profile.shopName')}</Text>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Business / Shop Name *</Text>
+            <Text style={styles.label}>{t('profile.shopName')} *</Text>
             <TextInput
               style={styles.input}
               value={businessName}
               onChangeText={setBusinessName}
-              placeholder="e.g. Vistara Tech & Textiles"
+              placeholder="e.g. KadaiBook Store"
               placeholderTextColor={colors.inkSoft}
             />
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Tagline / Slogan</Text>
+            <Text style={styles.label}>{t('profile.tagline')}</Text>
             <TextInput
               style={styles.input}
               value={tagline}
@@ -227,7 +227,7 @@ export default function BusinessProfileScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Company Logo Image</Text>
+            <Text style={styles.label}>{t('profile.uploadLogo')}</Text>
             <View style={styles.logoPickerRow}>
               {logoUri ? (
                 <View style={styles.logoPreviewWrap}>
@@ -242,7 +242,7 @@ export default function BusinessProfileScreen() {
               ) : (
                 <View style={styles.logoPlaceholderBox}>
                   <Ionicons name="image-outline" size={28} color={colors.inkSoft} />
-                  <Text style={styles.logoPlaceholderText}>No Logo Selected</Text>
+                  <Text style={styles.logoPlaceholderText}>{t('profile.uploadLogo')}</Text>
                 </View>
               )}
 
@@ -256,12 +256,9 @@ export default function BusinessProfileScreen() {
                 >
                   <Ionicons name="camera-outline" size={16} color={colors.white} />
                   <Text style={styles.pickLogoBtnText}>
-                    {logoUri ? 'Change Logo Photo' : 'Choose Logo Photo'}
+                    {logoUri ? t('profile.changeLogo') : t('profile.uploadLogo')}
                   </Text>
                 </Pressable>
-                <Text style={styles.hint}>
-                  Select your company logo from phone gallery. It will be printed on top of all customer invoices!
-                </Text>
               </View>
             </View>
           </View>
@@ -269,10 +266,10 @@ export default function BusinessProfileScreen() {
 
         {/* ─── Contact & Address ─── */}
         <View style={styles.card}>
-          <Text style={styles.cardSectionTitle}>📍 Contact & Address</Text>
+          <Text style={styles.cardSectionTitle}>📍 {t('customers.address')}</Text>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Contact Phone Number</Text>
+            <Text style={styles.label}>{t('profile.phone')}</Text>
             <TextInput
               style={styles.input}
               value={phone}
@@ -284,7 +281,7 @@ export default function BusinessProfileScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Business Email</Text>
+            <Text style={styles.label}>{t('profile.email')}</Text>
             <TextInput
               style={styles.input}
               value={email}
@@ -297,14 +294,14 @@ export default function BusinessProfileScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Shop / Business Address</Text>
+            <Text style={styles.label}>{t('profile.address')}</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={address}
               onChangeText={setAddress}
               multiline
               numberOfLines={3}
-              placeholder="e.g. No 42, Main Bazaar, Commercial Street, Chennai - 600001"
+              placeholder="e.g. No 42, Main Bazaar, Chennai"
               placeholderTextColor={colors.inkSoft}
             />
           </View>
@@ -312,10 +309,10 @@ export default function BusinessProfileScreen() {
 
         {/* ─── Tax & Bank Details ─── */}
         <View style={styles.card}>
-          <Text style={styles.cardSectionTitle}>💳 Tax & Payment Info</Text>
+          <Text style={styles.cardSectionTitle}>💳 {t('profile.bankDetails')}</Text>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>GSTIN / Tax Identification No</Text>
+            <Text style={styles.label}>{t('profile.gstin')}</Text>
             <TextInput
               style={styles.input}
               value={gstin}
@@ -327,19 +324,16 @@ export default function BusinessProfileScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Bank Account / UPI Payment Details</Text>
+            <Text style={styles.label}>{t('profile.bankDetails')}</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={bankDetails}
               onChangeText={setBankDetails}
               multiline
               numberOfLines={2}
-              placeholder="e.g. UPI ID: mybusiness@upi • GPay/PhonePe: 9876543210"
+              placeholder="e.g. UPI ID: shop@upi • GPay: 9876543210"
               placeholderTextColor={colors.inkSoft}
             />
-            <Text style={styles.hint}>
-              Printed at the bottom of customer invoices for easy payment collections.
-            </Text>
           </View>
         </View>
 
@@ -348,17 +342,17 @@ export default function BusinessProfileScreen() {
           style={({ pressed }) => [
             styles.saveBtn,
             saving && { opacity: 0.7 },
-            pressed && { opacity: 0.88, transform: [{ scale: 0.98 }] },
+            pressed && { opacity: 0.85 },
           ]}
-          disabled={saving}
           onPress={handleSave}
+          disabled={saving}
         >
           {saving ? (
-            <ActivityIndicator color={colors.white} size="small" />
+            <ActivityIndicator size="small" color={colors.white} />
           ) : (
             <>
-              <Ionicons name="checkmark-circle" size={18} color={colors.white} />
-              <Text style={styles.saveBtnText}>Save Business Branding</Text>
+              <Ionicons name="checkmark-done" size={20} color={colors.white} />
+              <Text style={styles.saveBtnText}>{t('profile.saveProfileBtn')}</Text>
             </>
           )}
         </Pressable>

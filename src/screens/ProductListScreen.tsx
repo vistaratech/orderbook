@@ -22,11 +22,13 @@ import { colors, fonts, radius, shadow } from '../theme/theme';
 import { confirmAction } from '../utils/dialog';
 import { formatCurrency } from '../utils/format';
 import DesktopLayout from '../components/DesktopLayout';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ProductListScreen() {
   const navigation = useNavigation<Nav>();
+  const { t } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -88,17 +90,15 @@ export default function ProductListScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Catalog</Text>
-              <Text style={styles.subtitle}>
-                {filteredProducts.length} product{filteredProducts.length === 1 ? '' : 's'} in store catalog
-              </Text>
+              <Text style={styles.title}>{t('products.title')}</Text>
+              <Text style={styles.subtitle}>{t('products.subtitle')}</Text>
             </View>
             <Pressable
               style={({ pressed }) => [styles.newProductHeaderBtn, pressed && { opacity: 0.8 }]}
               onPress={() => navigation.navigate('ProductForm', undefined)}
             >
               <Ionicons name="add" size={20} color={colors.white} />
-              <Text style={styles.newProductHeaderBtnText}>Add</Text>
+              <Text style={styles.newProductHeaderBtnText}>{t('common.save') === 'Save' ? 'Add' : t('dashboard.addProduct')}</Text>
             </Pressable>
           </View>
 
@@ -107,7 +107,7 @@ export default function ProductListScreen() {
             <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search products by name…"
+              placeholder={t('products.searchPlaceholder')}
               placeholderTextColor={colors.inkSoft}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -137,7 +137,7 @@ export default function ProductListScreen() {
                 <View style={styles.productLeft}>
                   <Text style={styles.productName}>{item.name}</Text>
                   <View style={styles.unitBadge}>
-                    <Text style={styles.unitBadgeText}>per {item.unit || 'pcs'}</Text>
+                    <Text style={styles.unitBadgeText}>{item.unit || 'pcs'}</Text>
                   </View>
                 </View>
 
@@ -164,12 +164,8 @@ export default function ProductListScreen() {
               !loading ? (
                 <EmptyState
                   icon="pricetags-outline"
-                  title={searchQuery ? 'No products found' : 'Catalog is empty'}
-                  message={
-                    searchQuery
-                      ? 'Try searching with a different product name.'
-                      : 'Add items you sell to quickly auto-fill prices when taking orders.'
-                  }
+                  title={t('products.noProducts')}
+                  message={t('products.subtitle')}
                 />
               ) : null
             }
@@ -181,7 +177,7 @@ export default function ProductListScreen() {
             onPress={() => navigation.navigate('ProductForm', undefined)}
           >
             <Ionicons name="add" size={22} color={colors.white} />
-            <Text style={styles.fabText}>+ Item</Text>
+            <Text style={styles.fabText}>{t('products.addProductBtn')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>

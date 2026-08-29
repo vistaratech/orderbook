@@ -16,5 +16,3 @@ npm-debug.*
 .env.development.local
 .env.test.local
 .env.production.local
-google-services.json
-

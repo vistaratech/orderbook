@@ -1,0 +1,69 @@
+{
+  "project_info": {
+    "project_number": "79850824559",
+    "firebase_url": "https://orderbook-0-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "orderbook-0",
+    "storage_bucket": "orderbook-0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:79850824559:android:80d7654c9c062f98dabe9a",
+        "android_client_info": {
+          "package_name": "com.orderbook.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "79850824559-g1qqksec5g2lng63t9sou6t8fmum2se7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjSi9tfH3s3cEbS1p2xSY4LE45yp9PReE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "79850824559-g1qqksec5g2lng63t9sou6t8fmum2se7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:79850824559:android:6d7399a394a75ca1dabe9a",
+        "android_client_info": {
+          "package_name": "in.kadaibook.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "79850824559-g1qqksec5g2lng63t9sou6t8fmum2se7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjSi9tfH3s3cEbS1p2xSY4LE45yp9PReE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "79850824559-g1qqksec5g2lng63t9sou6t8fmum2se7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

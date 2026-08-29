@@ -18,7 +18,7 @@ export interface BusinessProfile {
   businessType?: BusinessType;
 }
 
-const DEFAULT_BUSINESS_NAME = 'Order Book Store';
+const DEFAULT_BUSINESS_NAME = 'KadaiBook Store';
 
 /**
  * Generates a clean, professional WhatsApp text receipt message for an order.

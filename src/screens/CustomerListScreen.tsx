@@ -22,6 +22,7 @@ import { addDataListener } from '../storage/firebaseSync';
 import EmptyState from '../components/EmptyState';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { formatCurrency } from '../utils/format';
+import DesktopLayout from '../components/DesktopLayout';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -103,175 +104,177 @@ export default function CustomerListScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.centerContainer}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Customers</Text>
-            <Text style={styles.subtitle}>
-              {loading
-                ? 'Loading…'
-                : `${filteredCustomers.length} contact${filteredCustomers.length === 1 ? '' : 's'}`}
-            </Text>
+    <DesktopLayout currentTabName="CustomerList">
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <View style={styles.centerContainer}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.title}>Customers</Text>
+              <Text style={styles.subtitle}>
+                {loading
+                  ? 'Loading…'
+                  : `${filteredCustomers.length} contact${filteredCustomers.length === 1 ? '' : 's'}`}
+              </Text>
+            </View>
           </View>
-        </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search customers by name or phone…"
-            placeholderTextColor={colors.inkSoft}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery('')} style={{ padding: 2 }}>
-              <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
-            </Pressable>
-          )}
-        </View>
-
-        {/* Customer List */}
-        <FlatList
-          data={filteredCustomers}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
-          }
-          renderItem={({ item }) => {
-            const stats = customerStats[item.name.toLowerCase().trim()] || {
-              orderCount: 0,
-              totalSpend: 0,
-              pendingDue: 0,
-            };
-            return (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.customerCard,
-                  pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-                ]}
-                onPress={() =>
-                  navigation.navigate('CustomerDetail', { customerId: item.id })
-                }
-              >
-                <View style={styles.cardHeader}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>
-                      {item.name.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={styles.nameBlock}>
-                    <Text style={styles.customerName}>{item.name}</Text>
-                    {item.phone ? (
-                      <Text style={styles.phoneText}>📞 {item.phone}</Text>
-                    ) : null}
-                    {item.address ? (
-                      <Text style={styles.addressText} numberOfLines={1}>
-                        📍 {item.address}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color={colors.inkSoft} />
-                </View>
-
-                {/* Micro Stats Row */}
-                <View style={styles.statsRow}>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statLabel}>Orders</Text>
-                    <Text style={styles.statValue}>{stats.orderCount}</Text>
-                  </View>
-                  <View style={styles.statDivider} />
-                  <View style={styles.statItem}>
-                    <Text style={styles.statLabel}>Total Spend</Text>
-                    <Text style={[styles.statValue, { color: colors.inflow }]}>
-                      {formatCurrency(stats.totalSpend)}
-                    </Text>
-                  </View>
-                  {stats.pendingDue > 0 && (
-                    <>
-                      <View style={styles.statDivider} />
-                      <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Pending Due</Text>
-                        <Text style={[styles.statValue, { color: colors.danger }]}>
-                          {formatCurrency(stats.pendingDue)}
-                        </Text>
-                      </View>
-                    </>
-                  )}
-                </View>
-
-                {/* Quick Action Pills */}
-                <View style={styles.actionPillsRow}>
-                  {item.phone ? (
-                    <>
-                      <Pressable
-                        style={({ pressed }) => [styles.actionPill, pressed && { opacity: 0.7 }]}
-                        onPress={() => handleCall(item.phone)}
-                      >
-                        <Ionicons name="call" size={14} color={colors.clayDeep} />
-                        <Text style={styles.actionPillText}>Call</Text>
-                      </Pressable>
-
-                      <Pressable
-                        style={({ pressed }) => [styles.actionPill, pressed && { opacity: 0.7 }]}
-                        onPress={() => handleWhatsApp(item.phone)}
-                      >
-                        <Ionicons name="logo-whatsapp" size={14} color={colors.success} />
-                        <Text style={[styles.actionPillText, { color: colors.success }]}>
-                          WhatsApp
-                        </Text>
-                      </Pressable>
-                    </>
-                  ) : null}
-
-                  <Pressable
-                    style={({ pressed }) => [styles.actionPill, styles.newOrderPill, pressed && { opacity: 0.7 }]}
-                    onPress={() =>
-                      navigation.navigate('OrderForm', {
-                        prefillCustomerName: item.name,
-                        prefillPhone: item.phone,
-                      })
-                    }
-                  >
-                    <Ionicons name="add" size={14} color={colors.duskDeep} />
-                    <Text style={[styles.actionPillText, { color: colors.duskDeep }]}>
-                      New Order
-                    </Text>
-                  </Pressable>
-                </View>
+          {/* Search Bar */}
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search customers by name or phone…"
+              placeholderTextColor={colors.inkSoft}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} style={{ padding: 2 }}>
+                <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
               </Pressable>
-            );
-          }}
-          ListEmptyComponent={
-            !loading ? (
-              <EmptyState
-                icon="people-outline"
-                title={searchQuery ? 'No customers found' : 'No customers yet'}
-                message={
-                  searchQuery
-                    ? 'Try searching with a different name or phone number.'
-                    : 'Customers are automatically saved when you create orders, or you can add them directly.'
-                }
-              />
-            ) : null
-          }
-        />
+            )}
+          </View>
 
-        {/* Floating Add Customer Button */}
-        <Pressable
-          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-          onPress={() => navigation.navigate('CustomerForm', undefined)}
-        >
-          <Ionicons name="person-add" size={20} color={colors.white} />
-          <Text style={styles.fabText}>+ Customer</Text>
-        </Pressable>
-      </View>
-    </SafeAreaView>
+          {/* Customer List */}
+          <FlatList
+            data={filteredCustomers}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
+            }
+            renderItem={({ item }) => {
+              const stats = customerStats[item.name.toLowerCase().trim()] || {
+                orderCount: 0,
+                totalSpend: 0,
+                pendingDue: 0,
+              };
+              return (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.customerCard,
+                    pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+                  ]}
+                  onPress={() =>
+                    navigation.navigate('CustomerDetail', { customerId: item.id })
+                  }
+                >
+                  <View style={styles.cardHeader}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>
+                        {item.name.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={styles.nameBlock}>
+                      <Text style={styles.customerName}>{item.name}</Text>
+                      {item.phone ? (
+                        <Text style={styles.phoneText}>📞 {item.phone}</Text>
+                      ) : null}
+                      {item.address ? (
+                        <Text style={styles.addressText} numberOfLines={1}>
+                          📍 {item.address}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.inkSoft} />
+                  </View>
+
+                  {/* Micro Stats Row */}
+                  <View style={styles.statsRow}>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statLabel}>Orders</Text>
+                      <Text style={styles.statValue}>{stats.orderCount}</Text>
+                    </View>
+                    <View style={styles.statDivider} />
+                    <View style={styles.statItem}>
+                      <Text style={styles.statLabel}>Total Spend</Text>
+                      <Text style={[styles.statValue, { color: colors.inflow }]}>
+                        {formatCurrency(stats.totalSpend)}
+                      </Text>
+                    </View>
+                    {stats.pendingDue > 0 && (
+                      <>
+                        <View style={styles.statDivider} />
+                        <View style={styles.statItem}>
+                          <Text style={styles.statLabel}>Pending Due</Text>
+                          <Text style={[styles.statValue, { color: colors.danger }]}>
+                            {formatCurrency(stats.pendingDue)}
+                          </Text>
+                        </View>
+                      </>
+                    )}
+                  </View>
+
+                  {/* Quick Action Pills */}
+                  <View style={styles.actionPillsRow}>
+                    {item.phone ? (
+                      <>
+                        <Pressable
+                          style={({ pressed }) => [styles.actionPill, pressed && { opacity: 0.7 }]}
+                          onPress={() => handleCall(item.phone)}
+                        >
+                          <Ionicons name="call" size={14} color={colors.clayDeep} />
+                          <Text style={styles.actionPillText}>Call</Text>
+                        </Pressable>
+
+                        <Pressable
+                          style={({ pressed }) => [styles.actionPill, pressed && { opacity: 0.7 }]}
+                          onPress={() => handleWhatsApp(item.phone)}
+                        >
+                          <Ionicons name="logo-whatsapp" size={14} color={colors.success} />
+                          <Text style={[styles.actionPillText, { color: colors.success }]}>
+                            WhatsApp
+                          </Text>
+                        </Pressable>
+                      </>
+                    ) : null}
+
+                    <Pressable
+                      style={({ pressed }) => [styles.actionPill, styles.newOrderPill, pressed && { opacity: 0.7 }]}
+                      onPress={() =>
+                        navigation.navigate('OrderForm', {
+                          prefillCustomerName: item.name,
+                          prefillPhone: item.phone,
+                        })
+                      }
+                    >
+                      <Ionicons name="add" size={14} color={colors.duskDeep} />
+                      <Text style={[styles.actionPillText, { color: colors.duskDeep }]}>
+                        New Order
+                      </Text>
+                    </Pressable>
+                  </View>
+                </Pressable>
+              );
+            }}
+            ListEmptyComponent={
+              !loading ? (
+                <EmptyState
+                  icon="people-outline"
+                  title={searchQuery ? 'No customers found' : 'No customers yet'}
+                  message={
+                    searchQuery
+                      ? 'Try searching with a different name or phone number.'
+                      : 'Customers are automatically saved when you create orders, or you can add them directly.'
+                  }
+                />
+              ) : null
+            }
+          />
+
+          {/* Floating Add Customer Button */}
+          <Pressable
+            style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+            onPress={() => navigation.navigate('CustomerForm', undefined)}
+          >
+            <Ionicons name="person-add" size={20} color={colors.white} />
+            <Text style={styles.fabText}>+ Customer</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    </DesktopLayout>
   );
 }
 

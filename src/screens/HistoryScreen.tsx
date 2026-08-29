@@ -22,6 +22,7 @@ import { addDataListener, pullAllCloudDataToLocal } from '../storage/firebaseSyn
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { formatCurrency, formatDate } from '../utils/format';
 import GlassBackButton from '../components/GlassBackButton';
+import DesktopLayout from '../components/DesktopLayout';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -233,55 +234,56 @@ export default function HistoryScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.centerContainer}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <GlassBackButton label="Back" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.title}>Store Activity & History</Text>
-              <Text style={styles.subtitle}>
-                {loading ? 'Loading timeline…' : `${events.length} total activity log${events.length === 1 ? '' : 's'}`}
+    <DesktopLayout currentTabName="History">
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <View style={styles.centerContainer}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <GlassBackButton label="Back" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title}>Store Activity & History</Text>
+                <Text style={styles.subtitle}>
+                  {loading ? 'Loading timeline…' : `${events.length} total activity log${events.length === 1 ? '' : 's'}`}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Summary Cards Row */}
+          <View style={styles.summaryRow}>
+            <View style={[styles.summaryCard, { borderLeftColor: colors.inflow }]}>
+              <Text style={styles.summaryLabel}>Total Payments</Text>
+              <Text style={[styles.summaryValue, { color: colors.inflow }]}>
+                {formatCurrency(totalInflow)}
+              </Text>
+            </View>
+
+            <View style={[styles.summaryCard, { borderLeftColor: colors.outflow }]}>
+              <Text style={styles.summaryLabel}>Total Outflows</Text>
+              <Text style={[styles.summaryValue, { color: colors.outflow }]}>
+                {formatCurrency(totalOutflow)}
               </Text>
             </View>
           </View>
-        </View>
 
-        {/* Summary Cards Row */}
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, { borderLeftColor: colors.inflow }]}>
-            <Text style={styles.summaryLabel}>Total Payments</Text>
-            <Text style={[styles.summaryValue, { color: colors.inflow }]}>
-              {formatCurrency(totalInflow)}
-            </Text>
-          </View>
-
-          <View style={[styles.summaryCard, { borderLeftColor: colors.outflow }]}>
-            <Text style={styles.summaryLabel}>Total Outflows</Text>
-            <Text style={[styles.summaryValue, { color: colors.outflow }]}>
-              {formatCurrency(totalOutflow)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Search & Filter Toolbar */}
-        <View style={styles.searchToolbar}>
-          <View style={styles.searchInputWrap}>
-            <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search by order #, customer, amount…"
-              placeholderTextColor={colors.inkSoft}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
-              </Pressable>
-            )}
-          </View>
+          {/* Search & Filter Toolbar */}
+          <View style={styles.searchToolbar}>
+            <View style={styles.searchInputWrap}>
+              <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search by order #, customer, amount…"
+                placeholderTextColor={colors.inkSoft}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <Pressable onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
+                </Pressable>
+              )}
+            </View>
 
           <Pressable
             style={({ pressed }) => [
@@ -449,6 +451,7 @@ export default function HistoryScreen() {
         )}
       </View>
     </SafeAreaView>
+  </DesktopLayout>
   );
 }
 

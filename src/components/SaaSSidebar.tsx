@@ -6,7 +6,9 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,15 +22,48 @@ import { addDataListener } from '../storage/firebaseSync';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+const SIDEBAR_COLLAPSED_KEY = 'order_book:sidebar_collapsed';
+
 interface SaaSSidebarProps {
   currentTabName?: string;
   onSelectTab?: (tabName: string) => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export default function SaaSSidebar({ currentTabName, onSelectTab }: SaaSSidebarProps) {
+export default function SaaSSidebar({
+  currentTabName,
+  onSelectTab,
+  collapsed: propCollapsed,
+  onToggleCollapse: propOnToggleCollapse,
+}: SaaSSidebarProps) {
   const navigation = useNavigation<Nav>();
+  const { width } = useWindowDimensions();
+  const isDesktop = Platform.OS === 'web' && width >= 768;
+
   const [user, setUser] = useState<UserAccount | null>(null);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
+  const [internalCollapsed, setInternalCollapsed] = useState<boolean>(false);
+
+  // Sync internal collapsed state with AsyncStorage
+  useEffect(() => {
+    AsyncStorage.getItem(SIDEBAR_COLLAPSED_KEY).then((val) => {
+      if (val !== null) {
+        setInternalCollapsed(val === 'true');
+      }
+    });
+  }, []);
+
+  const isCollapsed = propCollapsed !== undefined ? propCollapsed : internalCollapsed;
+
+  const toggleCollapse = async () => {
+    if (propOnToggleCollapse) {
+      propOnToggleCollapse();
+    }
+    const nextState = !isCollapsed;
+    setInternalCollapsed(nextState);
+    await AsyncStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(nextState));
+  };
 
   const loadUserInfo = async () => {
     try {
@@ -49,6 +84,10 @@ export default function SaaSSidebar({ currentTabName, onSelectTab }: SaaSSidebar
   const handleNav = (tabName: string, stackScreenName?: keyof RootStackParamList) => {
     if (onSelectTab && tabName) {
       onSelectTab(tabName);
+      if (isDesktop && navigation.canGoBack()) {
+        navigation.navigate('MainTabs');
+      }
+      return;
     }
     if (stackScreenName) {
       navigation.navigate(stackScreenName as any);
@@ -105,21 +144,21 @@ export default function SaaSSidebar({ currentTabName, onSelectTab }: SaaSSidebar
           label: 'Customers',
           icon: 'people-outline' as const,
           activeIcon: 'people' as const,
-          action: () => handleNav('', 'CustomerList'),
+          action: () => handleNav('CustomerList', 'CustomerList'),
         },
         {
           key: 'ProductList',
           label: 'Product Catalog',
           icon: 'pricetags-outline' as const,
           activeIcon: 'pricetags' as const,
-          action: () => handleNav('', 'ProductList'),
+          action: () => handleNav('ProductList', 'ProductList'),
         },
         {
           key: 'History',
           label: 'Store Activity',
           icon: 'time-outline' as const,
           activeIcon: 'time' as const,
-          action: () => handleNav('', 'History'),
+          action: () => handleNav('History', 'History'),
         },
       ],
     },
@@ -131,34 +170,57 @@ export default function SaaSSidebar({ currentTabName, onSelectTab }: SaaSSidebar
           label: 'Settings & Profile',
           icon: 'settings-outline' as const,
           activeIcon: 'settings' as const,
-          action: () => handleNav('', 'Settings'),
+          action: () => handleNav('Settings', 'Settings'),
         },
       ],
     },
   ];
 
   return (
-    <View style={styles.sidebar}>
+    <View style={[styles.sidebar, isCollapsed && styles.sidebarCollapsed]}>
       {/* ─── Header & Brand ─── */}
-      <View style={styles.brandHeader}>
-        <AppLogo size={36} variant="icon" />
-        <View style={styles.brandTextWrap}>
-          <Text style={styles.brandTitle} numberOfLines={1}>
-            {profile?.businessName || 'OrderBook'}
-          </Text>
-          <Text style={styles.brandSubtitle} numberOfLines={1}>
-            {profile?.tagline || 'Business Management'}
-          </Text>
-        </View>
+      <View style={[styles.brandHeader, isCollapsed && styles.brandHeaderCollapsed]}>
+        <AppLogo size={isCollapsed ? 32 : 36} variant="icon" />
+
+        {!isCollapsed ? (
+          <View style={styles.brandTextWrap}>
+            <Text style={styles.brandTitle} numberOfLines={1}>
+              {profile?.businessName || 'KadaiBook'}
+            </Text>
+            <Text style={styles.brandSubtitle} numberOfLines={1}>
+              {profile?.tagline || 'Business Management'}
+            </Text>
+          </View>
+        ) : null}
+
+        <Pressable
+          style={({ pressed }) => [styles.collapseToggleBtn, pressed && { opacity: 0.7 }]}
+          onPress={toggleCollapse}
+          hitSlop={8}
+          // @ts-ignore
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <Ionicons
+            name={isCollapsed ? 'chevron-forward-outline' : 'chevron-back-outline'}
+            size={16}
+            color={colors.inkSoft}
+          />
+        </Pressable>
       </View>
 
-      {/* ─── Quick Action ─── */}
+      {/* ─── Quick Action Button ─── */}
       <Pressable
-        style={({ pressed }) => [styles.quickOrderBtn, pressed && { opacity: 0.85 }]}
+        style={({ pressed }) => [
+          styles.quickOrderBtn,
+          isCollapsed && styles.quickOrderBtnCollapsed,
+          pressed && { opacity: 0.85 },
+        ]}
         onPress={() => navigation.navigate('OrderForm')}
+        // @ts-ignore
+        title="New Order"
       >
-        <Ionicons name="add-circle" size={18} color={colors.white} />
-        <Text style={styles.quickOrderBtnText}>New Order</Text>
+        <Ionicons name="add" size={isCollapsed ? 24 : 18} color={colors.white} />
+        {!isCollapsed && <Text style={styles.quickOrderBtnText}>New Order</Text>}
       </Pressable>
 
       {/* ─── Navigation Groups ─── */}
@@ -169,34 +231,55 @@ export default function SaaSSidebar({ currentTabName, onSelectTab }: SaaSSidebar
       >
         {navItems.map((group) => (
           <View key={group.group} style={styles.navGroup}>
-            <Text style={styles.navGroupLabel}>{group.group}</Text>
+            {!isCollapsed ? (
+              <Text style={styles.navGroupLabel}>{group.group}</Text>
+            ) : (
+              <View style={styles.navGroupDivider} />
+            )}
+
             {group.items.map((item) => {
               const isActive = currentTabName === item.key;
               return (
                 <Pressable
                   key={item.key}
                   style={({ pressed }) => [
-                    styles.navItem,
-                    isActive && styles.navItemActive,
+                    styles.navItemWrap,
+                    isCollapsed && styles.navItemWrapCollapsed,
                     pressed && { opacity: 0.8 },
                   ]}
                   onPress={item.action}
+                  // @ts-ignore
+                  title={isCollapsed ? item.label : undefined}
                 >
-                  <Ionicons
-                    name={isActive ? item.activeIcon : item.icon}
-                    size={18}
-                    color={isActive ? colors.clayDeep : colors.inkSoft}
-                    style={styles.navItemIcon}
-                  />
-                  <Text
+                  <View
                     style={[
-                      styles.navItemLabel,
-                      isActive && styles.navItemLabelActive,
+                      styles.navItemBox,
+                      isCollapsed && styles.navItemBoxCollapsed,
+                      isActive && styles.navItemActive,
                     ]}
                   >
-                    {item.label}
-                  </Text>
-                  {isActive ? <View style={styles.activeIndicator} /> : null}
+                    <Ionicons
+                      name={isActive ? item.activeIcon : item.icon}
+                      size={20}
+                      color={isActive ? colors.clayDeep : colors.inkSoft}
+                      style={isCollapsed ? undefined : styles.navItemIcon}
+                    />
+
+                    {!isCollapsed && (
+                      <Text
+                        style={[
+                          styles.navItemLabel,
+                          isActive && styles.navItemLabelActive,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    )}
+
+                    {isActive ? (
+                      <View style={isCollapsed ? styles.activeIndicatorCollapsed : styles.activeIndicator} />
+                    ) : null}
+                  </View>
                 </Pressable>
               );
             })}
@@ -205,24 +288,38 @@ export default function SaaSSidebar({ currentTabName, onSelectTab }: SaaSSidebar
       </ScrollView>
 
       {/* ─── Footer: User Account & Sign Out ─── */}
-      <View style={styles.userFooter}>
-        <View style={styles.userAvatar}>
+      <View style={[styles.userFooter, isCollapsed && styles.userFooterCollapsed]}>
+        <View
+          style={styles.userAvatar}
+          // @ts-ignore
+          title={user?.name || profile?.businessName || 'Store Admin'}
+        >
           <Text style={styles.userAvatarText}>
             {(user?.name || profile?.businessName || 'U').charAt(0).toUpperCase()}
           </Text>
         </View>
-        <View style={styles.userInfo}>
-          <Text style={styles.userName} numberOfLines={1}>
-            {user?.name || profile?.businessName || 'Store Admin'}
-          </Text>
-          <Text style={styles.userRole} numberOfLines={1}>
-            {user?.email || 'Logged In'}
-          </Text>
-        </View>
+
+        {!isCollapsed ? (
+          <View style={styles.userInfo}>
+            <Text style={styles.userName} numberOfLines={1}>
+              {user?.name || profile?.businessName || 'Store Admin'}
+            </Text>
+            <Text style={styles.userRole} numberOfLines={1}>
+              {user?.email || 'Logged In'}
+            </Text>
+          </View>
+        ) : null}
+
         <Pressable
-          style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.7 }]}
+          style={({ pressed }) => [
+            styles.logoutBtn,
+            isCollapsed && styles.logoutBtnCollapsed,
+            pressed && { opacity: 0.7 },
+          ]}
           onPress={handleLogout}
           hitSlop={8}
+          // @ts-ignore
+          title="Sign out"
         >
           <Ionicons name="log-out-outline" size={18} color={colors.inkSoft} />
         </Pressable>
@@ -240,7 +337,7 @@ const styles = StyleSheet.create({
     borderRightColor: colors.line,
     display: 'flex',
     flexDirection: 'column',
-    paddingVertical: 18,
+    paddingVertical: 16,
     paddingHorizontal: 14,
     ...Platform.select({
       web: {
@@ -248,17 +345,32 @@ const styles = StyleSheet.create({
         top: 0,
         height: '100vh' as any,
         userSelect: 'none' as any,
+        transition: 'width 0.2s ease, padding 0.2s ease' as any,
       },
     }),
+  },
+  sidebarCollapsed: {
+    width: 72,
+    paddingHorizontal: 8,
+    alignItems: 'center',
   },
   brandHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingBottom: 16,
+    paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    marginBottom: 16,
+    marginBottom: 14,
+    width: '100%',
+  },
+  brandHeaderCollapsed: {
+    flexDirection: 'column',
+    gap: 10,
+    paddingBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   brandTextWrap: {
     flex: 1,
@@ -274,6 +386,17 @@ const styles = StyleSheet.create({
     color: colors.inkSoft,
     marginTop: 1,
   },
+  collapseToggleBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 'auto',
+  },
   quickOrderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -283,7 +406,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: radius.md,
     marginBottom: 16,
+    width: '100%',
     ...shadow.card,
+  },
+  quickOrderBtnCollapsed: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    paddingVertical: 0,
+    alignSelf: 'center',
+    justifyContent: 'center',
   },
   quickOrderBtnText: {
     fontFamily: fonts.bodyBold,
@@ -292,12 +424,15 @@ const styles = StyleSheet.create({
   },
   navScroll: {
     flex: 1,
+    width: '100%',
   },
   navScrollContent: {
     paddingBottom: 10,
+    alignItems: 'center',
   },
   navGroup: {
     marginBottom: 14,
+    width: '100%',
   },
   navGroupLabel: {
     fontFamily: fonts.bodyBold,
@@ -307,14 +442,38 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     paddingHorizontal: 8,
   },
-  navItem: {
+  navGroupDivider: {
+    height: 1,
+    width: 28,
+    backgroundColor: colors.line,
+    marginVertical: 8,
+    alignSelf: 'center',
+  },
+  navItemWrap: {
+    width: '100%',
+    marginBottom: 3,
+  },
+  navItemWrapCollapsed: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navItemBox: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 9,
     paddingHorizontal: 10,
     borderRadius: radius.sm,
-    marginBottom: 2,
     position: 'relative',
+    width: '100%',
+  },
+  navItemBoxCollapsed: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   navItemActive: {
     backgroundColor: colors.clayLight,
@@ -340,6 +499,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 6,
   },
+  activeIndicatorCollapsed: {
+    width: 3,
+    height: 20,
+    borderRadius: 2,
+    backgroundColor: colors.clayDeep,
+    position: 'absolute',
+    left: 2,
+  },
   userFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -348,11 +515,18 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.line,
     marginTop: 'auto',
+    width: '100%',
+  },
+  userFooterCollapsed: {
+    flexDirection: 'column',
+    gap: 8,
+    alignItems: 'center',
+    paddingHorizontal: 0,
   },
   userAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: colors.clayLight,
     borderWidth: 1,
     borderColor: colors.clayDeep,
@@ -380,5 +554,16 @@ const styles = StyleSheet.create({
   logoutBtn: {
     padding: 6,
     borderRadius: radius.sm,
+  },
+  logoutBtnCollapsed: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
   },
 });

@@ -117,7 +117,7 @@ export default function RegisterScreen({ navigation }: Props) {
             </View>
             <Text style={styles.title}>Create Store Account</Text>
             <Text style={styles.subtitle}>
-              Set up your business order book and secure passcode
+              Set up your KadaiBook account and secure passcode
             </Text>
           </View>
 
@@ -226,7 +226,7 @@ export default function RegisterScreen({ navigation }: Props) {
             disabled={saving}
           >
             <Text style={styles.submitBtnText}>
-              {saving ? 'Creating Account…' : 'Register & Enter Order Book'}
+              {saving ? 'Creating Account…' : 'Register & Enter KadaiBook'}
             </Text>
           </Pressable>
 

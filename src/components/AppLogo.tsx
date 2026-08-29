@@ -36,16 +36,32 @@ const SIZE_MAP: Record<LogoSize, number> = {
  * Vector SVG Book Icon with Leather Texture, Gold Seal, and Bookmark Ribbon
  */
 export function AppLogoIcon({ size = 52 }: { size?: number }) {
-  const scale = size / 100;
+  const borderRadius = Math.round(size * 0.22);
 
   return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius,
+        overflow: 'hidden',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#B96659',
+      }}
+    >
+      <Svg
+        width={size}
+        height={size}
+        viewBox="12 12 76 76"
+        fill="none"
+        style={{ transform: [{ scale: 1.15 }] }}
+      >
         <Defs>
           {/* Background Squircle Gradient */}
           <LinearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor="#FFFDF8" />
-            <Stop offset="100%" stopColor="#EFE7DA" />
+            <Stop offset="0%" stopColor="#D98C82" />
+            <Stop offset="100%" stopColor="#96483C" />
           </LinearGradient>
 
           {/* Book Cover Terracotta Gradient */}
@@ -85,8 +101,6 @@ export function AppLogoIcon({ size = 52 }: { size?: number }) {
           height="94"
           rx="22"
           fill="url(#bgGrad)"
-          stroke="#DCD3C0"
-          strokeWidth="1.5"
         />
 
         {/* Book Drop Shadow */}
@@ -167,16 +181,29 @@ export function AppLogoIcon({ size = 52 }: { size?: number }) {
  * 3D Ultra-realistic Raster Brand Logo Asset
  */
 export function AppLogoImage({ size = 52 }: { size?: number }) {
+  const borderRadius = Math.round(size * 0.22);
   return (
-    <Image
-      source={require('../../assets/icon.png')}
+    <View
       style={{
         width: size,
         height: size,
-        borderRadius: size * 0.22,
+        borderRadius,
+        overflow: 'hidden',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#B96659',
       }}
-      resizeMode="cover"
-    />
+    >
+      <Image
+        source={require('../../assets/icon.png')}
+        style={{
+          width: size,
+          height: size,
+          transform: [{ scale: 1.32 }],
+        }}
+        resizeMode="cover"
+      />
+    </View>
   );
 }
 
@@ -187,15 +214,16 @@ export default function AppLogo({
   size = 'md',
   variant = 'vertical',
   showTagline = true,
-  taglineText = 'Business Order & Outflow Ledger',
+  taglineText = 'Smart Business & Order Management',
   style,
   imageMode = true,
 }: AppLogoProps) {
   const pixelSize = typeof size === 'number' ? size : SIZE_MAP[size];
+  const borderRadius = Math.round(pixelSize * 0.22);
 
   const renderIcon = () => {
     return imageMode ? (
-      <View style={[styles.iconWrapper, { width: pixelSize, height: pixelSize }]}>
+      <View style={[styles.iconWrapper, { width: pixelSize, height: pixelSize, borderRadius }]}>
         <AppLogoImage size={pixelSize} />
       </View>
     ) : (
@@ -213,7 +241,7 @@ export default function AppLogo({
         {renderIcon()}
         <View style={styles.horizontalTextWrap}>
           <Text style={[styles.brandTitleH, { fontSize: Math.max(18, pixelSize * 0.45) }]}>
-            Order Book
+            KadaiBook
           </Text>
           {showTagline && (
             <Text
@@ -235,7 +263,7 @@ export default function AppLogo({
           <AppLogoImage size={24} />
         </View>
         <View>
-          <Text style={styles.badgeTitle}>Order Book</Text>
+          <Text style={styles.badgeTitle}>KadaiBook</Text>
           <Text style={styles.badgeSubtitle}>Pro Ledger</Text>
         </View>
       </View>
@@ -247,7 +275,7 @@ export default function AppLogo({
     <View style={[styles.verticalContainer, style]}>
       {renderIcon()}
       <Text style={[styles.brandTitleV, { fontSize: Math.max(22, pixelSize * 0.38) }]}>
-        Order Book
+        KadaiBook
       </Text>
       {showTagline && (
         <Text style={[styles.brandSubtitleV, { fontSize: Math.max(12, pixelSize * 0.16) }]}>

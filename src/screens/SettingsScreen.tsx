@@ -35,6 +35,7 @@ import {
 import { confirmAction } from '../utils/dialog';
 import AppLogo from '../components/AppLogo';
 import GlassBackButton from '../components/GlassBackButton';
+import DesktopLayout from '../components/DesktopLayout';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -171,7 +172,7 @@ export default function SettingsScreen() {
     try {
       const data = await exportAllData();
       await Share.share({
-        title: 'Order Book Backup',
+        title: 'KadaiBook Backup',
         message: data,
       });
     } catch (e) {
@@ -255,140 +256,223 @@ export default function SettingsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* Top Header Bar */}
-      <View style={styles.topHeader}>
-        <GlassBackButton label="Back" />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.topHeaderTitle}>Settings & Cloud Backup</Text>
-          <Text style={styles.topHeaderSub}>Passcode PIN, cloud backup, restore & data export</Text>
-        </View>
-      </View>
-
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-      {/* Account & Security Section */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Ionicons name="key-outline" size={18} color={colors.clayDeep} />
-            <Text style={styles.sectionTitle}>Account & Security</Text>
-          </View>
-          <View
-            style={[
-              styles.roleBadge,
-              { backgroundColor: currentUser?.role === 'guest' ? colors.duskLight : colors.clayLight },
-            ]}
-          >
-            <Text
-              style={[
-                styles.roleBadgeText,
-                { color: currentUser?.role === 'guest' ? colors.duskDeep : colors.clayDeep },
-              ]}
-            >
-              {currentUser?.role === 'guest' ? 'Public Visitor' : 'Store Owner'}
-            </Text>
+    <DesktopLayout currentTabName="Settings">
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        {/* Top Header Bar */}
+        <View style={styles.topHeader}>
+          <GlassBackButton label="Back" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.topHeaderTitle}>Settings & Cloud Backup</Text>
+            <Text style={styles.topHeaderSub}>Passcode PIN, cloud backup, restore & data export</Text>
           </View>
         </View>
-        <Text style={styles.sectionSub}>Manage your unlock PIN and session access</Text>
 
-        {currentUser?.name ? (
-          <View style={styles.userCard}>
-            <View style={styles.userAvatar}>
-              <Text style={styles.userAvatarText}>{currentUser.name.charAt(0).toUpperCase()}</Text>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {/* Account & Security Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="key-outline" size={18} color={colors.clayDeep} />
+                <Text style={styles.sectionTitle}>Account & Security</Text>
+              </View>
+              <View
+                style={[
+                  styles.roleBadge,
+                  { backgroundColor: currentUser?.role === 'guest' ? colors.duskLight : colors.clayLight },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.roleBadgeText,
+                    { color: currentUser?.role === 'guest' ? colors.duskDeep : colors.clayDeep },
+                  ]}
+                >
+                  {currentUser?.role === 'guest' ? 'Public Visitor' : 'Store Owner'}
+                </Text>
+              </View>
             </View>
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>{currentUser.name}</Text>
-              <Text style={styles.userEmail}>{currentUser.email || 'No email'}</Text>
-              <Text style={{ fontSize: 11, color: colors.inkSoft, marginTop: 3, fontFamily: fonts.body }}>
-                UID: {currentUser.uid || currentUser.id}
-              </Text>
-            </View>
-          </View>
-        ) : null}
+            <Text style={styles.sectionSub}>Manage your unlock PIN and session access</Text>
 
-      {/* ─── Expandable Business Profile Section ─── */}
-      <View style={styles.section}>
-        <Pressable
-          style={styles.accordionHeader}
-          onPress={() => setShowBusinessProfile(!showBusinessProfile)}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-            <Ionicons name="business-outline" size={18} color={colors.clayDeep} />
-            <View>
-              <Text style={styles.sectionTitle}>Business Profile</Text>
-              <Text style={styles.sectionSub}>
-                {profile.businessName ? profile.businessName : 'Edit Shop Name, GSTIN, Address & Logo'}
-              </Text>
-            </View>
-          </View>
-          <Ionicons
-            name={showBusinessProfile ? 'chevron-up' : 'chevron-down'}
-            size={20}
-            color={colors.clayDeep}
-          />
-        </Pressable>
-
-        {showBusinessProfile && (
-          <View style={{ marginTop: 14 }}>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Business / Shop Name *</Text>
-              <TextInput
-                style={styles.input}
-                value={profile.businessName}
-                onChangeText={(v) => setProfile((prev) => ({ ...prev, businessName: v }))}
-                placeholder="e.g. Vistara Tech & Textiles"
-                placeholderTextColor={colors.inkSoft}
-              />
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Tagline / Slogan</Text>
-              <TextInput
-                style={styles.input}
-                value={profile.tagline || ''}
-                onChangeText={(v) => setProfile((prev) => ({ ...prev, tagline: v }))}
-                placeholder="e.g. Quality Wholesale Fabrics & Apparel"
-                placeholderTextColor={colors.inkSoft}
-              />
-            </View>
-
-            {/* Company Logo Photo Picker */}
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Company Logo Photo</Text>
-              <View style={styles.logoPickerRow}>
-                {profile.logoUri ? (
-                  <View style={styles.logoPreviewWrap}>
-                    <Image source={{ uri: profile.logoUri }} style={styles.logoPreviewImage} />
-                    <Pressable
-                      style={styles.logoRemoveBtn}
-                      onPress={() => setProfile((prev) => ({ ...prev, logoUri: '' }))}
-                    >
-                      <Ionicons name="close-circle" size={20} color={colors.danger} />
-                    </Pressable>
-                  </View>
-                ) : (
-                  <View style={styles.logoPlaceholderBox}>
-                    <Ionicons name="image-outline" size={24} color={colors.inkSoft} />
-                    <Text style={styles.logoPlaceholderText}>No Logo</Text>
-                  </View>
-                )}
-
-                <View style={styles.logoPickerActions}>
-                  <Pressable
-                    style={({ pressed }) => [styles.pickLogoBtn, pressed && { opacity: 0.85 }]}
-                    onPress={handlePickLogo}
-                  >
-                    <Ionicons name="camera-outline" size={15} color={colors.white} />
-                    <Text style={styles.pickLogoBtnText}>
-                      {profile.logoUri ? 'Change Logo Photo' : 'Choose Logo Photo'}
-                    </Text>
-                  </Pressable>
-                  <Text style={styles.hint}>
-                    Select logo photo from gallery. Printed on top of customer invoices!
+            {currentUser?.name ? (
+              <View style={styles.userCard}>
+                <View style={styles.userAvatar}>
+                  <Text style={styles.userAvatarText}>{currentUser.name.charAt(0).toUpperCase()}</Text>
+                </View>
+                <View style={styles.userInfo}>
+                  <Text style={styles.userName}>{currentUser.name}</Text>
+                  <Text style={styles.userEmail}>{currentUser.email || 'No email'}</Text>
+                  <Text style={{ fontSize: 11, color: colors.inkSoft, marginTop: 3, fontFamily: fonts.body }}>
+                    UID: {currentUser.uid || currentUser.id}
                   </Text>
                 </View>
               </View>
-            </View>
+            ) : null}
+
+            {/* ─── Expandable Business Profile Section ─── */}
+            <View style={styles.section}>
+              <Pressable
+                style={styles.accordionHeader}
+                onPress={() => setShowBusinessProfile(!showBusinessProfile)}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <Ionicons name="business-outline" size={18} color={colors.clayDeep} />
+                  <View>
+                    <Text style={styles.sectionTitle}>Business Profile</Text>
+                    <Text style={styles.sectionSub}>
+                      {profile.businessName ? profile.businessName : 'Edit Shop Name, GSTIN, Address & Logo'}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons
+                  name={showBusinessProfile ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={colors.clayDeep}
+                />
+              </Pressable>
+
+              {showBusinessProfile && (
+                <View style={{ marginTop: 14 }}>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Business / Shop Name *</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={profile.businessName}
+                      onChangeText={(v) => setProfile((prev) => ({ ...prev, businessName: v }))}
+                      placeholder="e.g. Vistara Tech & Textiles"
+                      placeholderTextColor={colors.inkSoft}
+                    />
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Tagline / Slogan</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={profile.tagline || ''}
+                      onChangeText={(v) => setProfile((prev) => ({ ...prev, tagline: v }))}
+                      placeholder="e.g. Quality Wholesale Fabrics & Apparel"
+                      placeholderTextColor={colors.inkSoft}
+                    />
+                  </View>
+
+                  {/* Company Logo Photo Picker */}
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Company Logo Photo</Text>
+                    <View style={styles.logoPickerRow}>
+                      {profile.logoUri ? (
+                        <View style={styles.logoPreviewWrap}>
+                          <Image source={{ uri: profile.logoUri }} style={styles.logoPreviewImage} />
+                          <Pressable
+                            style={styles.logoRemoveBtn}
+                            onPress={() => setProfile((prev) => ({ ...prev, logoUri: '' }))}
+                          >
+                            <Ionicons name="close-circle" size={20} color={colors.danger} />
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <View style={styles.logoPlaceholderBox}>
+                          <Ionicons name="image-outline" size={24} color={colors.inkSoft} />
+                          <Text style={styles.logoPlaceholderText}>No Logo</Text>
+                        </View>
+                      )}
+
+                      <View style={styles.logoPickerActions}>
+                        <Pressable
+                          style={({ pressed }) => [styles.pickLogoBtn, pressed && { opacity: 0.85 }]}
+                          onPress={handlePickLogo}
+                        >
+                          <Ionicons name="camera-outline" size={15} color={colors.white} />
+                          <Text style={styles.pickLogoBtnText}>
+                            {profile.logoUri ? 'Change Logo Photo' : 'Choose Logo Photo'}
+                          </Text>
+                        </Pressable>
+                        <Text style={styles.hint}>
+                          Select logo photo from gallery. Printed on top of customer invoices!
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Contact Phone Number</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={profile.phone}
+                      onChangeText={(v) => setProfile((prev) => ({ ...prev, phone: v }))}
+                      placeholder="e.g. +91 9876543210"
+                      placeholderTextColor={colors.inkSoft}
+                      keyboardType="phone-pad"
+                    />
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Business Email</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={profile.email || ''}
+                      onChangeText={(v) => setProfile((prev) => ({ ...prev, email: v }))}
+                      placeholder="e.g. sales@mybusiness.com"
+                      placeholderTextColor={colors.inkSoft}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Shop / Business Address</Text>
+                    <TextInput
+                      style={[styles.input, { minHeight: 54, textAlignVertical: 'top' }]}
+                      value={profile.address}
+                      onChangeText={(v) => setProfile((prev) => ({ ...prev, address: v }))}
+                      placeholder="e.g. No 42, Main Street, Commercial Bazaar, Chennai"
+                      placeholderTextColor={colors.inkSoft}
+                      multiline
+                      numberOfLines={2}
+                    />
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>GSTIN / Tax Identification No</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={profile.gstin || ''}
+                      onChangeText={(v) => setProfile((prev) => ({ ...prev, gstin: v }))}
+                      placeholder="e.g. 33AAAAA0000A1Z5"
+                      placeholderTextColor={colors.inkSoft}
+                      autoCapitalize="characters"
+                    />
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Bank Account / UPI Payment Details</Text>
+                    <TextInput
+                      style={[styles.input, { minHeight: 54, textAlignVertical: 'top' }]}
+                      value={profile.bankDetails || ''}
+                      onChangeText={(v) => setProfile((prev) => ({ ...prev, bankDetails: v }))}
+                      placeholder="e.g. UPI ID: mybusiness@upi • GPay/PhonePe: 9876543210"
+                      placeholderTextColor={colors.inkSoft}
+                      multiline
+                      numberOfLines={2}
+                    />
+                  </View>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.saveProfileBtn,
+                      savingProfile && { opacity: 0.6 },
+                      pressed && { opacity: 0.88, transform: [{ scale: 0.99 }] },
+                    ]}
+                    onPress={handleSaveProfile}
+                    disabled={savingProfile}
+                  >
+                    {savingProfile ? (
+                      <ActivityIndicator color={colors.white} size="small" />
+                    ) : (
+                      <>
+                        <Ionicons name="checkmark-circle" size={18} color={colors.white} />
+                        <Text style={styles.saveProfileBtnText}>Save Business Branding</Text>
+                      </>
+                    )}
+                  </Pressable>
 
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Contact Phone Number</Text>
@@ -682,11 +766,12 @@ export default function SettingsScreen() {
           size={50}
           variant="vertical"
           showTagline
-          taglineText="Order Book v1.2.0 • Handcrafted for Small Businesses"
+          taglineText="KadaiBook v1.2.0 • kadaibook.in"
         />
       </View>
-    </ScrollView>
-    </SafeAreaView>
+      </ScrollView>
+      </SafeAreaView>
+    </DesktopLayout>
   );
 }
 

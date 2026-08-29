@@ -166,7 +166,7 @@ export default function ReportsScreen() {
 • Cash Collected: ${formatCurrency(totalCollected)} (${collectionRate}% Collection Rate)
 • Liquid Cash Available: ${formatCurrency(liquidCash)}
 • Outstanding Dues: ${formatCurrency(totalPending)}
-Generated from Order Book App`;
+Generated from KadaiBook • kadaibook.in`;
     await Share.share({ message: msg });
   };
 

@@ -181,7 +181,7 @@ Thank you for your business!`;
   };
 
   const activeBusinessProfile: BusinessProfile = {
-    businessName: bizProfile?.businessName || userProfile?.businessName || 'Order Book Store',
+    businessName: bizProfile?.businessName || userProfile?.businessName || 'KadaiBook Store',
     phone: bizProfile?.phone || userProfile?.phone || '',
     email: bizProfile?.email || userProfile?.email || '',
     address: bizProfile?.address || '',
@@ -662,7 +662,7 @@ Thank you for your business!`;
 
               <View style={styles.pdfFooter}>
                 <Text style={styles.pdfFooterText}>Thank you for your business!</Text>
-                <Text style={styles.pdfFooterSubText}>Generated via Order Book App</Text>
+                <Text style={styles.pdfFooterSubText}>Generated via KadaiBook • kadaibook.in</Text>
               </View>
             </View>
           </ScrollView>

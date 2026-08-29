@@ -8,8 +8,13 @@ import DashboardScreen from '../screens/DashboardScreen';
 import OrderListScreen from '../screens/OrderListScreen';
 import ExpensesScreen from '../screens/ExpensesScreen';
 import ReportsScreen from '../screens/ReportsScreen';
+import CustomerListScreen from '../screens/CustomerListScreen';
+import ProductListScreen from '../screens/ProductListScreen';
+import HistoryScreen from '../screens/HistoryScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 import MoreScreen from '../screens/MoreScreen';
 import SaaSSidebar from '../components/SaaSSidebar';
+import { DesktopSidebarContext } from '../components/DesktopLayout';
 import { colors, fonts } from '../theme/theme';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -21,21 +26,27 @@ export default function TabNavigator() {
 
   if (isDesktop) {
     return (
-      <View style={styles.desktopLayout}>
-        <SaaSSidebar
-          currentTabName={activeTab}
-          onSelectTab={(tab) => {
-            if (tab) setActiveTab(tab);
-          }}
-        />
-        <View style={styles.desktopMainContent}>
-          {activeTab === 'DashboardTab' && <DashboardScreen />}
-          {activeTab === 'OrdersTab' && <OrderListScreen />}
-          {activeTab === 'ExpensesTab' && <ExpensesScreen />}
-          {activeTab === 'ReportsTab' && <ReportsScreen />}
-          {activeTab === 'MoreTab' && <MoreScreen />}
+      <DesktopSidebarContext.Provider value={true}>
+        <View style={styles.desktopLayout}>
+          <SaaSSidebar
+            currentTabName={activeTab}
+            onSelectTab={(tab) => {
+              if (tab) setActiveTab(tab);
+            }}
+          />
+          <View style={styles.desktopMainContent}>
+            {activeTab === 'DashboardTab' && <DashboardScreen />}
+            {activeTab === 'OrdersTab' && <OrderListScreen />}
+            {activeTab === 'ExpensesTab' && <ExpensesScreen />}
+            {activeTab === 'ReportsTab' && <ReportsScreen />}
+            {activeTab === 'CustomerList' && <CustomerListScreen />}
+            {activeTab === 'ProductList' && <ProductListScreen />}
+            {activeTab === 'History' && <HistoryScreen />}
+            {activeTab === 'Settings' && <SettingsScreen />}
+            {activeTab === 'MoreTab' && <MoreScreen />}
+          </View>
         </View>
-      </View>
+      </DesktopSidebarContext.Provider>
     );
   }
 

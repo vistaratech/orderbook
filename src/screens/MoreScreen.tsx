@@ -96,7 +96,7 @@ export default function MoreScreen() {
         <View style={styles.infoCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
             <AppLogo size={28} variant="icon" />
-            <Text style={styles.infoTitle}>About Order Book & Outflow</Text>
+            <Text style={styles.infoTitle}>About KadaiBook</Text>
           </View>
           <Text style={styles.infoText}>
             All order data, outflow records, customer profiles, and catalog entries are stored on your device and synced in real-time to Cloud Firestore when signed in. Use the Backup tool in Settings to manage your data copies.

@@ -105,7 +105,7 @@ export default function App() {
 
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      document.title = 'Order Book — Business Outflow & Order Management';
+      document.title = 'KadaiBook — Smart Business & Order Management | kadaibook.in';
 
       let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
       if (!link) {

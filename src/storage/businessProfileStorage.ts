@@ -20,7 +20,7 @@ export interface BusinessProfile {
 const STORAGE_KEY = 'order_book:business_profile';
 
 const DEFAULT_PROFILE: BusinessProfile = {
-  businessName: 'Order Book Store',
+  businessName: 'KadaiBook Store',
   phone: '',
   email: '',
   address: '',

@@ -20,6 +20,7 @@ import OrderCard from '../components/OrderCard';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { confirmAction } from '../utils/dialog';
 import { formatCurrency } from '../utils/format';
+import DesktopLayout from '../components/DesktopLayout';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CustomerDetail'>;
 
@@ -88,125 +89,127 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Customer Header Profile Card */}
-      <View style={styles.profileCard}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{(customer.name || 'C').charAt(0).toUpperCase()}</Text>
+    <DesktopLayout currentTabName="CustomerList">
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Customer Header Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{(customer.name || 'C').charAt(0).toUpperCase()}</Text>
+          </View>
+
+          <Text style={styles.customerName}>{customer.name}</Text>
+          {customer.phone ? <Text style={styles.customerPhone}>{customer.phone}</Text> : null}
+          {customer.email ? <Text style={styles.customerEmail}>{customer.email}</Text> : null}
+          {customer.address ? <Text style={styles.customerAddress}>{customer.address}</Text> : null}
+
+          {/* Action Buttons */}
+          <View style={styles.actionRow}>
+            {customer.phone ? (
+              <>
+                <Pressable
+                  style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.8 }]}
+                  onPress={() => Linking.openURL(`tel:${customer.phone}`)}
+                >
+                  <Ionicons name="call" size={16} color={colors.white} />
+                  <Text style={styles.actionBtnText}>Call</Text>
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [styles.actionBtn, { backgroundColor: colors.success }, pressed && { opacity: 0.8 }]}
+                  onPress={() => {
+                    const clean = customer.phone.replace(/[^0-9]/g, '');
+                    Linking.openURL(`whatsapp://send?phone=${clean}`);
+                  }}
+                >
+                  <Ionicons name="logo-whatsapp" size={16} color={colors.white} />
+                  <Text style={styles.actionBtnText}>WhatsApp</Text>
+                </Pressable>
+              </>
+            ) : null}
+
+            <Pressable
+              style={({ pressed }) => [styles.actionBtn, { backgroundColor: colors.clayDeep }, pressed && { opacity: 0.8 }]}
+              onPress={() =>
+                navigation.navigate('OrderForm', {
+                  prefillCustomerName: customer.name,
+                  prefillPhone: customer.phone,
+                })
+              }
+            >
+              <Ionicons name="add" size={16} color={colors.white} />
+              <Text style={styles.actionBtnText}>Order</Text>
+            </Pressable>
+          </View>
         </View>
 
-        <Text style={styles.customerName}>{customer.name}</Text>
-        {customer.phone ? <Text style={styles.customerPhone}>{customer.phone}</Text> : null}
-        {customer.email ? <Text style={styles.customerEmail}>{customer.email}</Text> : null}
-        {customer.address ? <Text style={styles.customerAddress}>{customer.address}</Text> : null}
+        {/* Financial Metrics */}
+        <View style={styles.statsCard}>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Total Orders</Text>
+            <Text style={styles.statVal}>{customerOrders.length}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Lifetime Spend</Text>
+            <Text style={styles.statVal}>{formatCurrency(totalSpent)}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Pending Due</Text>
+            <Text style={[styles.statVal, { color: totalPending > 0 ? colors.danger : colors.success }]}>
+              {formatCurrency(totalPending)}
+            </Text>
+          </View>
+        </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          {customer.phone ? (
-            <>
-              <Pressable
-                style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.8 }]}
-                onPress={() => Linking.openURL(`tel:${customer.phone}`)}
-              >
-                <Ionicons name="call" size={16} color={colors.white} />
-                <Text style={styles.actionBtnText}>Call</Text>
-              </Pressable>
+        {/* Customer Note */}
+        {customer.notes ? (
+          <View style={styles.noteCard}>
+            <View style={styles.cardHeaderRow}>
+              <Ionicons name="document-text-outline" size={18} color={colors.clayDeep} />
+              <Text style={styles.sectionTitle}>Customer Notes</Text>
+            </View>
+            <Text style={styles.noteText}>{customer.notes}</Text>
+          </View>
+        ) : null}
 
-              <Pressable
-                style={({ pressed }) => [styles.actionBtn, { backgroundColor: colors.success }, pressed && { opacity: 0.8 }]}
-                onPress={() => {
-                  const clean = customer.phone.replace(/[^0-9]/g, '');
-                  Linking.openURL(`whatsapp://send?phone=${clean}`);
-                }}
-              >
-                <Ionicons name="logo-whatsapp" size={16} color={colors.white} />
-                <Text style={styles.actionBtnText}>WhatsApp</Text>
-              </Pressable>
-            </>
-          ) : null}
+        {/* Order History */}
+        <View style={styles.ordersHeaderRow}>
+          <Text style={styles.sectionTitle}>Order History ({customerOrders.length})</Text>
+        </View>
+
+        {customerOrders.length === 0 ? (
+          <Text style={styles.emptyOrders}>No orders recorded for this customer yet.</Text>
+        ) : (
+          customerOrders.map((o) => (
+            <OrderCard
+              key={o.id}
+              order={o}
+              onPress={() => navigation.navigate('OrderDetail', { orderId: o.id })}
+            />
+          ))
+        )}
+
+        {/* Manage Customer Buttons */}
+        <View style={styles.footerRow}>
+          <Pressable
+            style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.8 }]}
+            onPress={() => navigation.navigate('CustomerForm', { customerId: customer.id })}
+          >
+            <Ionicons name="pencil" size={16} color={colors.ink} />
+            <Text style={styles.editBtnText}>Edit Profile</Text>
+          </Pressable>
 
           <Pressable
-            style={({ pressed }) => [styles.actionBtn, { backgroundColor: colors.clayDeep }, pressed && { opacity: 0.8 }]}
-            onPress={() =>
-              navigation.navigate('OrderForm', {
-                prefillCustomerName: customer.name,
-                prefillPhone: customer.phone,
-              })
-            }
+            style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.8 }]}
+            onPress={handleDelete}
           >
-            <Ionicons name="add" size={16} color={colors.white} />
-            <Text style={styles.actionBtnText}>Order</Text>
+            <Ionicons name="trash-outline" size={16} color={colors.danger} />
+            <Text style={styles.deleteBtnText}>Delete</Text>
           </Pressable>
         </View>
-      </View>
-
-      {/* Financial Metrics */}
-      <View style={styles.statsCard}>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Total Orders</Text>
-          <Text style={styles.statVal}>{customerOrders.length}</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Lifetime Spend</Text>
-          <Text style={styles.statVal}>{formatCurrency(totalSpent)}</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Pending Due</Text>
-          <Text style={[styles.statVal, { color: totalPending > 0 ? colors.danger : colors.success }]}>
-            {formatCurrency(totalPending)}
-          </Text>
-        </View>
-      </View>
-
-      {/* Customer Note */}
-      {customer.notes ? (
-        <View style={styles.noteCard}>
-          <View style={styles.cardHeaderRow}>
-            <Ionicons name="document-text-outline" size={18} color={colors.clayDeep} />
-            <Text style={styles.sectionTitle}>Customer Notes</Text>
-          </View>
-          <Text style={styles.noteText}>{customer.notes}</Text>
-        </View>
-      ) : null}
-
-      {/* Order History */}
-      <View style={styles.ordersHeaderRow}>
-        <Text style={styles.sectionTitle}>Order History ({customerOrders.length})</Text>
-      </View>
-
-      {customerOrders.length === 0 ? (
-        <Text style={styles.emptyOrders}>No orders recorded for this customer yet.</Text>
-      ) : (
-        customerOrders.map((o) => (
-          <OrderCard
-            key={o.id}
-            order={o}
-            onPress={() => navigation.navigate('OrderDetail', { orderId: o.id })}
-          />
-        ))
-      )}
-
-      {/* Manage Customer Buttons */}
-      <View style={styles.footerRow}>
-        <Pressable
-          style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.8 }]}
-          onPress={() => navigation.navigate('CustomerForm', { customerId: customer.id })}
-        >
-          <Ionicons name="pencil" size={16} color={colors.ink} />
-          <Text style={styles.editBtnText}>Edit Profile</Text>
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.8 }]}
-          onPress={handleDelete}
-        >
-          <Ionicons name="trash-outline" size={16} color={colors.danger} />
-          <Text style={styles.deleteBtnText}>Delete</Text>
-        </Pressable>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </DesktopLayout>
   );
 }
 

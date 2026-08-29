@@ -42,6 +42,7 @@ export default function LoginScreen({ navigation }: Props) {
   const [pin, setPin] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // ─── Google Sign In ────────────────────────────────────────────────
   const { signInWithGoogle, loading: googleLoading, error: googleError } = useGoogleAuth({
@@ -50,22 +51,29 @@ export default function LoginScreen({ navigation }: Props) {
 
   useEffect(() => {
     if (googleError) {
+      setErrorMessage(googleError);
       Alert.alert('Google Sign-In', googleError);
     }
   }, [googleError]);
 
   const handleGoogleSignIn = async () => {
+    setErrorMessage(null);
     await signInWithGoogle();
   };
 
   // ─── Email Login ──────────────────────────────────────────────────
   const handleEmailLogin = async () => {
+    setErrorMessage(null);
     if (!email.trim()) {
-      Alert.alert('Email Required', 'Please enter your email address.');
+      const msg = 'Please enter your email address.';
+      setErrorMessage(msg);
+      Alert.alert('Email Required', msg);
       return;
     }
     if (!password) {
-      Alert.alert('Password Required', 'Please enter your password.');
+      const msg = 'Please enter your password.';
+      setErrorMessage(msg);
+      Alert.alert('Password Required', msg);
       return;
     }
 
@@ -75,16 +83,18 @@ export default function LoginScreen({ navigation }: Props) {
     if (result.success) {
       navigation.replace('MainTabs');
     } else {
-      Alert.alert('Login Failed', result.error || 'Invalid email or password.');
+      const msg = result.error || 'Invalid email or password. Please check your credentials.';
+      setErrorMessage(msg);
+      Alert.alert('Login Failed', msg);
     }
   };
 
   const handleForgotPassword = async () => {
+    setErrorMessage(null);
     if (!email.trim()) {
-      Alert.alert(
-        'Enter Your Email',
-        'Type your registered email address in the field above, then tap "Forgot password?" again.'
-      );
+      const msg = 'Type your registered email address in the field above, then tap "Forgot password?" again.';
+      setErrorMessage(msg);
+      Alert.alert('Enter Your Email', msg);
       return;
     }
     setLoading(true);
@@ -96,12 +106,15 @@ export default function LoginScreen({ navigation }: Props) {
         `A password reset link has been sent to ${email.trim()}.\n\nPlease check your inbox and spam folder.`
       );
     } else {
-      Alert.alert('Reset Failed', 'Could not send reset email. Please check the email address.');
+      const msg = 'Could not send reset email. Please check the email address.';
+      setErrorMessage(msg);
+      Alert.alert('Reset Failed', msg);
     }
   };
 
   // ─── PIN Login ────────────────────────────────────────────────────
   const handlePinDigit = (digit: string) => {
+    if (errorMessage) setErrorMessage(null);
     if (pin.length < 4) {
       const newPin = pin + digit;
       setPin(newPin);
@@ -112,6 +125,7 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   const handlePinDelete = () => {
+    if (errorMessage) setErrorMessage(null);
     if (pin.length > 0) {
       setPin(pin.slice(0, -1));
     }
@@ -119,12 +133,15 @@ export default function LoginScreen({ navigation }: Props) {
 
   const verifyPin = async (inputPin: string) => {
     setLoading(true);
+    setErrorMessage(null);
     const ok = await loginWithPin(inputPin);
     setLoading(false);
     if (ok) {
       navigation.replace('MainTabs');
     } else {
-      Alert.alert('Incorrect PIN', 'The PIN you entered is incorrect.');
+      const msg = 'Incorrect PIN. The PIN you entered is incorrect.';
+      setErrorMessage(msg);
+      Alert.alert('Incorrect PIN', msg);
       setPin('');
     }
   };
@@ -151,7 +168,7 @@ export default function LoginScreen({ navigation }: Props) {
             <AppLogo
               size={84}
               variant="vertical"
-              taglineText="Business Order & Expense Management"
+              taglineText="Smart Business & Order Management"
             />
           </View>
 
@@ -159,7 +176,10 @@ export default function LoginScreen({ navigation }: Props) {
           <View style={styles.modeTabs}>
             <Pressable
               style={[styles.modeTab, mode === 'email' && styles.modeTabActive]}
-              onPress={() => setMode('email')}
+              onPress={() => {
+                setMode('email');
+                setErrorMessage(null);
+              }}
             >
               <Ionicons
                 name="mail-outline"
@@ -181,6 +201,7 @@ export default function LoginScreen({ navigation }: Props) {
               onPress={() => {
                 setMode('pin');
                 setPin('');
+                setErrorMessage(null);
               }}
             >
               <Ionicons
@@ -202,6 +223,17 @@ export default function LoginScreen({ navigation }: Props) {
           {/* ── Email Login Form ─────────────────────────── */}
           {mode === 'email' ? (
             <View style={styles.emailCard}>
+              {/* Inline Error Message */}
+              {errorMessage ? (
+                <View style={styles.errorContainer}>
+                  <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={styles.errorIcon} />
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                  <Pressable onPress={() => setErrorMessage(null)} style={styles.errorDismissBtn} hitSlop={8}>
+                    <Ionicons name="close-circle" size={18} color={colors.danger} />
+                  </Pressable>
+                </View>
+              ) : null}
+
               {/* Google Sign In Button */}
               <Pressable
                 style={({ pressed }) => [
@@ -237,7 +269,10 @@ export default function LoginScreen({ navigation }: Props) {
                   <TextInput
                     style={styles.textInput}
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(val) => {
+                      setEmail(val);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoComplete="email"
@@ -255,7 +290,10 @@ export default function LoginScreen({ navigation }: Props) {
                   <TextInput
                     style={[styles.textInput, { flex: 1 }]}
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={(val) => {
+                      setPassword(val);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
                     secureTextEntry={!showPassword}
                     autoComplete="password"
                     placeholder="Enter your password"
@@ -319,6 +357,17 @@ export default function LoginScreen({ navigation }: Props) {
               <Text style={styles.pinInstruction}>
                 Enter your 4-digit unlock passcode
               </Text>
+
+              {/* Inline Error Message */}
+              {errorMessage ? (
+                <View style={styles.errorContainer}>
+                  <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={styles.errorIcon} />
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                  <Pressable onPress={() => setErrorMessage(null)} style={styles.errorDismissBtn} hitSlop={8}>
+                    <Ionicons name="close-circle" size={18} color={colors.danger} />
+                  </Pressable>
+                </View>
+              ) : null}
 
               <View style={styles.pinDotsRow}>
                 {[0, 1, 2, 3].map((idx) => (
@@ -464,6 +513,32 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 20,
     ...shadow.card,
+  },
+  // ── Error Banner ──
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dangerLight,
+    borderColor: colors.danger,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  errorIcon: {
+    marginRight: 2,
+  },
+  errorText: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.danger,
+    lineHeight: 18,
+  },
+  errorDismissBtn: {
+    padding: 2,
   },
   googleBtn: {
     flexDirection: 'row',

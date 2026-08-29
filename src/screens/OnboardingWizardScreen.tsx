@@ -29,7 +29,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingWizard'>;
 
 const SLIDES = [
   {
-    title: 'Your Digital Order Book',
+    title: 'Your Digital KadaiBook',
     subtitle: 'Digitize your notebook orders with fulfillment tracking, status stamps, and WhatsApp receipts.',
     icon: 'book-outline' as const,
     color: colors.clayDeep,
@@ -371,7 +371,7 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
               disabled={saving}
             >
               <Text style={styles.finishBtnText}>
-                {saving ? 'Creating Store…' : 'Finish & Open Order Book'}
+                {saving ? 'Creating Store…' : 'Finish & Open KadaiBook'}
               </Text>
             </Pressable>
 

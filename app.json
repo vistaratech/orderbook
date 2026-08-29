@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Order Book",
-    "slug": "order-book",
-    "scheme": "orderbook",
+    "name": "KadaiBook",
+    "slug": "kadaibook",
+    "scheme": "kadaibook",
     "version": "1.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -15,18 +15,20 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.orderbook.app",
+      "bundleIdentifier": "in.kadaibook.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.orderbook.app",
+      "package": "in.kadaibook.app",
+      "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F6F1E7"
-      }
+      },
+      "permissions": []
     },
     "web": {
       "bundler": "metro",

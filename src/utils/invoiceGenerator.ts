@@ -60,8 +60,8 @@ export function generateWhatsAppInvoiceText(
     balance <= 0
       ? '*PAID IN FULL*'
       : `*BALANCE DUE: ${formatCurrency(balance)}* (Advance: ${formatCurrency(
-          order.advance
-        )})`;
+        order.advance
+      )})`;
 
   return `*TAX INVOICE / CASH BILL*
 ========================================
@@ -69,9 +69,8 @@ export function generateWhatsAppInvoiceText(
 ${business?.tagline ? `_${business.tagline}_\n` : ''}${business?.address ? `Address: ${business.address}\n` : ''}${business?.phone ? `Phone: ${business.phone}\n` : ''}${business?.gstin ? `GSTIN: ${business.gstin}\n` : ''}========================================
 *Bill No:* ${order.orderNumber}
 *Date:* ${formatDate(order.orderDate)}
-*Customer:* ${order.customerName || 'Walk-in Customer'} ${
-    order.phoneNumber ? `(${order.phoneNumber})` : ''
-  }
+*Customer:* ${order.customerName || 'Walk-in Customer'} ${order.phoneNumber ? `(${order.phoneNumber})` : ''
+    }
 ========================================
 *PARTICULARS / ITEMS:*
 ${itemRows || 'No items recorded'}
@@ -119,19 +118,77 @@ export async function sendWhatsAppInvoice(
   }
 }
 
+export type InvoiceTemplateId = 'dark' | 'terracotta' | 'classic' | 'emerald';
+
+interface TemplateTheme {
+  headerBg: string;
+  headerTextColor: string;
+  tableHeaderBg: string;
+  tableHeaderTextColor: string;
+  accentColor: string;
+  cardBorder: string;
+  statusPaidBg: string;
+  statusPaidText: string;
+}
+
+export const TEMPLATE_THEMES: Record<InvoiceTemplateId, TemplateTheme> = {
+  dark: {
+    headerBg: '#0F172A',
+    headerTextColor: '#FFFFFF',
+    tableHeaderBg: '#0F172A',
+    tableHeaderTextColor: '#FFFFFF',
+    accentColor: '#334155',
+    cardBorder: '1px solid #CBD5E1',
+    statusPaidBg: '#10B981',
+    statusPaidText: '#FFFFFF',
+  },
+  terracotta: {
+    headerBg: 'linear-gradient(135deg, #B96659 0%, #8C4337 100%)',
+    headerTextColor: '#FFFFFF',
+    tableHeaderBg: '#B96659',
+    tableHeaderTextColor: '#FFFFFF',
+    accentColor: '#B96659',
+    cardBorder: '1px solid #E5C3BD',
+    statusPaidBg: '#4E8A54',
+    statusPaidText: '#FFFFFF',
+  },
+  classic: {
+    headerBg: '#FFFFFF',
+    headerTextColor: '#0F172A',
+    tableHeaderBg: '#F1F5F9',
+    tableHeaderTextColor: '#0F172A',
+    accentColor: '#0F172A',
+    cardBorder: '2px solid #0F172A',
+    statusPaidBg: '#0F172A',
+    statusPaidText: '#FFFFFF',
+  },
+  emerald: {
+    headerBg: 'linear-gradient(135deg, #15803D 0%, #166534 100%)',
+    headerTextColor: '#FFFFFF',
+    tableHeaderBg: '#15803D',
+    tableHeaderTextColor: '#FFFFFF',
+    accentColor: '#15803D',
+    cardBorder: '1px solid #BBF7D0',
+    statusPaidBg: '#166534',
+    statusPaidText: '#FFFFFF',
+  },
+};
+
 /**
  * Generates an actual PDF file on device and opens native Share Sheet (target WhatsApp PDF file sharing).
  */
 export async function sharePdfInvoiceToWhatsApp(
   order: Order,
-  business?: BusinessProfile
+  business?: BusinessProfile,
+  templateId: InvoiceTemplateId = 'dark'
 ): Promise<boolean> {
   try {
-    const html = generatePrintableInvoiceHtml(order, business);
+    const html = generatePrintableInvoiceHtml(order, business, templateId);
 
     if (Platform.OS === 'web') {
-      // Web fallback: text + print modal
-      return await sendWhatsAppInvoice(order, business);
+      // Web: Open PDF Print / Save-as-PDF dialog for PDF invoice
+      await printPdfInvoice(order, business, templateId);
+      return true;
     }
 
     // 1. Generate real PDF file on device filesystem
@@ -151,7 +208,8 @@ export async function sharePdfInvoiceToWhatsApp(
     }
   } catch (err) {
     console.error('Error generating PDF for WhatsApp:', err);
-    return await sendWhatsAppInvoice(order, business);
+    await printPdfInvoice(order, business, templateId);
+    return false;
   }
 }
 
@@ -160,13 +218,43 @@ export async function sharePdfInvoiceToWhatsApp(
  */
 export async function printPdfInvoice(
   order: Order,
-  business?: BusinessProfile
+  business?: BusinessProfile,
+  templateId: InvoiceTemplateId = 'dark'
 ): Promise<void> {
   try {
-    const html = generatePrintableInvoiceHtml(order, business);
+    const html = generatePrintableInvoiceHtml(order, business, templateId);
     if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.print) {
-        window.print();
+      if (typeof document !== 'undefined') {
+        let iframe = document.getElementById('print-invoice-iframe') as HTMLIFrameElement | null;
+        if (iframe) {
+          iframe.remove();
+        }
+        iframe = document.createElement('iframe');
+        iframe.id = 'print-invoice-iframe';
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.style.visibility = 'hidden';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow?.document || iframe.contentDocument;
+        if (doc) {
+          doc.open();
+          doc.write(html);
+          doc.close();
+
+          setTimeout(() => {
+            try {
+              iframe?.contentWindow?.focus();
+              iframe?.contentWindow?.print();
+            } catch (e) {
+              console.error('Error triggering iframe print:', e);
+            }
+          }, 300);
+        }
       }
     } else {
       await Print.printAsync({ html });
@@ -181,8 +269,10 @@ export async function printPdfInvoice(
  */
 export function generatePrintableInvoiceHtml(
   order: Order,
-  business?: BusinessProfile
+  business?: BusinessProfile,
+  templateId: InvoiceTemplateId = 'dark'
 ): string {
+  const theme = TEMPLATE_THEMES[templateId] || TEMPLATE_THEMES.dark;
   const total = orderTotal(order);
   const balance = orderBalance(order);
   const businessName = business?.businessName || business?.name || DEFAULT_BUSINESS_NAME;
@@ -206,19 +296,17 @@ export function generatePrintableInvoiceHtml(
         return `
     <tr style="background-color: ${idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};">
       <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: center; font-size: 13px; color: #64748B;">${idx + 1}</td>
-      <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; font-weight: 600; font-size: 14px; color: #1E293B;">${
-        item.name || 'Item'
-      }</td>
-      <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: center; font-weight: 600; font-size: 14px; color: #334155;">${
-        item.qty
-      }${unitStr}</td>
+      <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; font-weight: 600; font-size: 14px; color: #1E293B;">${item.name || 'Item'
+          }</td>
+      <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: center; font-weight: 600; font-size: 14px; color: #334155;">${item.qty
+          }${unitStr}</td>
       ${customTds}
       <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: right; font-size: 13px; color: #475569;">${formatCurrency(
-        item.price
-      )}</td>
+            item.price
+          )}</td>
       <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: right; font-weight: 700; font-size: 14px; color: #0F172A;">${formatCurrency(
-        item.qty * item.price
-      )}</td>
+            item.qty * item.price
+          )}</td>
     </tr>`;
       }
     )
@@ -233,6 +321,27 @@ export function generatePrintableInvoiceHtml(
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tax Invoice - ${order.orderNumber}</title>
   <style>
+    @page {
+      size: auto;
+      margin: 10mm;
+    }
+    @media print {
+      html, body {
+        background-color: #FFFFFF !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .invoice-card {
+        box-shadow: none !important;
+        border: none !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+      }
+    }
     * { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -248,16 +357,16 @@ export function generatePrintableInvoiceHtml(
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-      border: 1px solid #CBD5E1;
+      border: ${theme.cardBorder};
     }
     .header-banner {
-      background: #0F172A;
-      color: #FFFFFF;
+      background: ${theme.headerBg};
+      color: ${theme.headerTextColor};
       padding: 24px 32px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 3px solid #334155;
+      border-bottom: 3px solid ${theme.accentColor};
     }
     .brand-wrap {
       display: flex;
@@ -269,19 +378,31 @@ export function generatePrintableInvoiceHtml(
       height: 60px;
       border-radius: 8px;
       object-fit: cover;
-      border: 1px solid #475569;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .brand-logo-default {
+      width: 52px;
+      height: 52px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
     .brand-title {
       font-size: 22px;
       font-weight: 800;
-      color: #FFFFFF;
+      color: ${theme.headerTextColor};
       margin: 0 0 4px 0;
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
     .brand-tagline {
       font-size: 12px;
-      color: #94A3B8;
+      color: ${templateId === 'classic' ? '#64748B' : 'rgba(255, 255, 255, 0.8)'};
       margin: 0;
     }
     .header-right {
@@ -295,13 +416,13 @@ export function generatePrintableInvoiceHtml(
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 1px;
-      background-color: ${isPaid ? '#166534' : '#854D0E'};
-      color: #FFFFFF;
+      background-color: ${isPaid ? theme.statusPaidBg : '#854D0E'};
+      color: ${theme.statusPaidText};
       margin-bottom: 6px;
     }
     .bill-meta {
       font-size: 12px;
-      color: #CBD5E1;
+      color: ${templateId === 'classic' ? '#64748B' : 'rgba(255, 255, 255, 0.85)'};
       margin: 2px 0;
     }
     .content-body {
@@ -354,8 +475,8 @@ export function generatePrintableInvoiceHtml(
       margin-bottom: 24px;
     }
     th {
-      background: #1E293B;
-      color: #F8FAFC;
+      background: ${theme.tableHeaderBg};
+      color: ${theme.tableHeaderTextColor};
       font-size: 12px;
       font-weight: 700;
       text-transform: uppercase;
@@ -473,7 +594,16 @@ export function generatePrintableInvoiceHtml(
   <div class="invoice-card">
     <div class="header-banner">
       <div class="brand-wrap">
-        ${business?.logoUri ? `<img src="${business.logoUri}" class="brand-logo" alt="Logo" />` : ''}
+        ${
+          business?.logoUri
+            ? `<img src="${business.logoUri}" class="brand-logo" alt="Logo" />`
+            : `<div class="brand-logo-default">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+               </div>`
+        }
         <div>
           <h1 class="brand-title">${businessName}</h1>
           <p class="brand-tagline">${business?.tagline || 'Commercial Tax Invoice & Receipt'}</p>
@@ -529,32 +659,27 @@ export function generatePrintableInvoiceHtml(
 
         <div class="summary-box">
           <div class="summary-row">
-            <span>Subtotal</span>
-            <span>${formatCurrency(total)}</span>
+            <span>Advance Paid</span>
+            <span style="color: #2e7d32; font-weight: 600;">${formatCurrency(order.advance)}</span>
           </div>
           <div class="summary-row">
-            <span>Advance Paid</span>
-            <span>${formatCurrency(order.advance)}</span>
+            <span>Balance Due</span>
+            <span style="color: ${isPaid ? '#2e7d32' : '#c62828'}; font-weight: 600;">${isPaid ? 'PAID IN FULL (₹0)' : formatCurrency(balance)}</span>
           </div>
           <div class="summary-row total">
-            <span>Grand Total</span>
+            <span>Total</span>
             <span>${formatCurrency(total)}</span>
-          </div>
-          <div class="summary-row balance">
-            <span>${isPaid ? 'Payment Status' : 'Balance Payable'}</span>
-            <span>${isPaid ? 'PAID IN FULL' : formatCurrency(balance)}</span>
           </div>
         </div>
       </div>
 
-      ${
-        business?.bankDetails
-          ? `<div class="bank-card">
+      ${business?.bankDetails
+      ? `<div class="bank-card">
               <h5>Payment & Transfer Information</h5>
               <p>${business.bankDetails}</p>
             </div>`
-          : ''
-      }
+      : ''
+    }
 
       <div class="signatory-row">
         <div class="terms-text">

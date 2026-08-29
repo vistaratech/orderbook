@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Order, orderTotal, orderBalance } from '../types/order';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
-import { formatCurrency, formatDate } from '../utils/format';
+import { formatCurrency, formatDate, formatDateTime } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 
 interface Props {
@@ -52,7 +52,7 @@ function OrderCardComponent({ order, onPress }: Props) {
           <View style={styles.customerInfo}>
             <Text style={styles.customer}>{order.customerName || t('orders.customerName')}</Text>
             <Text style={styles.metaText}>
-              {formatDate(order.orderDate)} • {itemCount} {itemCount === 1 ? t('common.item') : t('common.items')}
+              {formatDateTime(order.createdAt || order.orderDate)} • {itemCount} {itemCount === 1 ? t('common.item') : t('common.items')}
             </Text>
           </View>
         </View>

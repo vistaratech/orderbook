@@ -21,7 +21,7 @@ import { getExpenses } from '../storage/expenseStorage';
 import { getAllPayments } from '../storage/paymentStorage';
 import { addDataListener, pullAllCloudDataToLocal } from '../storage/firebaseSync';
 import { colors, fonts, radius, shadow } from '../theme/theme';
-import { formatCurrency, formatDate } from '../utils/format';
+import { formatCurrency, formatDate, formatDateTime } from '../utils/format';
 import GlassBackButton from '../components/GlassBackButton';
 import DesktopLayout from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -68,7 +68,7 @@ const HistoryEventCardItem = React.memo(function HistoryEventCardItem({
       <View style={styles.eventInfo}>
         <Text style={styles.eventTitle}>{item.title}</Text>
         <Text style={styles.eventSubtitle}>{item.subtitle}</Text>
-        <Text style={styles.eventDate}>{formatDate(item.date)}</Text>
+        <Text style={styles.eventDate}>{formatDateTime(item.date)}</Text>
       </View>
 
       {item.amount !== undefined && item.amount > 0 && (

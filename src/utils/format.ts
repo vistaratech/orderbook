@@ -28,6 +28,33 @@ export function formatDate(dateVal?: string): string {
   return trimmed || '—';
 }
 
+export function formatDateTime(dateVal?: string): string {
+  if (!dateVal) return '—';
+  const trimmed = dateVal.trim();
+  if (!trimmed) return '—';
+
+  const d = new Date(trimmed);
+  if (!Number.isNaN(d.getTime())) {
+    const dateStr = d.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const hasTime = trimmed.includes('T') || trimmed.includes(':') || d.getHours() !== 0 || d.getMinutes() !== 0;
+    if (hasTime) {
+      const timeStr = d.toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+      return `${dateStr}, ${timeStr}`;
+    }
+    return dateStr;
+  }
+
+  return trimmed || '—';
+}
+
 export function todayIso(): string {
   return new Date().toISOString();
 }

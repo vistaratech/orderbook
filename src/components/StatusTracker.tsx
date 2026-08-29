@@ -76,6 +76,8 @@ export default function StatusTracker({ status, onChange }: Props) {
                   />
                 </View>
                 <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
                   style={[
                     styles.label,
                     { color: reached ? colors.ink : colors.inkSoft },
@@ -127,7 +129,8 @@ const styles = StyleSheet.create({
   label: {
     marginTop: 6,
     fontFamily: fonts.bodyMedium,
-    fontSize: 11,
+    fontSize: 10,
+    letterSpacing: -0.2,
     textAlign: 'center',
   },
   activeLabel: {

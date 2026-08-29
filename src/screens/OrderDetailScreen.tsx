@@ -12,8 +12,10 @@ import {
   Modal,
   Platform,
   StatusBar,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,19 +34,22 @@ import { getBusinessProfile, BusinessProfile } from '../storage/businessProfileS
 import { addDataListener } from '../storage/firebaseSync';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
 import { confirmAction } from '../utils/dialog';
-import { formatCurrency, formatDate, todayIso } from '../utils/format';
+import { formatCurrency, formatDate, formatDateTime, todayIso } from '../utils/format';
 import {
   sendWhatsAppInvoice,
   sharePdfInvoiceToWhatsApp,
   printPdfInvoice,
   generatePrintableInvoiceHtml,
+  InvoiceTemplateId,
 } from '../utils/invoiceGenerator';
 import StatusTracker from '../components/StatusTracker';
+import { AppLogoIcon } from '../components/AppLogo';
 import { useLanguage } from '../i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OrderDetail'>;
 
 export default function OrderDetailScreen({ navigation, route }: Props) {
+  const insets = useSafeAreaInsets();
   const { orderId } = route.params;
   const { t } = useLanguage();
   const [order, setOrder] = useState<Order | null>(null);
@@ -59,6 +64,8 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
   const [payAmount, setPayAmount] = useState('');
   const [payMethod, setPayMethod] = useState('UPI');
   const [payNote, setPayNote] = useState('');
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<InvoiceTemplateId>('dark');
 
   // Fetch logged in business profile & full branding
   useEffect(() => {
@@ -124,36 +131,45 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
   };
 
   const handleRecordPayment = async () => {
+    if (!order || isSavingPayment) return;
     const amt = parseFloat(payAmount);
     if (!amt || amt <= 0) {
       Alert.alert('Amount required', 'Enter a valid payment amount.');
       return;
     }
 
-    // Save payment entry
-    await addPayment({
-      orderId: order.id,
-      amount: amt,
-      date: formatDate(todayIso()),
-      method: payMethod,
-      note: payNote.trim() || undefined,
-    });
+    setIsSavingPayment(true);
+    try {
+      const nowIso = todayIso();
+      // Save payment entry with exact timestamp
+      await addPayment({
+        orderId: order.id,
+        amount: amt,
+        date: nowIso,
+        method: payMethod,
+        note: payNote.trim() || undefined,
+      });
 
-    // Update order advance & payment status
-    const newAdvance = (order.advance || 0) + amt;
-    const newStatus = newAdvance >= total ? 'Paid' : 'Partial';
+      // Update order advance & payment status
+      const newAdvance = (order.advance || 0) + amt;
+      const newStatus = newAdvance >= total ? 'Paid' : 'Partial';
 
-    const updated = await saveOrder({
-      ...order,
-      advance: newAdvance,
-      paymentStatus: newStatus,
-    });
+      const updated = await saveOrder({
+        ...order,
+        advance: newAdvance,
+        paymentStatus: newStatus,
+      });
 
-    setOrder(updated);
-    setPayAmount('');
-    setPayNote('');
-    setShowPaymentModal(false);
-    loadData();
+      setOrder(updated);
+      setPayAmount('');
+      setPayNote('');
+      setShowPaymentModal(false);
+      loadData();
+    } catch (err) {
+      console.error('Error saving payment:', err);
+    } finally {
+      setIsSavingPayment(false);
+    }
   };
 
   const shareInvoice = async () => {
@@ -201,7 +217,7 @@ Thank you for your business!`;
 
   const sharePdfCustomer = async () => {
     if (order) {
-      await sharePdfInvoiceToWhatsApp(order, activeBusinessProfile);
+      await sharePdfInvoiceToWhatsApp(order, activeBusinessProfile, selectedTemplate);
     }
   };
 
@@ -216,21 +232,14 @@ Thank you for your business!`;
           </View>
 
           <View style={[styles.statusChip, { backgroundColor: statusColor[order.status] || colors.clay }]}>
-            <Text style={styles.statusChipText}>{order.status}</Text>
+            <Text style={styles.statusChipText}>{t('status.' + order.status.toLowerCase(), order.status)}</Text>
           </View>
         </View>
 
         {/* Financial Highlights inside Hero */}
         <View style={styles.heroStatsRow}>
           <View style={styles.heroStatItem}>
-            <Text style={styles.heroStatLabel}>Total Amount</Text>
-            <Text style={styles.heroStatValue}>{formatCurrency(total)}</Text>
-          </View>
-
-          <View style={styles.heroStatDivider} />
-
-          <View style={styles.heroStatItem}>
-            <Text style={styles.heroStatLabel}>Advance Paid</Text>
+            <Text style={styles.heroStatLabel}>{t('orders.advancePaid')}</Text>
             <Text style={[styles.heroStatValue, { color: colors.inflow }]}>
               {formatCurrency(order.advance)}
             </Text>
@@ -239,7 +248,7 @@ Thank you for your business!`;
           <View style={styles.heroStatDivider} />
 
           <View style={styles.heroStatItem}>
-            <Text style={styles.heroStatLabel}>Balance Due</Text>
+            <Text style={styles.heroStatLabel}>{t('orders.balanceDue')}</Text>
             <Text
               style={[
                 styles.heroStatValue,
@@ -248,6 +257,13 @@ Thank you for your business!`;
             >
               {formatCurrency(balance)}
             </Text>
+          </View>
+
+          <View style={styles.heroStatDivider} />
+
+          <View style={styles.heroStatItem}>
+            <Text style={styles.heroStatLabel}>{t('orders.totalAmount')}</Text>
+            <Text style={styles.heroStatValue}>{formatCurrency(total)}</Text>
           </View>
         </View>
       </View>
@@ -259,28 +275,31 @@ Thank you for your business!`;
           <Text style={styles.invoiceActionCardTitle}>{t('orders.orderDetailsTitle')}</Text>
         </View>
 
-        {/* Primary WhatsApp PDF Document Sharing Card */}
+        {/* Primary PDF Document Action Banner */}
         <Pressable
           style={({ pressed }) => [
-            styles.waBannerCard,
-            pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+            styles.pdfBannerCard,
+            pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
           ]}
           onPress={sharePdfCustomer}
         >
-          <View style={styles.waBannerLeft}>
-            <View style={styles.waIconCircle}>
-              <Ionicons name="document-attach" size={22} color={colors.white} />
+          <View style={styles.pdfBannerLeft}>
+            <View style={styles.pdfIconBadge}>
+              <Ionicons name="document-text-outline" size={20} color={colors.white} />
             </View>
-            <View style={styles.waBannerTextBlock}>
-              <Text style={styles.waBannerTitle}>{t('orders.downloadPdf')}</Text>
-              <Text style={styles.waBannerSubtitle}>
+            <View style={styles.pdfBannerTextBlock}>
+              <Text style={styles.pdfBannerTitle}>{t('orders.downloadPdf')}</Text>
+              <Text style={styles.pdfBannerSubtitle}>
                 {order.phoneNumber
                   ? `${order.customerName || 'Customer'} (${order.phoneNumber})`
                   : t('orders.shareInvoice')}
               </Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.white} />
+          <View style={styles.pdfDownloadPill}>
+            <Ionicons name="download-outline" size={14} color={colors.white} />
+            <Text style={styles.pdfDownloadPillText}>PDF</Text>
+          </View>
         </Pressable>
 
         {/* Sub Action Buttons Row */}
@@ -292,8 +311,10 @@ Thank you for your business!`;
             ]}
             onPress={() => setShowPdfModal(true)}
           >
-            <Ionicons name="eye-outline" size={16} color={colors.clayDeep} />
-            <Text style={styles.pdfActionBtnText}>{t('common.details')}</Text>
+            <Ionicons name="eye-outline" size={15} color={colors.clayDeep} />
+            <Text style={styles.pdfActionBtnText} numberOfLines={1} adjustsFontSizeToFit>
+              {t('common.details')}
+            </Text>
           </Pressable>
 
           <Pressable
@@ -303,9 +324,9 @@ Thank you for your business!`;
             ]}
             onPress={whatsappCustomer}
           >
-            <Ionicons name="logo-whatsapp" size={16} color={colors.success} />
-            <Text style={[styles.shareActionBtnText, { color: colors.success, fontFamily: fonts.bodyBold }]}>
-              {t('orders.shareInvoice')}
+            <Ionicons name="logo-whatsapp" size={15} color="#2E7D32" />
+            <Text style={styles.shareActionBtnText} numberOfLines={1} adjustsFontSizeToFit>
+              WhatsApp
             </Text>
           </Pressable>
 
@@ -317,8 +338,10 @@ Thank you for your business!`;
               ]}
               onPress={callCustomer}
             >
-              <Ionicons name="call-outline" size={16} color={colors.duskDeep} />
-              <Text style={styles.callActionBtnText}>{t('customers.call')}</Text>
+              <Ionicons name="call-outline" size={15} color={colors.duskDeep} />
+              <Text style={styles.callActionBtnText} numberOfLines={1} adjustsFontSizeToFit>
+                {t('customers.call')}
+              </Text>
             </Pressable>
           ) : null}
         </View>
@@ -427,7 +450,9 @@ Thank you for your business!`;
             <View key={p.id} style={styles.paymentLogRow}>
               <View>
                 <Text style={styles.payLogAmount}>+{formatCurrency(p.amount)}</Text>
-                <Text style={styles.payLogDate}>{p.date} • {p.method}</Text>
+                <Text style={styles.payLogDate}>
+                  {formatDateTime(p.createdAt || p.date)} • {p.method}
+                </Text>
               </View>
               {p.note ? <Text style={styles.payLogNote}>{p.note}</Text> : null}
             </View>
@@ -538,12 +563,21 @@ Thank you for your business!`;
             <View style={styles.modalBtnRow}>
               <Pressable
                 style={styles.modalCancelBtn}
+                disabled={isSavingPayment}
                 onPress={() => setShowPaymentModal(false)}
               >
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </Pressable>
-              <Pressable style={styles.modalSaveBtn} onPress={handleRecordPayment}>
-                <Text style={styles.modalSaveText}>Save Collection</Text>
+              <Pressable
+                style={[styles.modalSaveBtn, isSavingPayment && { opacity: 0.6 }]}
+                disabled={isSavingPayment}
+                onPress={handleRecordPayment}
+              >
+                {isSavingPayment ? (
+                  <ActivityIndicator color={colors.white} size="small" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Save Collection</Text>
+                )}
               </Pressable>
             </View>
           </Pressable>
@@ -559,7 +593,17 @@ Thank you for your business!`;
       >
         <SafeAreaView style={styles.pdfModalContainer} edges={['top', 'bottom']}>
           {/* PDF Modal Top Bar */}
-          <View style={styles.pdfModalHeader}>
+          <View
+            style={[
+              styles.pdfModalHeader,
+              {
+                paddingTop:
+                  Platform.OS === 'ios'
+                    ? Math.max(insets.top, 47) + 6
+                    : (StatusBar.currentHeight || 16) + 8,
+              },
+            ]}
+          >
             <Pressable
               style={styles.pdfModalCloseBtn}
               onPress={() => setShowPdfModal(false)}
@@ -571,7 +615,7 @@ Thank you for your business!`;
             <Pressable
               style={styles.pdfModalPrintBtn}
               onPress={() => {
-                if (order) printPdfInvoice(order, activeBusinessProfile);
+                if (order) printPdfInvoice(order, activeBusinessProfile, selectedTemplate);
               }}
             >
               <Ionicons name="print-outline" size={18} color={colors.white} />
@@ -579,30 +623,74 @@ Thank you for your business!`;
             </Pressable>
           </View>
 
+          {/* Template Selector Chips Bar */}
+          <View style={styles.templateSelectorBar}>
+            <Text style={styles.templateBarLabel}>Select Template Style:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.templateChipsRow}>
+              {[
+                { id: 'dark', label: 'Dark Slate', color: '#0F172A' },
+                { id: 'terracotta', label: 'Terracotta', color: '#B96659' },
+                { id: 'classic', label: 'Classic Minimal', color: '#334155' },
+                { id: 'emerald', label: 'Emerald', color: '#15803D' },
+              ].map((tmpl) => (
+                <Pressable
+                  key={tmpl.id}
+                  style={[
+                    styles.templateChip,
+                    selectedTemplate === tmpl.id && styles.templateChipActive,
+                    selectedTemplate === tmpl.id && { borderColor: tmpl.color, backgroundColor: tmpl.color + '15' },
+                  ]}
+                  onPress={() => setSelectedTemplate(tmpl.id as InvoiceTemplateId)}
+                >
+                  <View style={[styles.templateDot, { backgroundColor: tmpl.color }]} />
+                  <Text
+                    style={[
+                      styles.templateChipText,
+                      selectedTemplate === tmpl.id && { color: tmpl.color, fontFamily: fonts.bodyBold },
+                    ]}
+                  >
+                    {tmpl.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+
           {/* Printable Invoice Page Preview */}
           <ScrollView contentContainerStyle={styles.pdfPageContent} showsVerticalScrollIndicator={false}>
             <View style={styles.pdfPaperCard}>
               <View style={styles.pdfHeaderRow}>
-                <View>
-                  <Text style={styles.pdfBrandTitle}>
-                    {activeBusinessProfile.businessName?.toUpperCase()}
-                  </Text>
-                  <Text style={styles.pdfBrandSubtitle}>
-                    {activeBusinessProfile.tagline || 'Official Business Invoice & Receipt'}
-                  </Text>
-                  {activeBusinessProfile.address ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                      <Ionicons name="location-outline" size={11} color={colors.inkSoft} />
-                      <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft }}>
-                        {activeBusinessProfile.address}
-                      </Text>
-                    </View>
-                  ) : null}
-                  {activeBusinessProfile.gstin ? (
-                    <Text style={{ fontFamily: fonts.bodyBold, fontSize: 11, color: colors.clayDeep, marginTop: 2 }}>
-                      GSTIN: {activeBusinessProfile.gstin}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                  {activeBusinessProfile.logoUri ? (
+                    <Image
+                      source={{ uri: activeBusinessProfile.logoUri }}
+                      style={styles.pdfHeaderLogo}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <AppLogoIcon size={48} />
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.pdfBrandTitle}>
+                      {activeBusinessProfile.businessName?.toUpperCase()}
                     </Text>
-                  ) : null}
+                    <Text style={styles.pdfBrandSubtitle}>
+                      {activeBusinessProfile.tagline || 'Official Business Invoice & Receipt'}
+                    </Text>
+                    {activeBusinessProfile.address ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                        <Ionicons name="location-outline" size={11} color={colors.inkSoft} />
+                        <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft }}>
+                          {activeBusinessProfile.address}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {activeBusinessProfile.gstin ? (
+                      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 11, color: colors.clayDeep, marginTop: 2 }}>
+                        GSTIN: {activeBusinessProfile.gstin}
+                      </Text>
+                    ) : null}
+                  </View>
                 </View>
                 <View
                   style={[
@@ -668,20 +756,27 @@ Thank you for your business!`;
               {/* Total Summary */}
               <View style={styles.pdfSummaryBox}>
                 <View style={styles.pdfSummaryRow}>
-                  <Text style={styles.pdfSummaryLabel}>Subtotal</Text>
-                  <Text style={styles.pdfSummaryVal}>{formatCurrency(total)}</Text>
-                </View>
-
-                <View style={styles.pdfSummaryRow}>
                   <Text style={styles.pdfSummaryLabel}>Advance Paid</Text>
                   <Text style={[styles.pdfSummaryVal, { color: colors.inflow }]}>
                     {formatCurrency(order.advance)}
                   </Text>
                 </View>
 
+                <View style={styles.pdfSummaryRow}>
+                  <Text style={styles.pdfSummaryLabel}>Balance Due</Text>
+                  <Text
+                    style={[
+                      styles.pdfSummaryVal,
+                      { color: balance > 0 ? colors.danger : colors.success, fontFamily: fonts.bodyBold },
+                    ]}
+                  >
+                    {formatCurrency(balance)}
+                  </Text>
+                </View>
+
                 <View style={[styles.pdfSummaryRow, styles.pdfSummaryTotalRow]}>
-                  <Text style={styles.pdfSummaryTotalLabel}>Balance Due</Text>
-                  <Text style={styles.pdfSummaryTotalVal}>{formatCurrency(balance)}</Text>
+                  <Text style={styles.pdfSummaryTotalLabel}>Total</Text>
+                  <Text style={styles.pdfSummaryTotalVal}>{formatCurrency(total)}</Text>
                 </View>
               </View>
 
@@ -799,57 +894,83 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.ink,
   },
-  waBannerCard: {
+  pdfBannerCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#25D366',
+    backgroundColor: colors.clayDeep,
     borderRadius: radius.md,
-    padding: 14,
-    marginBottom: 10,
-    ...shadow.card,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    marginBottom: 12,
+    shadowColor: colors.clayDeep,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  waBannerLeft: {
+  pdfBannerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     flex: 1,
   },
-  waIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  pdfIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  waBannerTextBlock: {
+  pdfBannerTextBlock: {
     flex: 1,
   },
-  waBannerTitle: {
+  pdfBannerTitle: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.white,
+    letterSpacing: 0.3,
   },
-  waBannerSubtitle: {
+  pdfBannerSubtitle: {
     fontFamily: fonts.body,
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: 'rgba(255, 255, 255, 0.85)',
     marginTop: 2,
+  },
+  pdfDownloadPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  pdfDownloadPillText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.white,
+    letterSpacing: 0.4,
   },
   invoiceSubActionsRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   pdfActionBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: colors.paper,
     borderRadius: radius.sm,
     paddingVertical: 9,
+    paddingHorizontal: 4,
     borderWidth: 1,
     borderColor: colors.clayDeep,
   },
@@ -863,20 +984,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: colors.paper,
     borderRadius: radius.sm,
     paddingVertical: 9,
+    paddingHorizontal: 4,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#2E7D32',
   },
   shareActionBtnText: {
-    fontFamily: fonts.bodyMedium,
+    fontFamily: fonts.bodyBold,
     fontSize: 12,
-    color: colors.inkSoft,
+    color: '#2E7D32',
   },
   callActionBtn: {
-    flex: 0.7,
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -884,6 +1006,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
     borderRadius: radius.sm,
     paddingVertical: 9,
+    paddingHorizontal: 4,
     borderWidth: 1,
     borderColor: colors.line,
   },
@@ -953,6 +1076,12 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.clayDeep,
     paddingBottom: 16,
     marginBottom: 20,
+  },
+  pdfHeaderLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: colors.paper,
   },
   pdfBrandTitle: {
     fontFamily: fonts.display,
@@ -1292,5 +1421,48 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.white,
+  },
+  templateSelectorBar: {
+    backgroundColor: colors.paper,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  templateBarLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.inkSoft,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  templateChipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  templateChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  templateChipActive: {
+    borderWidth: 1.5,
+  },
+  templateDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  templateChipText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.ink,
   },
 });

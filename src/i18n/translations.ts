@@ -143,7 +143,8 @@ export const translations = {
       "pipelineTapToManage": "Manage",
       "totalOutflow": "Outflow",
       "collected": "Collected",
-      "sales": "Sales"
+      "sales": "Sales",
+      "totalExpenses": "Total Expenses"
     },
     "orders": {
       "title": "All Orders",
@@ -221,7 +222,14 @@ export const translations = {
       "methodCash": "Cash",
       "methodUpi": "UPI",
       "methodCard": "Card",
-      "methodBankTransfer": "Bank Transfer"
+      "methodBankTransfer": "Bank Transfer",
+      "addColumn": "Add Column",
+      "addColumnTitle": "Add Table Column",
+      "columnName": "Column Name",
+      "columnNamePlaceholder": "e.g. Size, Color, Unit, Discount, GST",
+      "quickSuggestions": "Quick Suggestions",
+      "removeColumn": "Remove Column",
+      "customColumn": "Custom Column"
     },
     "expenses": {
       "title": "Business Expenses",
@@ -252,7 +260,10 @@ export const translations = {
       "catMarketing": "Advertising",
       "catMaintenance": "Repairs & Upkeep",
       "catTax": "Taxes & GST",
-      "catOther": "Miscellaneous"
+      "catOther": "Miscellaneous",
+      "totalExpenses": "Total Expenses",
+      "editExpense": "Edit Expense",
+      "newExpense": "Add Outflow"
     },
     "customers": {
       "title": "Customer Directory",
@@ -275,7 +286,8 @@ export const translations = {
       "updateCustomerBtn": "Update Customer",
       "noCustomers": "No customers found in directory.",
       "deleteCustomerPrompt": "Are you sure you want to delete this customer?",
-      "customerDeleted": "Customer profile deleted successfully."
+      "customerDeleted": "Customer profile deleted successfully.",
+      "editCustomer": "Edit Customer"
     },
     "products": {
       "title": "Product Catalog",
@@ -293,7 +305,8 @@ export const translations = {
       "noProducts": "No products in catalog yet.",
       "deleteProductPrompt": "Are you sure you want to delete this product from catalog?",
       "productDeleted": "Product removed from catalog.",
-      "category": "Category"
+      "category": "Category",
+      "editProduct": "Edit Item"
     },
     "reports": {
       "title": "Financial Reports",
@@ -411,6 +424,39 @@ export const translations = {
       "pinPlaceholderDigits": "••••",
       "pinSignInBtn": "Unlock with PIN",
       "orDivider": "or with email & password"
+    },
+    "history": {
+      "title": "Store Activity & History",
+      "subtitle": "Real-time timeline of all orders, payments & expenses",
+      "searchPlaceholder": "Search history by order, customer, vendor…"
+    },
+    "profile": {
+      "title": "Business Profile & Branding",
+      "subtitle": "Shop Name, GSTIN, Address & Invoice Logo",
+      "shopName": "Business / Shop Name",
+      "tagline": "Tagline / Slogan",
+      "uploadLogo": "Upload Logo Image",
+      "changeLogo": "Change Logo",
+      "phone": "Contact Phone Number",
+      "email": "Business Email",
+      "address": "Shop / Business Address",
+      "bankDetails": "Bank & UPI Payment Details",
+      "gstin": "GSTIN Number",
+      "saveProfileBtn": "Save Business Profile"
+    },
+    "more": {
+      "title": "More Options",
+      "subtitle": "Store Profile, History, Catalogs & Settings",
+      "storeActivity": "Store Activity & History",
+      "storeActivitySub": "All past orders, outflows & payments timeline",
+      "businessProfile": "Business Profile & Branding",
+      "businessProfileSub": "Shop name, address, GSTIN & invoice logo",
+      "customerDirectory": "Customer Directory",
+      "customerDirectorySub": "Manage buyers, balance dues & contacts",
+      "productCatalog": "Product Catalog",
+      "productCatalogSub": "Save items, default rates & inventory units",
+      "settingsAndBackup": "Settings & Cloud Sync",
+      "settingsAndBackupSub": "Language, PIN security, Firebase & export"
     }
   },
   "ta": {
@@ -491,7 +537,8 @@ export const translations = {
       "pipelineTapToManage": "நிர்வகி",
       "totalOutflow": "செலவு",
       "collected": "வசூலானது",
-      "sales": "விற்பனை"
+      "sales": "விற்பனை",
+      "totalExpenses": "மொத்த செலவுகள்"
     },
     "orders": {
       "title": "அனைத்து ஆர்டர்கள்",
@@ -569,7 +616,14 @@ export const translations = {
       "methodCash": "ரொக்கம்",
       "methodUpi": "UPI / GPay",
       "methodCard": "கார்டு",
-      "methodBankTransfer": "வங்கி பரிமாற்றம்"
+      "methodBankTransfer": "வங்கி பரிமாற்றம்",
+      "addColumn": "காலம் சேர்",
+      "addColumnTitle": "புதிய காலம் சேர்க்கவும்",
+      "columnName": "காலத்தின் பெயர்",
+      "columnNamePlaceholder": "எ.கா. அளவு, நிறம், அலகு, தள்ளுபடி, GST",
+      "quickSuggestions": "பரிந்துரைகள்",
+      "removeColumn": "காலத்தை நீக்கு",
+      "customColumn": "தனிப்பயன் காலம்"
     },
     "expenses": {
       "title": "வணிக செலவுகள்",
@@ -600,7 +654,10 @@ export const translations = {
       "catMarketing": "விளம்பரம்",
       "catMaintenance": "பராமரிப்பு",
       "catTax": "வரி & ஜிஎஸ்டி",
-      "catOther": "இதர செலவுகள்"
+      "catOther": "இதர செலவுகள்",
+      "totalExpenses": "மொத்த செலவுகள்",
+      "editExpense": "செலவை திருத்து",
+      "newExpense": "செலவு சேர்"
     },
     "customers": {
       "title": "வாடிக்கையாளர்கள்",
@@ -623,7 +680,8 @@ export const translations = {
       "updateCustomerBtn": "புதுப்பி",
       "noCustomers": "வாடிக்கையாளர்கள் யாரும் இல்லை.",
       "deleteCustomerPrompt": "இந்த வாடிக்கையாளரை நீக்க விரும்புகிறீர்களா?",
-      "customerDeleted": "வாடிக்கையாளர் நீக்கப்பட்டார்."
+      "customerDeleted": "வாடிக்கையாளர் நீக்கப்பட்டார்.",
+      "editCustomer": "வாடிக்கையாளரை திருத்து"
     },
     "products": {
       "title": "பொருட்கள் பட்டியல்",
@@ -641,7 +699,8 @@ export const translations = {
       "noProducts": "பொருட்கள் எதுவும் இல்லை.",
       "deleteProductPrompt": "இந்த பொருளை நீக்க விரும்புகிறீர்களா?",
       "productDeleted": "பொருள் நீக்கப்பட்டது.",
-      "category": "வகை"
+      "category": "வகை",
+      "editProduct": "பொருளை திருத்து"
     },
     "reports": {
       "title": "நிதி அறிக்கைகள்",
@@ -759,6 +818,39 @@ export const translations = {
       "pinPlaceholderDigits": "••••",
       "pinSignInBtn": "பின் மூலம் திறக்குக",
       "orDivider": "அல்லது மின்னஞ்சல் மூலம்"
+    },
+    "history": {
+      "title": "கடை செயல்பாடுகள் & வரலாறு",
+      "subtitle": "ஆர்டர்கள், பணப்பரிவர்த்தனைகள் மற்றும் செலவுகளின் காலவரிசை",
+      "searchPlaceholder": "ஆர்டர், வாடிக்கையாளர், விற்பனையாளர் மூலம் வரலாற்றை தேடவும்…"
+    },
+    "profile": {
+      "title": "வணிக சுயவிவரம் & பிராண்டிங்",
+      "subtitle": "கடை பெயர், ஜிஎஸ்டி, முகவரி மற்றும் இன்வாய்ஸ் லோகோ",
+      "shopName": "வணிகம் / கடை பெயர்",
+      "tagline": "டேக்லைன் / முழக்கம்",
+      "uploadLogo": "லோகோ படத்தை பதிவேற்றவும்",
+      "changeLogo": "லோகோவை மாற்று",
+      "phone": "தொடர்பு தொலைபேசி எண்",
+      "email": "வணிக மின்னஞ்சல்",
+      "address": "கடை / வணிக முகவரி",
+      "bankDetails": "வங்கி & UPI கட்டண விவரங்கள்",
+      "gstin": "ஜிஎஸ்டி எண்",
+      "saveProfileBtn": "சுயவிவரத்தை சேமிக்கவும்"
+    },
+    "more": {
+      "title": "கூடுதல் விருப்பங்கள்",
+      "subtitle": "கடை சுயவிவரம், வரலாறு, பட்டியல்கள் & அமைப்புகள்",
+      "storeActivity": "கடை செயல்பாடுகள் & வரலாறு",
+      "storeActivitySub": "அனைத்து ஆர்டர்கள், செலவுகள் & பண பரிவர்த்தனைகள்",
+      "businessProfile": "வணிக சுயவிவரம் & பிராண்டிங்",
+      "businessProfileSub": "கடை பெயர், முகவரி, ஜிஎஸ்டி மற்றும் இன்வாய்ஸ் லோகோ",
+      "customerDirectory": "வாடிக்கையாளர்கள் பட்டியல்",
+      "customerDirectorySub": "வாடிக்கையாளர்கள், பாக்கி மற்றும் தொடர்புகள்",
+      "productCatalog": "பொருட்கள் பட்டியல்",
+      "productCatalogSub": "பொருட்கள், விலை மற்றும் அளவீட்டு அலகுகள்",
+      "settingsAndBackup": "அமைப்புகள் & கிளவுட் சேமிப்பு",
+      "settingsAndBackupSub": "மொழி, பின் பாதுகாப்பு, கிளவுட் & ஏற்றுமதி"
     }
   },
   "hi": {
@@ -839,7 +931,8 @@ export const translations = {
       "pipelineTapToManage": "Manage",
       "totalOutflow": "Outflow",
       "collected": "Collected",
-      "sales": "Sales"
+      "sales": "Sales",
+      "totalExpenses": "कुल खर्च"
     },
     "orders": {
       "title": "All Orders",
@@ -917,7 +1010,14 @@ export const translations = {
       "methodCash": "Cash",
       "methodUpi": "UPI",
       "methodCard": "Card",
-      "methodBankTransfer": "Bank Transfer"
+      "methodBankTransfer": "Bank Transfer",
+      "addColumn": "कॉलम जोड़ें",
+      "addColumnTitle": "नया कॉलम जोड़ें",
+      "columnName": "कॉलम का नाम",
+      "columnNamePlaceholder": "उदा. साइज़, रंग, यूनिट, छूट, GST",
+      "quickSuggestions": "सुझाव",
+      "removeColumn": "कॉलम हटाएं",
+      "customColumn": "कस्टम कॉलम"
     },
     "expenses": {
       "title": "Business Expenses",
@@ -948,7 +1048,10 @@ export const translations = {
       "catMarketing": "Advertising",
       "catMaintenance": "Repairs & Upkeep",
       "catTax": "Taxes & GST",
-      "catOther": "Miscellaneous"
+      "catOther": "Miscellaneous",
+      "totalExpenses": "कुल खर्च",
+      "editExpense": "खर्च संपादित करें",
+      "newExpense": "नया खर्च"
     },
     "customers": {
       "title": "Customer Directory",
@@ -971,7 +1074,8 @@ export const translations = {
       "updateCustomerBtn": "Update Customer",
       "noCustomers": "No customers found in directory.",
       "deleteCustomerPrompt": "Are you sure you want to delete this customer?",
-      "customerDeleted": "Customer profile deleted successfully."
+      "customerDeleted": "Customer profile deleted successfully.",
+      "editCustomer": "ग्राहक संपादित करें"
     },
     "products": {
       "title": "Product Catalog",
@@ -989,7 +1093,8 @@ export const translations = {
       "noProducts": "No products in catalog yet.",
       "deleteProductPrompt": "Are you sure you want to delete this product from catalog?",
       "productDeleted": "Product removed from catalog.",
-      "category": "Category"
+      "category": "Category",
+      "editProduct": "उत्पाद संपादित करें"
     },
     "reports": {
       "title": "Financial Reports",
@@ -1107,6 +1212,39 @@ export const translations = {
       "pinPlaceholderDigits": "••••",
       "pinSignInBtn": "Unlock with PIN",
       "orDivider": "or with email & password"
+    },
+    "history": {
+      "title": "स्टोर गतिविधि और इतिहास",
+      "subtitle": "ऑर्डर, भुगतान और खर्चों का रीयल-टाइम टाइमलाइन",
+      "searchPlaceholder": "ऑर्डर, ग्राहक, विक्रेता द्वारा इतिहास खोजें…"
+    },
+    "profile": {
+      "title": "व्यापार प्रोफ़ाइल और ब्रांडिंग",
+      "subtitle": "दुकान का नाम, जीएसटी, पता और चालान लोगो",
+      "shopName": "व्यापार / दुकान का नाम",
+      "tagline": "टैगलाइन / स्लोगन",
+      "uploadLogo": "लोगो छवि अपलोड करें",
+      "changeLogo": "लोगो बदलें",
+      "phone": "संपर्क फोन नंबर",
+      "email": "व्यापार ईमेल",
+      "address": "दुकान / व्यापार का पता",
+      "bankDetails": "बैंक और यूपीआई भुगतान विवरण",
+      "gstin": "जीएसटीआईएन नंबर",
+      "saveProfileBtn": "व्यापार प्रोफ़ाइल सहेजें"
+    },
+    "more": {
+      "title": "अधिक विकल्प",
+      "subtitle": "स्टोर प्रोफ़ाइल, इतिहास, कैटलॉग और सेटिंग्स",
+      "storeActivity": "स्टोर गतिविधि और इतिहास",
+      "storeActivitySub": "सभी पिछले ऑर्डर, खर्च और भुगतान समयरेखा",
+      "businessProfile": "व्यापार प्रोफ़ाइल और ब्रांडिंग",
+      "businessProfileSub": "दुकान का नाम, पता, जीएसटी और चालान लोगो",
+      "customerDirectory": "ग्राहक सूची",
+      "customerDirectorySub": "खरीदारों, शेष बकाए और संपर्कों का प्रबंधन करें",
+      "productCatalog": "उत्पाद कैटलॉग",
+      "productCatalogSub": "वस्तुएं, डिफ़ॉल्ट दरें और इन्वेंट्री इकाइयाँ सहेजें",
+      "settingsAndBackup": "सेटिंग्स और क्लाउड सिंक",
+      "settingsAndBackupSub": "भाषा, पिन सुरक्षा, फायरबेस और निर्यात"
     }
   },
   "te": {
@@ -1187,7 +1325,8 @@ export const translations = {
       "pipelineTapToManage": "Manage",
       "totalOutflow": "Outflow",
       "collected": "Collected",
-      "sales": "Sales"
+      "sales": "Sales",
+      "totalExpenses": "మొత్తం ఖర్చులు"
     },
     "orders": {
       "title": "All Orders",
@@ -1265,7 +1404,14 @@ export const translations = {
       "methodCash": "Cash",
       "methodUpi": "UPI",
       "methodCard": "Card",
-      "methodBankTransfer": "Bank Transfer"
+      "methodBankTransfer": "Bank Transfer",
+      "addColumn": "కాలమ్ జోడించండి",
+      "addColumnTitle": "కొత్త కాలమ్ జోడించండి",
+      "columnName": "కాలమ్ పేరు",
+      "columnNamePlaceholder": "ఉదా. సైజు, రంగు, యూనిట్, తగ్గింపు, GST",
+      "quickSuggestions": "సూచనలు",
+      "removeColumn": "కాలమ్ తొలగించండి",
+      "customColumn": "కస్టమ్ కాలమ్"
     },
     "expenses": {
       "title": "Business Expenses",
@@ -1296,7 +1442,10 @@ export const translations = {
       "catMarketing": "Advertising",
       "catMaintenance": "Repairs & Upkeep",
       "catTax": "Taxes & GST",
-      "catOther": "Miscellaneous"
+      "catOther": "Miscellaneous",
+      "totalExpenses": "మొత్తం ఖర్చులు",
+      "editExpense": "ఖర్చును సవరించండి",
+      "newExpense": "కొత్త ఖర్చు"
     },
     "customers": {
       "title": "Customer Directory",
@@ -1319,7 +1468,8 @@ export const translations = {
       "updateCustomerBtn": "Update Customer",
       "noCustomers": "No customers found in directory.",
       "deleteCustomerPrompt": "Are you sure you want to delete this customer?",
-      "customerDeleted": "Customer profile deleted successfully."
+      "customerDeleted": "Customer profile deleted successfully.",
+      "editCustomer": "కస్టమర్‌ను సవరించండి"
     },
     "products": {
       "title": "Product Catalog",
@@ -1337,7 +1487,8 @@ export const translations = {
       "noProducts": "No products in catalog yet.",
       "deleteProductPrompt": "Are you sure you want to delete this product from catalog?",
       "productDeleted": "Product removed from catalog.",
-      "category": "Category"
+      "category": "Category",
+      "editProduct": "ఉత్పత్తిని సవరించండి"
     },
     "reports": {
       "title": "Financial Reports",
@@ -1455,6 +1606,39 @@ export const translations = {
       "pinPlaceholderDigits": "••••",
       "pinSignInBtn": "Unlock with PIN",
       "orDivider": "or with email & password"
+    },
+    "history": {
+      "title": "స్టోర్ కార్యాచరణ మరియు చరిత్ర",
+      "subtitle": "ఆర్డర్‌లు, చెల్లింపులు & ఖర్చుల నిజ-సమయ కాలక్రమం",
+      "searchPlaceholder": "ఆర్డర్, కస్టమర్, విక్రేత ద్వారా చరిత్రను శోధించండి…"
+    },
+    "profile": {
+      "title": "వ్యాపార ప్రొఫైల్ & బ్రాండింగ్",
+      "subtitle": "దుకాణం పేరు, జీఎస్టీ, చిరునామా & ఇన్‌వాయిస్ లోగో",
+      "shopName": "వ్యాపారం / దుకాణం పేరు",
+      "tagline": "ట్యాగ్‌లైన్ / స్లోగన్",
+      "uploadLogo": "లోగో చిత్రాన్ని అప్‌లోడ్ చేయండి",
+      "changeLogo": "లోగో మార్చండి",
+      "phone": "సంప్రదింపు ఫోన్ నంబర్",
+      "email": "వ్యాపార ఇమెయిల్",
+      "address": "దుకాణం / వ్యాపార చిరునామా",
+      "bankDetails": "బ్యాంక్ & UPI చెల్లింపు వివరాలు",
+      "gstin": "జీఎస్టీ నంబర్",
+      "saveProfileBtn": "వ్యాపార ప్రొఫైల్‌ను సేవ్ చేయండి"
+    },
+    "more": {
+      "title": "మరిన్ని ఎంపికలు",
+      "subtitle": "స్టోర్ ప్రొఫైల్, చరిత్ర, కేటలాగ్‌లు & సెట్టింగ్‌లు",
+      "storeActivity": "స్టోర్ కార్యాచరణ మరియు చరిత్ర",
+      "storeActivitySub": "గత ఆర్డర్‌లు, ఖర్చులు & చెల్లింపుల కాలక్రమం",
+      "businessProfile": "వ్యాపార ప్రొఫైల్ & బ్రాండింగ్",
+      "businessProfileSub": "దుకాణం పేరు, చిరునామా, జీఎస్టీ & ఇన్‌వాయిస్ లోగో",
+      "customerDirectory": "కస్టమర్ డైరెక్టరీ",
+      "customerDirectorySub": "కొనుగోలుదారులు, బకాయిలు & పరిచయాలను నిర్వహించండి",
+      "productCatalog": "ఉత్పత్తి కేటలాగ్",
+      "productCatalogSub": "వస్తువులు, డిఫాల్ట్ ధరలు & ఇన్వెంటరీ యూనిట్లను సేవ్ చేయండి",
+      "settingsAndBackup": "సెట్టింగ్‌లు & క్లౌడ్ సింక్",
+      "settingsAndBackupSub": "భాష, పిన్ భద్రత, ఫైర్‌బేస్ & ఎగుమతి"
     }
   },
   "kn": {
@@ -1535,7 +1719,8 @@ export const translations = {
       "pipelineTapToManage": "Manage",
       "totalOutflow": "Outflow",
       "collected": "Collected",
-      "sales": "Sales"
+      "sales": "Sales",
+      "totalExpenses": "ಒಟ್ಟು ವೆಚ್ಚಗಳು"
     },
     "orders": {
       "title": "All Orders",
@@ -1613,7 +1798,14 @@ export const translations = {
       "methodCash": "Cash",
       "methodUpi": "UPI",
       "methodCard": "Card",
-      "methodBankTransfer": "Bank Transfer"
+      "methodBankTransfer": "Bank Transfer",
+      "addColumn": "ಕಾಲಮ್ ಸೇರಿಸಿ",
+      "addColumnTitle": "ಹೊಸ ಕಾಲಮ್ ಸೇರಿಸಿ",
+      "columnName": "ಕಾಲಮ್ ಹೆಸರು",
+      "columnNamePlaceholder": "ಉದಾ. ಗಾತ್ರ, ಬಣ್ಣ, ಘಟಕ, ರಿಯಾಯಿತಿ, GST",
+      "quickSuggestions": "ಸಲಹೆಗಳು",
+      "removeColumn": "ಕಾಲಮ್ ತೆಗೆದುಹಾಕಿ",
+      "customColumn": "ಕಸ್ಟಮ್ ಕಾಲಮ್"
     },
     "expenses": {
       "title": "Business Expenses",
@@ -1644,7 +1836,10 @@ export const translations = {
       "catMarketing": "Advertising",
       "catMaintenance": "Repairs & Upkeep",
       "catTax": "Taxes & GST",
-      "catOther": "Miscellaneous"
+      "catOther": "Miscellaneous",
+      "totalExpenses": "ಒಟ್ಟು ವೆಚ್ಚಗಳು",
+      "editExpense": "ವೆಚ್ಚವನ್ನು ಸಂಪಾದಿಸಿ",
+      "newExpense": "ಹೊಸ ವೆಚ್ಚ"
     },
     "customers": {
       "title": "Customer Directory",
@@ -1667,7 +1862,8 @@ export const translations = {
       "updateCustomerBtn": "Update Customer",
       "noCustomers": "No customers found in directory.",
       "deleteCustomerPrompt": "Are you sure you want to delete this customer?",
-      "customerDeleted": "Customer profile deleted successfully."
+      "customerDeleted": "Customer profile deleted successfully.",
+      "editCustomer": "ಗ್ರಾಹಕರನ್ನು ಸಂಪಾದಿಸಿ"
     },
     "products": {
       "title": "Product Catalog",
@@ -1685,7 +1881,8 @@ export const translations = {
       "noProducts": "No products in catalog yet.",
       "deleteProductPrompt": "Are you sure you want to delete this product from catalog?",
       "productDeleted": "Product removed from catalog.",
-      "category": "Category"
+      "category": "Category",
+      "editProduct": "ಉತ್ಪನ್ನವನ್ನು ಸಂಪಾದಿಸಿ"
     },
     "reports": {
       "title": "Financial Reports",
@@ -1803,6 +2000,39 @@ export const translations = {
       "pinPlaceholderDigits": "••••",
       "pinSignInBtn": "Unlock with PIN",
       "orDivider": "or with email & password"
+    },
+    "history": {
+      "title": "ಅಂಗಡಿ ಚಟುವಟಿಕೆ ಮತ್ತು ಇತಿಹಾಸ",
+      "subtitle": "ಆದೇಶಗಳು, ಪಾವತಿಗಳು ಮತ್ತು ವೆಚ್ಚಗಳ ನೈಜ-ಸಮಯದ ಕಾಲಾವಧಿ",
+      "searchPlaceholder": "ಆದೇಶ, ಗ್ರಾಹಕ, ಮಾರಾಟಗಾರರಿಂದ ಇತಿಹಾಸವನ್ನು ಹುಡುಕಿ…"
+    },
+    "profile": {
+      "title": "ವ್ಯಾಪಾರ ಪ್ರೊಫೈಲ್ ಮತ್ತು ಬ್ರ್ಯಾಂಡಿಂಗ್",
+      "subtitle": "ಅಂಗಡಿಯ ಹೆಸರು, ಜಿಎಸ್‌ಟಿ, ವಿಳಾಸ ಮತ್ತು ಇನ್‌ವಾಯ್ಸ್ ಲೋಗೋ",
+      "shopName": "ವ್ಯಾಪಾರ / ಅಂಗಡಿ ಹೆಸರು",
+      "tagline": "ಟ್ಯಾಗ್‌ಲೈನ್ / ಸ್ಲೋಗನ್",
+      "uploadLogo": "ಲೋಗೋ ಚಿತ್ರವನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
+      "changeLogo": "ಲೋಗೋ ಬದಲಾಯಿಸಿ",
+      "phone": "ಸಂಪರ್ಕ ಫೋನ್ ಸಂಖ್ಯೆ",
+      "email": "ವ್ಯಾಪಾರ ಇಮೇಲ್",
+      "address": "ಅಂಗಡಿ / ವ್ಯಾಪಾರ ವಿಳಾಸ",
+      "bankDetails": "ಬ್ಯಾಂಕ್ ಮತ್ತು ಯುಪಿಐ ಪಾವತಿ ವಿವರಗಳು",
+      "gstin": "ಜಿಎಸ್‌ಟಿ ಸಂಖ್ಯೆ",
+      "saveProfileBtn": "ವ್ಯಾಪಾರ ಪ್ರೊಫೈಲ್ ಉಳಿಸಿ"
+    },
+    "more": {
+      "title": "ಹೆಚ್ಚಿನ ಆಯ್ಕೆಗಳು",
+      "subtitle": "ಅಂಗಡಿ ಪ್ರೊಫೈಲ್, ಇತಿಹಾಸ, ಕ್ಯಾಟಲಾಗ್‌ಗಳು ಮತ್ತು ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
+      "storeActivity": "ಅಂಗಡಿ ಚಟುವಟಿಕೆ ಮತ್ತು ಇತಿಹಾಸ",
+      "storeActivitySub": "ಹಿಂದಿನ ಆದೇಶಗಳು, ವೆಚ್ಚಗಳು ಮತ್ತು ಪಾವತಿಗಳ ಕಾಲಾವಧಿ",
+      "businessProfile": "ವ್ಯಾಪಾರ ಪ್ರೊಫೈಲ್ ಮತ್ತು ಬ್ರ್ಯಾಂಡಿಂಗ್",
+      "businessProfileSub": "ಅಂಗಡಿಯ ಹೆಸರು, ವಿಳಾಸ, ಜಿಎಸ್‌ಟಿ ಮತ್ತು ಇನ್‌ವಾಯ್ಸ್ ಲೋಗೋ",
+      "customerDirectory": "ಗ್ರಾಹಕರ ಡೈರೆಕ್ಟರಿ",
+      "customerDirectorySub": "ಖರೀದಿದಾರರು, ಬಾಕಿಗಳು ಮತ್ತು ಸಂಪರ್ಕಗಳನ್ನು ನಿರ್ವಹಿಸಿ",
+      "productCatalog": "ಉತ್ಪನ್ನ ಕ್ಯಾಟಲಾಗ್",
+      "productCatalogSub": "ವಸ್ತುಗಳು, ಡೀಫಾಲ್ಟ್ ದರಗಳು ಮತ್ತು ದಾಸ್ತಾನು ಘಟಕಗಳನ್ನು ಉಳಿಸಿ",
+      "settingsAndBackup": "ಸೆಟ್ಟಿಂಗ್‌ಗಳು ಮತ್ತು ಕ್ಲೌಡ್ ಸಿಂಕ್",
+      "settingsAndBackupSub": "ಭಾಷೆ, ಪಿನ್ ಭದ್ರತೆ, ಫೈರ್‌ಬೇಸ್ ಮತ್ತು ರಫ್ತು"
     }
   },
   "mr": {
@@ -1883,7 +2113,8 @@ export const translations = {
       "pipelineTapToManage": "Manage",
       "totalOutflow": "Outflow",
       "collected": "Collected",
-      "sales": "Sales"
+      "sales": "Sales",
+      "totalExpenses": "एकूण खर्च"
     },
     "orders": {
       "title": "All Orders",
@@ -1961,7 +2192,14 @@ export const translations = {
       "methodCash": "Cash",
       "methodUpi": "UPI",
       "methodCard": "Card",
-      "methodBankTransfer": "Bank Transfer"
+      "methodBankTransfer": "Bank Transfer",
+      "addColumn": "कॉलम जोडा",
+      "addColumnTitle": "नवीन कॉलम जोडा",
+      "columnName": "कॉलमचे नाव",
+      "columnNamePlaceholder": "उदा. आकार, रंग, युनिट, सूट, GST",
+      "quickSuggestions": "सुझाव",
+      "removeColumn": "कॉलम काढा",
+      "customColumn": "सानुकूल कॉलम"
     },
     "expenses": {
       "title": "Business Expenses",
@@ -1992,7 +2230,10 @@ export const translations = {
       "catMarketing": "Advertising",
       "catMaintenance": "Repairs & Upkeep",
       "catTax": "Taxes & GST",
-      "catOther": "Miscellaneous"
+      "catOther": "Miscellaneous",
+      "totalExpenses": "एकूण खर्च",
+      "editExpense": "खर्च संपादित करा",
+      "newExpense": "नवीन खर्च"
     },
     "customers": {
       "title": "Customer Directory",
@@ -2015,7 +2256,8 @@ export const translations = {
       "updateCustomerBtn": "Update Customer",
       "noCustomers": "No customers found in directory.",
       "deleteCustomerPrompt": "Are you sure you want to delete this customer?",
-      "customerDeleted": "Customer profile deleted successfully."
+      "customerDeleted": "Customer profile deleted successfully.",
+      "editCustomer": "ग्राहक संपादित करा"
     },
     "products": {
       "title": "Product Catalog",
@@ -2033,7 +2275,8 @@ export const translations = {
       "noProducts": "No products in catalog yet.",
       "deleteProductPrompt": "Are you sure you want to delete this product from catalog?",
       "productDeleted": "Product removed from catalog.",
-      "category": "Category"
+      "category": "Category",
+      "editProduct": "उत्पादन संपादित करा"
     },
     "reports": {
       "title": "Financial Reports",
@@ -2151,6 +2394,39 @@ export const translations = {
       "pinPlaceholderDigits": "••••",
       "pinSignInBtn": "Unlock with PIN",
       "orDivider": "or with email & password"
+    },
+    "history": {
+      "title": "स्टोअर क्रियाकलाप आणि इतिहास",
+      "subtitle": "ऑर्डर्स, पेमेंट्स आणि खर्चाची रीअल-टाइम टाइमलाइन",
+      "searchPlaceholder": "ऑर्डर, ग्राहक, विक्रेत्यानुसार इतिहास शोधा…"
+    },
+    "profile": {
+      "title": "व्यवसाय प्रोफाइल आणि ब्रँडिंग",
+      "subtitle": "दुकानाचे नाव, जीएसटी, पत्ता आणि इनव्हॉइस लोगो",
+      "shopName": "व्यवसाय / दुकानाचे नाव",
+      "tagline": "टॅगलाइन / स्लोगन",
+      "uploadLogo": "लोगो प्रतिमा अपलोड करा",
+      "changeLogo": "लोगो बदला",
+      "phone": "संपर्क फोन नंबर",
+      "email": "व्यवसाय ईमेल",
+      "address": "दुकान / व्यवसायाचा पत्ता",
+      "bankDetails": "बँक आणि यूपीआय पेमेंट तपशील",
+      "gstin": "जीएसटी क्रमांक",
+      "saveProfileBtn": "व्यवसाय प्रोफाइल जतन करा"
+    },
+    "more": {
+      "title": "अधिक पर्याय",
+      "subtitle": "स्टोअर प्रोफाइल, इतिहास, कॅटलॉग आणि सेटिंग्ज",
+      "storeActivity": "स्टोअर क्रियाकलाप आणि इतिहास",
+      "storeActivitySub": "सर्व मागील ऑर्डर्स, खर्च आणि पेमेंट्स टाइमलाइन",
+      "businessProfile": "व्यवसाय प्रोफाइल आणि ब्रँडिंग",
+      "businessProfileSub": "दुकानाचे नाव, पत्ता, जीएसटी आणि इनव्हॉइस लोगो",
+      "customerDirectory": "ग्राहक निर्देशिका",
+      "customerDirectorySub": "ग्राहक, शिल्लक थकबाकी आणि संपर्क व्यवस्थापित करा",
+      "productCatalog": "उत्पादन कॅटलॉग",
+      "productCatalogSub": "वस्तू, डीफॉल्ट दर आणि इन्व्हेंटरी युनिट्स जतन करा",
+      "settingsAndBackup": "सेटिंग्ज आणि क्लाउड सिंक",
+      "settingsAndBackupSub": "भाषा, पिन सुरक्षा, फायरबेस आणि निर्यात"
     }
   },
   "gu": {
@@ -2231,7 +2507,8 @@ export const translations = {
       "pipelineTapToManage": "Manage",
       "totalOutflow": "Outflow",
       "collected": "Collected",
-      "sales": "Sales"
+      "sales": "Sales",
+      "totalExpenses": "કુલ ખર્ચ"
     },
     "orders": {
       "title": "All Orders",
@@ -2309,7 +2586,14 @@ export const translations = {
       "methodCash": "Cash",
       "methodUpi": "UPI",
       "methodCard": "Card",
-      "methodBankTransfer": "Bank Transfer"
+      "methodBankTransfer": "Bank Transfer",
+      "addColumn": "કૉલમ ઉમેરો",
+      "addColumnTitle": "નવી કૉલમ ઉમેરો",
+      "columnName": "કૉલમનું નામ",
+      "columnNamePlaceholder": "દા.ત. સાઇઝ, રંગ, યુનિટ, ડિસ્કાઉન્ટ, GST",
+      "quickSuggestions": "સૂચનો",
+      "removeColumn": "કૉલમ દૂર કરો",
+      "customColumn": "કસ્ટમ કૉલમ"
     },
     "expenses": {
       "title": "Business Expenses",
@@ -2340,7 +2624,10 @@ export const translations = {
       "catMarketing": "Advertising",
       "catMaintenance": "Repairs & Upkeep",
       "catTax": "Taxes & GST",
-      "catOther": "Miscellaneous"
+      "catOther": "Miscellaneous",
+      "totalExpenses": "કુલ ખર્ચ",
+      "editExpense": "ખર્ચ સંપાદિત કરો",
+      "newExpense": "નવો ખર્ચ"
     },
     "customers": {
       "title": "Customer Directory",
@@ -2363,7 +2650,8 @@ export const translations = {
       "updateCustomerBtn": "Update Customer",
       "noCustomers": "No customers found in directory.",
       "deleteCustomerPrompt": "Are you sure you want to delete this customer?",
-      "customerDeleted": "Customer profile deleted successfully."
+      "customerDeleted": "Customer profile deleted successfully.",
+      "editCustomer": "ગ્રાહક સંપાદિત કરો"
     },
     "products": {
       "title": "Product Catalog",
@@ -2381,7 +2669,8 @@ export const translations = {
       "noProducts": "No products in catalog yet.",
       "deleteProductPrompt": "Are you sure you want to delete this product from catalog?",
       "productDeleted": "Product removed from catalog.",
-      "category": "Category"
+      "category": "Category",
+      "editProduct": "ઉત્પાદન સંપાદિત કરો"
     },
     "reports": {
       "title": "Financial Reports",
@@ -2499,6 +2788,39 @@ export const translations = {
       "pinPlaceholderDigits": "••••",
       "pinSignInBtn": "Unlock with PIN",
       "orDivider": "or with email & password"
+    },
+    "history": {
+      "title": "સ્ટોર પ્રવૃત્તિ અને ઇતિહાસ",
+      "subtitle": "ઓર્ડર્સ, ચૂકવણીઓ અને ખર્ચાઓની રીઅલ-ટાઇમ સમયરેખા",
+      "searchPlaceholder": "ઓર્ડર, ગ્રાહક, વિક્રેતા દ્વારા ઇતિહાસ શોધો…"
+    },
+    "profile": {
+      "title": "વ્યવસાય પ્રોફાઇલ અને બ્રાન્ડિંગ",
+      "subtitle": "દુકાનનું નામ, જીએસટી, સરનામું અને ઇન્વૉઇસ લોગો",
+      "shopName": "વ્યવસાય / દુકાનનું નામ",
+      "tagline": "ટેગલાઇન / સ્લોગન",
+      "uploadLogo": "લોગો છબી અપલોડ કરો",
+      "changeLogo": "લોગો બદલો",
+      "phone": "સંપર્ક ફોન નંબર",
+      "email": "વ્યવસાય ઇમેઇલ",
+      "address": "દુકાન / વ્યવસાય સરનામું",
+      "bankDetails": "બેંક અને યુપીઆઈ ચુકવણી વિગતો",
+      "gstin": "જીએસટી નંબર",
+      "saveProfileBtn": "વ્યવસાય પ્રોફાઇલ સાચવો"
+    },
+    "more": {
+      "title": "વધુ વિકલ્પો",
+      "subtitle": "સ્ટોર પ્રોફાઇલ, ઇતિહાસ, કેટલોગ અને સેટિંગ્સ",
+      "storeActivity": "સ્ટોર પ્રવૃત્તિ અને ઇતિહાસ",
+      "storeActivitySub": "બધા ભૂતકાળના ઓર્ડર્સ, ખર્ચાઓ અને ચૂકવણીઓની સમયરેખા",
+      "businessProfile": "વ્યવસાય પ્રોફાઇલ અને બ્રાન્ડિંગ",
+      "businessProfileSub": "દુકાનનું નામ, સરનામું, જીએસટી અને ઇન્વૉઇસ લોગો",
+      "customerDirectory": "ગ્રાહક ડિરેક્ટરી",
+      "customerDirectorySub": "ખરીદદારો, બાકી બેલેન્સ અને સંપર્કો મેનેજ કરો",
+      "productCatalog": "ઉત્પાદન કેટલોગ",
+      "productCatalogSub": "વસ્તુઓ, ડિફૉલ્ટ દરો અને ઇન્વેન્ટરી એકમો સાચવો",
+      "settingsAndBackup": "સેટિંગ્સ અને ક્લાઉડ સિંક",
+      "settingsAndBackupSub": "ભાષા, પિન સુરક્ષા, ફાયરબેઝ અને નિકાસ"
     }
   },
   "ml": {
@@ -2579,7 +2901,8 @@ export const translations = {
       "pipelineTapToManage": "Manage",
       "totalOutflow": "Outflow",
       "collected": "Collected",
-      "sales": "Sales"
+      "sales": "Sales",
+      "totalExpenses": "ആകെ ചെലവുകൾ"
     },
     "orders": {
       "title": "All Orders",
@@ -2657,7 +2980,14 @@ export const translations = {
       "methodCash": "Cash",
       "methodUpi": "UPI",
       "methodCard": "Card",
-      "methodBankTransfer": "Bank Transfer"
+      "methodBankTransfer": "Bank Transfer",
+      "addColumn": "കോളം ചേർക്കുക",
+      "addColumnTitle": "പുതിയ കോളം ചേർക്കുക",
+      "columnName": "കോളത്തിന്റെ പേര്",
+      "columnNamePlaceholder": "ഉദാ. അളവ്, നിറം, യൂണിറ്റ്, ഡിസ്കൗണ്ട്, GST",
+      "quickSuggestions": "നിർദ്ദേശങ്ങൾ",
+      "removeColumn": "കോളം നീക്കം ചെയ്യുക",
+      "customColumn": "കസ്റ്റം കോളം"
     },
     "expenses": {
       "title": "Business Expenses",
@@ -2688,7 +3018,10 @@ export const translations = {
       "catMarketing": "Advertising",
       "catMaintenance": "Repairs & Upkeep",
       "catTax": "Taxes & GST",
-      "catOther": "Miscellaneous"
+      "catOther": "Miscellaneous",
+      "totalExpenses": "ആകെ ചെലവുകൾ",
+      "editExpense": "ചെലവ് എഡിറ്റ് ചെയ്യുക",
+      "newExpense": "പുതിയ ചെലവ്"
     },
     "customers": {
       "title": "Customer Directory",
@@ -2711,7 +3044,8 @@ export const translations = {
       "updateCustomerBtn": "Update Customer",
       "noCustomers": "No customers found in directory.",
       "deleteCustomerPrompt": "Are you sure you want to delete this customer?",
-      "customerDeleted": "Customer profile deleted successfully."
+      "customerDeleted": "Customer profile deleted successfully.",
+      "editCustomer": "ഉപഭോക്താവിനെ എഡിറ്റ് ചെയ്യുക"
     },
     "products": {
       "title": "Product Catalog",
@@ -2729,7 +3063,8 @@ export const translations = {
       "noProducts": "No products in catalog yet.",
       "deleteProductPrompt": "Are you sure you want to delete this product from catalog?",
       "productDeleted": "Product removed from catalog.",
-      "category": "Category"
+      "category": "Category",
+      "editProduct": "ഉൽപ്പന്നം എഡിറ്റ് ചെയ്യുക"
     },
     "reports": {
       "title": "Financial Reports",
@@ -2847,6 +3182,39 @@ export const translations = {
       "pinPlaceholderDigits": "••••",
       "pinSignInBtn": "Unlock with PIN",
       "orDivider": "or with email & password"
+    },
+    "history": {
+      "title": "സ്റ്റോർ പ്രവർത്തനങ്ങളും ചരിത്രവും",
+      "subtitle": "ഓർഡറുകൾ, പേയ്‌മെന്റുകൾ, ചെലവുകൾ എന്നിവയുടെ തത്സമയ ടൈംലൈൻ",
+      "searchPlaceholder": "ഓർഡർ, കസ്റ്റമർ, വെണ്ടർ പ്രകാരം ഹിസ്റ്ററി തിരയുക…"
+    },
+    "profile": {
+      "title": "ബിസിനസ്സ് പ്രൊഫൈലും ബ്രാൻഡിംഗും",
+      "subtitle": "കടയുടെ പേര്, ജിഎസ്ടി, വിലാസം, ഇൻവോയ്സ് ലോഗോ",
+      "shopName": "ബിസിനസ്സ് / കടയുടെ പേര്",
+      "tagline": "ടാഗ്‌ലൈൻ / മുദ്രാവാക്യം",
+      "uploadLogo": "ലോഗോ ചിത്രം അപ്‌ലോഡ് ചെയ്യുക",
+      "changeLogo": "ലോഗോ മാറ്റുക",
+      "phone": "ബന്ധപ്പെടേണ്ട ഫോൺ നമ്പർ",
+      "email": "ബിസിനസ്സ് ഇമെയിൽ",
+      "address": "കട / ബിസിനസ്സ് വിലാസം",
+      "bankDetails": "ബാങ്ക് & യുപിഐ പേയ്‌മെന്റ് വിവരങ്ങൾ",
+      "gstin": "ജിഎസ്ടി നമ്പർ",
+      "saveProfileBtn": "ബിസിനസ്സ് പ്രൊഫൈൽ സംരക്ഷിക്കുക"
+    },
+    "more": {
+      "title": "കൂടുതൽ ഓപ്ഷനുകൾ",
+      "subtitle": "സ്റ്റോർ പ്രൊഫൈൽ, ചരിത്രം, കാറ്റലോഗുകൾ & ക്രമീകരണങ്ങൾ",
+      "storeActivity": "സ്റ്റോർ പ്രവർത്തനങ്ങളും ചരിത്രവും",
+      "storeActivitySub": "കഴിഞ്ഞ ഓർഡറുകൾ, ചെലവുകൾ, പേയ്‌മെന്റുകൾ എന്നിവ",
+      "businessProfile": "ബിസിനസ്സ് പ്രൊഫൈലും ബ്രാൻഡിംഗും",
+      "businessProfileSub": "കടയുടെ പേര്, വിലാസം, ജിഎസ്ടി, ഇൻവോയ്സ് ലോഗോ",
+      "customerDirectory": "ഉപഭോക്തൃ ഡയറക്ടറി",
+      "customerDirectorySub": "ഉപഭോക്താക്കൾ, ബാക്കി തുക, കോൺടാക്റ്റുകൾ എന്നിവ നിയന്ത്രിക്കുക",
+      "productCatalog": "ഉൽപ്പന്ന കാറ്റലോഗ്",
+      "productCatalogSub": "ഇനങ്ങൾ, ഡിഫോൾട്ട് നിരക്കുകൾ, ഇൻവെന്ററി യൂണിറ്റുകൾ എന്നിവ സംരക്ഷിക്കുക",
+      "settingsAndBackup": "ക്രമീകരണങ്ങളും ക്ലൗഡ് സമന്വയവും",
+      "settingsAndBackupSub": "ഭാഷ, പിൻ സുരക്ഷ, ഫയർബേസ് & എക്സ്പോർട്ട്"
     }
   },
   "bn": {
@@ -2927,7 +3295,8 @@ export const translations = {
       "pipelineTapToManage": "Manage",
       "totalOutflow": "Outflow",
       "collected": "Collected",
-      "sales": "Sales"
+      "sales": "Sales",
+      "totalExpenses": "মোট খরচ"
     },
     "orders": {
       "title": "All Orders",
@@ -3005,7 +3374,14 @@ export const translations = {
       "methodCash": "Cash",
       "methodUpi": "UPI",
       "methodCard": "Card",
-      "methodBankTransfer": "Bank Transfer"
+      "methodBankTransfer": "Bank Transfer",
+      "addColumn": "কলাম যোগ করুন",
+      "addColumnTitle": "নতুন কলাম যোগ করুন",
+      "columnName": "কলামের নাম",
+      "columnNamePlaceholder": "যেমন: সাইজ, রঙ, ইউনিট, ছাড়, GST",
+      "quickSuggestions": "পরামর্শ",
+      "removeColumn": "কলাম মুছুন",
+      "customColumn": "কাস্টম কলাম"
     },
     "expenses": {
       "title": "Business Expenses",
@@ -3036,7 +3412,10 @@ export const translations = {
       "catMarketing": "Advertising",
       "catMaintenance": "Repairs & Upkeep",
       "catTax": "Taxes & GST",
-      "catOther": "Miscellaneous"
+      "catOther": "Miscellaneous",
+      "totalExpenses": "মোট খরচ",
+      "editExpense": "খরচ সম্পাদনা করুন",
+      "newExpense": "নতুন খরচ"
     },
     "customers": {
       "title": "Customer Directory",
@@ -3059,7 +3438,8 @@ export const translations = {
       "updateCustomerBtn": "Update Customer",
       "noCustomers": "No customers found in directory.",
       "deleteCustomerPrompt": "Are you sure you want to delete this customer?",
-      "customerDeleted": "Customer profile deleted successfully."
+      "customerDeleted": "Customer profile deleted successfully.",
+      "editCustomer": "গ্রাহক সম্পাদনা করুন"
     },
     "products": {
       "title": "Product Catalog",
@@ -3077,7 +3457,8 @@ export const translations = {
       "noProducts": "No products in catalog yet.",
       "deleteProductPrompt": "Are you sure you want to delete this product from catalog?",
       "productDeleted": "Product removed from catalog.",
-      "category": "Category"
+      "category": "Category",
+      "editProduct": "পণ্য সম্পাদনা করুন"
     },
     "reports": {
       "title": "Financial Reports",
@@ -3195,6 +3576,39 @@ export const translations = {
       "pinPlaceholderDigits": "••••",
       "pinSignInBtn": "Unlock with PIN",
       "orDivider": "or with email & password"
+    },
+    "history": {
+      "title": "স্টোর কার্যক্রম এবং ইতিহাস",
+      "subtitle": "অর্ডার, পেমেন্ট এবং খরচের রিয়েল-টাইম টাইমলাইন",
+      "searchPlaceholder": "অর্ডার, গ্রাহক, বিক্রেতা অনুসারে ইতিহাস অনুসন্ধান করুন…"
+    },
+    "profile": {
+      "title": "ব্যবসা প্রোফাইল এবং ব্র্যান্ডিং",
+      "subtitle": "দোকানের নাম, জিএসটি, ঠিকানা এবং চালান লোগো",
+      "shopName": "ব্যবসা / দোকানের নাম",
+      "tagline": "ট্যাগলাইন / স্লোগান",
+      "uploadLogo": "লোগো ছবি আপলোড করুন",
+      "changeLogo": "লোগো পরিবর্তন করুন",
+      "phone": "যোগাযোগের ফোন নম্বর",
+      "email": "ব্যবসা ইমেল",
+      "address": "দোকান / ব্যবসার ঠিকানা",
+      "bankDetails": "ব্যাঙ্ক এবং ইউপিআই পেমেন্টের বিবরণ",
+      "gstin": "জিএসটি নম্বর",
+      "saveProfileBtn": "ব্যবসা প্রোফাইল সংরক্ষণ করুন"
+    },
+    "more": {
+      "title": "আরও বিকল্প",
+      "subtitle": "স্টোর প্রোফাইল, ইতিহাস, ক্যাটালগ এবং সেটিংস",
+      "storeActivity": "স্টোর কার্যক্রম এবং ইতিহাস",
+      "storeActivitySub": "সমস্ত পূর্ববর্তী অর্ডার, খরচ এবং পেমেন্ট টাইমলাইন",
+      "businessProfile": "ব্যবসা প্রোফাইল এবং ব্র্যান্ডিং",
+      "businessProfileSub": "দোকানের নাম, ঠিকানা, জিএসটি এবং চালান লোগো",
+      "customerDirectory": "গ্রাহক নির্দেশিকা",
+      "customerDirectorySub": "ক্রেতা, বকেয়া ব্যালেন্স এবং পরিচিতি পরিচালনা করুন",
+      "productCatalog": "পণ্য ক্যাটালগ",
+      "productCatalogSub": "আইটেম, ডিফল্ট রেট এবং ইনভেন্টরি ইউনিট সংরক্ষণ করুন",
+      "settingsAndBackup": "সেটিংস এবং ক্লাউড সিঙ্ক",
+      "settingsAndBackupSub": "ভাষা, পিন নিরাপত্তা, ফায়ারবেস এবং রপ্তানি"
     }
   }
 };

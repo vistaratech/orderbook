@@ -37,7 +37,19 @@ export function generateWhatsAppInvoiceText(
     .map(
       (item, idx) => {
         const unitStr = item.unit ? ` ${item.unit}` : '';
-        return `${idx + 1}. *${item.name.trim() || 'Item'}* × ${item.qty}${unitStr} @ ${formatCurrency(
+        let extraInfo = '';
+        if (order.customColumns && order.customColumns.length > 0) {
+          const extras = order.customColumns
+            .map((col) => {
+              const v = item.customValues?.[col.id] || (col.name.toLowerCase() === 'unit' ? item.unit : null);
+              return v ? `${col.name}: ${v}` : null;
+            })
+            .filter(Boolean);
+          if (extras.length > 0) {
+            extraInfo = ` [${extras.join(', ')}]`;
+          }
+        }
+        return `${idx + 1}. *${item.name.trim() || 'Item'}*${extraInfo} × ${item.qty}${unitStr} @ ${formatCurrency(
           item.price
         )} = *${formatCurrency(item.qty * item.price)}*`;
       }
@@ -176,11 +188,21 @@ export function generatePrintableInvoiceHtml(
   const businessName = business?.businessName || business?.name || DEFAULT_BUSINESS_NAME;
 
   const preset = getBusinessPreset(business?.businessType);
+  const customCols = order.customColumns || [];
 
   const itemRowsHtml = order.items
     .map(
       (item, idx) => {
         const unitStr = item.unit ? ` <span style="font-size:11px; color:#64748B;">${item.unit}</span>` : '';
+        const customTds = customCols
+          .map((c) => {
+            const val =
+              item.customValues?.[c.id] ||
+              (c.name.toLowerCase() === 'unit' && item.unit ? item.unit : '-');
+            return `<td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: center; font-size: 13px; color: #475569;">${val || '-'}</td>`;
+          })
+          .join('');
+
         return `
     <tr style="background-color: ${idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};">
       <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: center; font-size: 13px; color: #64748B;">${idx + 1}</td>
@@ -190,6 +212,7 @@ export function generatePrintableInvoiceHtml(
       <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: center; font-weight: 600; font-size: 14px; color: #334155;">${
         item.qty
       }${unitStr}</td>
+      ${customTds}
       <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: right; font-size: 13px; color: #475569;">${formatCurrency(
         item.price
       )}</td>
@@ -488,6 +511,7 @@ export function generatePrintableInvoiceHtml(
             <th style="text-align: center; width: 40px;">#</th>
             <th style="text-align: left;">${preset.invoiceItemLabel}</th>
             <th style="text-align: center; width: 80px;">Qty</th>
+            ${customCols.map((c) => `<th style="text-align: center; width: 80px;">${c.name}</th>`).join('')}
             <th style="text-align: right; width: 100px;">Rate (₹)</th>
             <th style="text-align: right; width: 110px;">Amount (₹)</th>
           </tr>

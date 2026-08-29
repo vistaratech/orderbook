@@ -9,11 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { Order, OrderItem, OrderStatus, PaymentStatus, Customer, Product } from '../types/order';
+import { Order, OrderItem, OrderStatus, PaymentStatus, Customer, Product, CustomColumn } from '../types/order';
 import { getOrder, saveOrder, nextOrderNumber } from '../storage/orderStorage';
 import { getCustomers, saveCustomer } from '../storage/customerStorage';
 import { getProducts, saveProduct } from '../storage/productStorage';
@@ -56,6 +57,9 @@ export default function OrderFormScreen({ navigation, route }: Props) {
   const [phoneNumber, setPhoneNumber] = useState(prefillPhone || '');
   const [dispatchMethod, setDispatchMethod] = useState('Courier');
   const [dispatchDate, setDispatchDate] = useState('');
+  const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
+  const [showColumnModal, setShowColumnModal] = useState(false);
+  const [newColumnName, setNewColumnName] = useState('');
   const [items, setItems] = useState<OrderItem[]>(defaultFiveItems);
   const [customerNote, setCustomerNote] = useState('');
   const [advance, setAdvance] = useState('');
@@ -92,6 +96,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
         setPhoneNumber(order.phoneNumber);
         setDispatchMethod(order.dispatchMethod || '');
         setDispatchDate(order.dispatchDate || '');
+        setCustomColumns(order.customColumns || []);
         setItems(order.items.length ? order.items : defaultFiveItems());
         setCustomerNote(order.customerNote || '');
         setAdvance(order.advance ? String(order.advance) : '');
@@ -127,6 +132,48 @@ export default function OrderFormScreen({ navigation, route }: Props) {
 
   const removeItem = (id: string) => {
     setItems((prev) => (prev.length > 1 ? prev.filter((it) => it.id !== id) : prev));
+  };
+
+  const handleAddColumn = (nameToAdd?: string) => {
+    const name = (nameToAdd || newColumnName).trim();
+    if (!name) return;
+    const exists = customColumns.some((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (exists) {
+      Alert.alert('Column already exists', `"${name}" column is already added.`);
+      return;
+    }
+    const newCol: CustomColumn = {
+      id: generateId('col_'),
+      name,
+      type: 'text',
+    };
+    setCustomColumns((prev) => [...prev, newCol]);
+    setNewColumnName('');
+    setShowColumnModal(false);
+  };
+
+  const handleRemoveColumn = (colId: string) => {
+    setCustomColumns((prev) => prev.filter((c) => c.id !== colId));
+  };
+
+  const updateItemCustomValue = (itemId: string, colId: string, colName: string, value: string) => {
+    setItems((prev) =>
+      prev.map((it) => {
+        if (it.id !== itemId) return it;
+        const updatedCustom = { ...(it.customValues || {}), [colId]: value };
+        const patch: Partial<OrderItem> = { customValues: updatedCustom };
+        if (colName.toLowerCase() === 'unit') {
+          patch.unit = value;
+        }
+        if (colName.toLowerCase() === 'discount') {
+          patch.discount = parseFloat(value) || 0;
+        }
+        if (colName.toLowerCase().includes('tax') || colName.toLowerCase().includes('gst')) {
+          patch.tax = parseFloat(value) || 0;
+        }
+        return { ...it, ...patch };
+      })
+    );
   };
 
   const handleSelectCustomer = (c: Customer) => {
@@ -206,6 +253,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
       phoneNumber: phoneNumber.trim(),
       dispatchMethod: dispatchMethod.trim() || undefined,
       dispatchDate: dispatchDate.trim() || undefined,
+      customColumns: customColumns.length > 0 ? customColumns : undefined,
       items: cleanItems,
       customerNote: customerNote.trim() || undefined,
       advance: advanceNum,
@@ -263,39 +311,21 @@ export default function OrderFormScreen({ navigation, route }: Props) {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Section title={t('orders.orderDetailsTitle')} icon="receipt-outline">
-          <Row>
-            <Field label={t('orders.orderNumber')} flex={1}>
-              <TextInput style={styles.input} value={orderNumber} onChangeText={setOrderNumber} />
-            </Field>
-            <Field label={t('orders.orderDate')} flex={1}>
-              <TextInput style={styles.input} value={orderDate} onChangeText={setOrderDate} />
-            </Field>
-          </Row>
-          <Field label={t('orders.trackingNumber')}>
-            <TextInput
-              style={styles.input}
-              value={trackingNumber}
-              onChangeText={setTrackingNumber}
-              placeholder={t('orders.trackingPlaceholder')}
-              placeholderTextColor={colors.inkSoft}
-            />
-          </Field>
-        </Section>
-
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <Section title={t('orders.customerInfo')} icon="person-outline">
-          <Field label={t('customers.name')}>
+          <Field label={t('orders.customerName') + ' *'}>
             <TextInput
               style={styles.input}
               value={customerName}
               onChangeText={setCustomerName}
-              placeholder={t('customers.name')}
+              placeholder={t('orders.customerName')}
               placeholderTextColor={colors.inkSoft}
             />
           </Field>
-
-          {/* Customer Suggestions */}
           {customerSuggestions.length > 0 && (
             <View style={styles.suggestionRow}>
               <Text style={styles.suggestionLabel}>{t('orders.suggested')}</Text>
@@ -310,29 +340,52 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               ))}
             </View>
           )}
-
-          <Field label={t('customers.phone')}>
+          <Field label={t('orders.customerPhone')}>
             <TextInput
               style={styles.input}
               value={phoneNumber}
               onChangeText={setPhoneNumber}
-              keyboardType="phone-pad"
-              placeholder="10-digit mobile number"
+              placeholder={t('orders.customerPhone')}
               placeholderTextColor={colors.inkSoft}
+              keyboardType="phone-pad"
             />
           </Field>
         </Section>
 
         <Section title={t('orders.paymentDetails')} icon="card-outline">
+          <Row>
+            <Field label={t('orders.orderNumber')} flex={1}>
+              <TextInput
+                style={styles.input}
+                value={orderNumber}
+                onChangeText={setOrderNumber}
+                placeholder="#0001"
+                placeholderTextColor={colors.inkSoft}
+              />
+            </Field>
+            <Field label={t('orders.orderDate')} flex={1}>
+              <TextInput
+                style={styles.input}
+                value={orderDate}
+                onChangeText={setOrderDate}
+                placeholder={t('orders.orderDate')}
+                placeholderTextColor={colors.inkSoft}
+              />
+            </Field>
+          </Row>
           <Field label={t('orders.paymentMethod')}>
             <ChipRow options={PAYMENT_METHODS} value={paymentMethod} onChange={setPaymentMethod} getLabel={getPaymentMethodLabel} />
           </Field>
           <Field label={t('orders.paymentStatus')}>
-            <ChipRow
-              options={PAYMENT_STATUSES}
-              value={paymentStatus}
-              onChange={(v) => setPaymentStatus(v as PaymentStatus)}
-              getLabel={getPaymentStatusLabel}
+            <ChipRow options={PAYMENT_STATUSES} value={paymentStatus} onChange={(v) => setPaymentStatus(v as PaymentStatus)} getLabel={getPaymentStatusLabel} />
+          </Field>
+          <Field label={t('orders.trackingNumber')}>
+            <TextInput
+              style={styles.input}
+              value={trackingNumber}
+              onChangeText={setTrackingNumber}
+              placeholder={t('orders.trackingPlaceholder')}
+              placeholderTextColor={colors.inkSoft}
             />
           </Field>
         </Section>
@@ -352,16 +405,49 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           </Field>
         </Section>
 
-        <Section title={t('orders.itemsAndProducts')} icon="basket-outline">
+        <Section
+          title={t('orders.itemsAndProducts')}
+          icon="basket-outline"
+          rightAction={
+            <Pressable
+              style={({ pressed }) => [styles.addColumnHeaderBtn, pressed && { opacity: 0.8 }]}
+              onPress={() => setShowColumnModal(true)}
+            >
+              <Ionicons name="add" size={14} color={colors.clayDeep} />
+              <Text style={styles.addColumnHeaderBtnText}>{t('orders.addColumn')}</Text>
+            </Pressable>
+          }
+        >
           <View style={styles.itemHeaderRow}>
-            <Text style={[styles.itemHeaderCell, { flex: 3 }]}>{t('orders.itemName')}</Text>
-            <Text style={[styles.itemHeaderCell, { flex: 1, textAlign: 'center' }]}>{t('orders.quantity')} ({defaultUnit})</Text>
-            <Text style={[styles.itemHeaderCell, { flex: 1.2, textAlign: 'right' }]}>{t('orders.unitPrice')}</Text>
+            <Text style={[styles.itemHeaderCell, { flex: customColumns.length > 0 ? 2.2 : 3 }]}>
+              {t('orders.itemName')}
+            </Text>
+            <Text style={[styles.itemHeaderCell, { flex: 0.9, textAlign: 'center' }]}>
+              {t('orders.quantity')} ({defaultUnit})
+            </Text>
+
+            {customColumns.map((col) => (
+              <View key={col.id} style={[styles.customColHeader, { flex: 1 }]}>
+                <Text style={styles.itemHeaderCell} numberOfLines={1}>
+                  {col.name}
+                </Text>
+                <Pressable
+                  onPress={() => handleRemoveColumn(col.id)}
+                  hitSlop={6}
+                  style={styles.removeColBtn}
+                >
+                  <Ionicons name="close-circle" size={13} color={colors.inkSoft} />
+                </Pressable>
+              </View>
+            ))}
+
+            <Text style={[styles.itemHeaderCell, { flex: 1.1, textAlign: 'right' }]}>
+              {t('orders.unitPrice')}
+            </Text>
             <View style={{ width: 28 }} />
           </View>
 
           {items.map((item) => {
-            // Product suggestions for this row
             const prodMatches =
               item.name.trim().length > 0 &&
               allProducts.filter((p) =>
@@ -372,14 +458,14 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               <View key={item.id} style={styles.itemContainer}>
                 <View style={styles.itemRow}>
                   <TextInput
-                    style={[styles.itemInput, { flex: 3 }]}
+                    style={[styles.itemInput, { flex: customColumns.length > 0 ? 2.2 : 3 }]}
                     value={item.name}
                     onChangeText={(v) => updateItem(item.id, { name: v })}
                     placeholder={t('orders.productNamePlaceholder')}
                     placeholderTextColor={colors.inkSoft}
                   />
                   <TextInput
-                    style={[styles.itemInput, { flex: 1, textAlign: 'center' }]}
+                    style={[styles.itemInput, { flex: 0.9, textAlign: 'center' }]}
                     value={item.qty === 0 ? '' : String(item.qty)}
                     onChangeText={(v) => {
                       const clean = v.replace(/^0+(?=\d)/, '');
@@ -390,8 +476,25 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                     keyboardType="number-pad"
                     selectTextOnFocus
                   />
+
+                  {customColumns.map((col) => {
+                    const val =
+                      item.customValues?.[col.id] ||
+                      (col.name.toLowerCase() === 'unit' && item.unit ? item.unit : '');
+                    return (
+                      <TextInput
+                        key={col.id}
+                        style={[styles.itemInput, { flex: 1, textAlign: 'center' }]}
+                        value={val}
+                        onChangeText={(v) => updateItemCustomValue(item.id, col.id, col.name, v)}
+                        placeholder={col.name}
+                        placeholderTextColor={colors.inkSoft}
+                      />
+                    );
+                  })}
+
                   <TextInput
-                    style={[styles.itemInput, { flex: 1.2, textAlign: 'right' }]}
+                    style={[styles.itemInput, { flex: 1.1, textAlign: 'right' }]}
                     value={item.price === 0 ? '' : String(item.price)}
                     onChangeText={(v) => {
                       const clean = v.replace(/^0+(?=\d)/, '');
@@ -427,10 +530,20 @@ export default function OrderFormScreen({ navigation, route }: Props) {
             );
           })}
 
-          <Pressable style={styles.addItemBtn} onPress={addItem}>
-            <Ionicons name="add-circle" size={18} color={colors.clayDeep} />
-            <Text style={styles.addItemText}>{t('orders.addAnotherItem')}</Text>
-          </Pressable>
+          <View style={styles.itemTableActionsRow}>
+            <Pressable style={styles.addItemBtn} onPress={addItem}>
+              <Ionicons name="add-circle" size={18} color={colors.clayDeep} />
+              <Text style={styles.addItemText}>{t('orders.addAnotherItem')}</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.addColSecondaryBtn}
+              onPress={() => setShowColumnModal(true)}
+            >
+              <Ionicons name="grid-outline" size={15} color={colors.clayDeep} />
+              <Text style={styles.addColSecondaryText}>+ {t('orders.addColumn')}</Text>
+            </Pressable>
+          </View>
         </Section>
 
         <Section title={t('orders.customerNote')} icon="document-text-outline">
@@ -480,16 +593,138 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           <Text style={styles.saveBtnText}>{saving ? t('orders.savingOrder') : t('orders.saveOrderBtn')}</Text>
         </Pressable>
       </ScrollView>
+
+      {/* ─── Add Column Modal ─── */}
+      <Modal
+        visible={showColumnModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowColumnModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.modalCenterWrap}
+          >
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalIconWrap}>
+                  <Ionicons name="grid-outline" size={20} color={colors.clayDeep} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalTitle}>{t('orders.addColumnTitle')}</Text>
+                  <Text style={styles.modalSub}>{t('orders.quickSuggestions')}</Text>
+                </View>
+                <Pressable
+                  onPress={() => setShowColumnModal(false)}
+                  style={styles.modalCloseBtn}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close" size={20} color={colors.inkSoft} />
+                </Pressable>
+              </View>
+
+              {/* Quick Presets Chips */}
+              <View style={styles.presetChipsContainer}>
+                {[
+                  { name: 'Unit', label: '🏷️ Unit / அலகு' },
+                  { name: 'Size', label: '📏 Size / அளவு' },
+                  { name: 'Color', label: '🎨 Color / நிறம்' },
+                  { name: 'Discount', label: '💰 Discount (₹)' },
+                  { name: 'GST %', label: '📊 GST %' },
+                  { name: 'HSN', label: '🔢 HSN Code' },
+                ].map((preset) => {
+                  const alreadyAdded = customColumns.some(
+                    (c) => c.name.toLowerCase() === preset.name.toLowerCase()
+                  );
+                  return (
+                    <Pressable
+                      key={preset.name}
+                      style={[
+                        styles.presetChip,
+                        alreadyAdded && styles.presetChipAdded,
+                      ]}
+                      onPress={() => {
+                        if (!alreadyAdded) {
+                          handleAddColumn(preset.name);
+                        }
+                      }}
+                      disabled={alreadyAdded}
+                    >
+                      <Text
+                        style={[
+                          styles.presetChipText,
+                          alreadyAdded && styles.presetChipTextAdded,
+                        ]}
+                      >
+                        {preset.label} {alreadyAdded ? '✓' : '+'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {/* Divider */}
+              <View style={styles.modalDivider}>
+                <View style={styles.modalDividerLine} />
+                <Text style={styles.modalDividerText}>{t('orders.customColumn')}</Text>
+                <View style={styles.modalDividerLine} />
+              </View>
+
+              {/* Custom Input */}
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.modalInputLabel}>{t('orders.columnName')}</Text>
+                <View style={styles.modalInputWrap}>
+                  <TextInput
+                    style={styles.modalTextInput}
+                    value={newColumnName}
+                    onChangeText={setNewColumnName}
+                    placeholder={t('orders.columnNamePlaceholder')}
+                    placeholderTextColor={colors.inkSoft}
+                    autoFocus
+                  />
+                </View>
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.modalSubmitBtn,
+                  !newColumnName.trim() && { opacity: 0.5 },
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={() => handleAddColumn()}
+                disabled={!newColumnName.trim()}
+              >
+                <Ionicons name="add-circle-outline" size={18} color={colors.white} style={{ marginRight: 6 }} />
+                <Text style={styles.modalSubmitBtnText}>{t('orders.addColumn')}</Text>
+              </Pressable>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
 
-function Section({ title, icon, children }: { title: string; icon?: string; children: React.ReactNode }) {
+function Section({
+  title,
+  icon,
+  rightAction,
+  children,
+}: {
+  title: string;
+  icon?: string;
+  rightAction?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        {icon && <Ionicons name={icon as any} size={18} color={colors.clayDeep} />}
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+          {icon && <Ionicons name={icon as any} size={18} color={colors.clayDeep} />}
+          <Text style={styles.sectionTitle}>{title}</Text>
+        </View>
+        {rightAction}
       </View>
       {children}
     </View>
@@ -726,6 +961,189 @@ const styles = StyleSheet.create({
   saveBtnText: {
     fontFamily: fonts.bodyBold,
     fontSize: 16,
+    color: colors.white,
+  },
+
+  // ── Custom Columns UI ──
+  addColumnHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.clayLight,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.clayDeep,
+  },
+  addColumnHeaderBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.clayDeep,
+  },
+  customColHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  removeColBtn: {
+    padding: 2,
+    marginLeft: 2,
+  },
+  itemTableActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 10,
+  },
+  addColSecondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderStyle: 'dashed' as any,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.sm,
+  },
+  addColSecondaryText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.clayDeep,
+  },
+
+  // ── Add Column Modal ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCenterWrap: {
+    width: '100%',
+    maxWidth: 440,
+  },
+  modalCard: {
+    backgroundColor: colors.paperCard,
+    borderRadius: radius.lg,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    ...shadow.card,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  modalIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: colors.clayLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontFamily: fonts.display,
+    fontSize: 20,
+    color: colors.ink,
+  },
+  modalSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  presetChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  presetChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: radius.sm,
+  },
+  presetChipAdded: {
+    backgroundColor: colors.clayLight,
+    borderColor: colors.clayDeep,
+    opacity: 0.6,
+  },
+  presetChipText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  presetChipTextAdded: {
+    color: colors.clayDeep,
+    fontFamily: fonts.bodyBold,
+  },
+  modalDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  modalDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.line,
+  },
+  modalDividerText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.inkSoft,
+    marginHorizontal: 8,
+  },
+  modalInputGroup: {
+    marginBottom: 16,
+  },
+  modalInputLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginBottom: 4,
+  },
+  modalInputWrap: {
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  modalTextInput: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  modalSubmitBtn: {
+    backgroundColor: colors.clayDeep,
+    borderRadius: radius.sm,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  modalSubmitBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
     color: colors.white,
   },
 });

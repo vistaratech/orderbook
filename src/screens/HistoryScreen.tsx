@@ -8,6 +8,7 @@ import {
   TextInput,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -45,6 +46,46 @@ export interface ActivityEvent {
   orderId?: string;
   expenseId?: string;
 }
+
+interface HistoryEventCardItemProps {
+  item: ActivityEvent;
+  onPress: (item: ActivityEvent) => void;
+}
+
+const HistoryEventCardItem = React.memo(function HistoryEventCardItem({
+  item,
+  onPress,
+}: HistoryEventCardItemProps) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.eventCard, pressed && { opacity: 0.85 }]}
+      onPress={() => onPress(item)}
+    >
+      <View style={[styles.iconBox, { backgroundColor: item.badgeBg }]}>
+        <Ionicons name={item.icon as any} size={20} color={item.iconColor} />
+      </View>
+
+      <View style={styles.eventInfo}>
+        <Text style={styles.eventTitle}>{item.title}</Text>
+        <Text style={styles.eventSubtitle}>{item.subtitle}</Text>
+        <Text style={styles.eventDate}>{formatDate(item.date)}</Text>
+      </View>
+
+      {item.amount !== undefined && item.amount > 0 && (
+        <Text
+          style={[
+            styles.eventAmount,
+            item.amountType === 'inflow' && { color: colors.inflow },
+            item.amountType === 'outflow' && { color: colors.outflow },
+          ]}
+        >
+          {item.amountType === 'inflow' ? '+' : item.amountType === 'outflow' ? '-' : ''}
+          {formatCurrency(item.amount)}
+        </Text>
+      )}
+    </Pressable>
+  );
+});
 
 export default function HistoryScreen() {
   const navigation = useNavigation<Nav>();
@@ -140,7 +181,7 @@ export default function HistoryScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadHistoryData(true);
+      loadHistoryData(false);
     }, [loadHistoryData])
   );
 
@@ -151,10 +192,10 @@ export default function HistoryScreen() {
     return () => unsub();
   }, [loadHistoryData]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadHistoryData(true);
-  };
+  }, [loadHistoryData]);
 
   const filteredEvents = useMemo(() => {
     let list = [...events];
@@ -404,6 +445,12 @@ export default function HistoryScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            updateCellsBatchingPeriod={40}
+            removeClippedSubviews={Platform.OS === 'android'}
+            scrollEventThrottle={16}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.clayDeep]} />
             }
@@ -419,33 +466,10 @@ export default function HistoryScreen() {
               </View>
             }
             renderItem={({ item }) => (
-              <Pressable
-                style={({ pressed }) => [styles.eventCard, pressed && { opacity: 0.85 }]}
-                onPress={() => handleItemPress(item)}
-              >
-                <View style={[styles.iconBox, { backgroundColor: item.badgeBg }]}>
-                  <Ionicons name={item.icon as any} size={20} color={item.iconColor} />
-                </View>
-
-                <View style={styles.eventInfo}>
-                  <Text style={styles.eventTitle}>{item.title}</Text>
-                  <Text style={styles.eventSubtitle}>{item.subtitle}</Text>
-                  <Text style={styles.eventDate}>{formatDate(item.date)}</Text>
-                </View>
-
-                {item.amount !== undefined && item.amount > 0 && (
-                  <Text
-                    style={[
-                      styles.eventAmount,
-                      item.amountType === 'inflow' && { color: colors.inflow },
-                      item.amountType === 'outflow' && { color: colors.outflow },
-                    ]}
-                  >
-                    {item.amountType === 'inflow' ? '+' : item.amountType === 'outflow' ? '-' : ''}
-                    {formatCurrency(item.amount)}
-                  </Text>
-                )}
-              </Pressable>
+              <HistoryEventCardItem
+                item={item}
+                onPress={handleItemPress}
+              />
             )}
           />
         )}

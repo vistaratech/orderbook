@@ -1,7 +1,7 @@
 export type RootStackParamList = {
   OnboardingWizard: undefined;
-  Login: undefined;
-  Register: undefined;
+  Login: { initialTab?: 'login' | 'register' } | undefined;
+  Register: { initialTab?: 'login' | 'register' } | undefined;
   MainTabs: undefined;
   OrderList: undefined;
   OrderForm: { orderId?: string; prefillCustomerName?: string; prefillPhone?: string } | undefined;

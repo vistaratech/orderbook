@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -76,13 +76,9 @@ export default function DashboardScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadData(true);
+      loadData(false);
     }, [loadData])
   );
-
-  useEffect(() => {
-    loadData(true);
-  }, [loadData]);
 
   // Subscribe to live Firestore changes from other devices
   useEffect(() => {
@@ -92,10 +88,10 @@ export default function DashboardScreen() {
     return () => unsub();
   }, [loadData]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadData(true);
-  };
+  }, [loadData]);
 
   // Status update handler for Pipeline
   const handleQuickStatusChange = async (orderId: string, newStatus: OrderStatus) => {
@@ -110,35 +106,72 @@ export default function DashboardScreen() {
     }
   };
 
-  // Financial Calculations
-  const totalSales = orders.reduce((sum, o) => sum + orderTotal(o), 0);
-  const totalOutflow = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const totalCollected = orders.reduce((sum, o) => {
-    const tot = orderTotal(o);
-    const bal = orderBalance(o);
-    return sum + (tot - bal);
-  }, 0);
-  const pendingCollection = orders.reduce((sum, o) => sum + Math.max(0, orderBalance(o)), 0);
-  const netProfit = totalSales - totalOutflow;
-  const liquidCash = totalCollected - totalOutflow;
-  const profitMargin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : '0';
-  const collectionRate = totalSales > 0 ? Math.min(100, Math.round((totalCollected / totalSales) * 100)) : 0;
-  const avgOrderValue = orders.length > 0 ? Math.round(totalSales / orders.length) : 0;
+  // Memoized Financial Calculations & Status Breakdown
+  const dashboardStats = useMemo(() => {
+    let totalSales = 0;
+    let totalCollected = 0;
+    let pendingCollection = 0;
 
-  // Status breakdown
-  const statusCounts: Record<OrderStatus, number> = {
-    Placed: 0,
-    Packed: 0,
-    Dispatched: 0,
-    Delivered: 0,
-  };
-  orders.forEach((o) => {
-    if (statusCounts[o.status] !== undefined) {
-      statusCounts[o.status]++;
+    const statusCounts: Record<OrderStatus, number> = {
+      Placed: 0,
+      Packed: 0,
+      Dispatched: 0,
+      Delivered: 0,
+    };
+
+    for (let i = 0; i < orders.length; i++) {
+      const o = orders[i];
+      const tot = orderTotal(o);
+      const bal = orderBalance(o);
+      totalSales += tot;
+      totalCollected += tot - bal;
+      if (bal > 0) {
+        pendingCollection += bal;
+      }
+      if (statusCounts[o.status] !== undefined) {
+        statusCounts[o.status]++;
+      }
     }
-  });
 
-  const recentOrders = orders.slice(0, 5);
+    let totalOutflow = 0;
+    for (let i = 0; i < expenses.length; i++) {
+      totalOutflow += expenses[i].amount;
+    }
+
+    const netProfit = totalSales - totalOutflow;
+    const liquidCash = totalCollected - totalOutflow;
+    const profitMargin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : '0';
+    const collectionRate = totalSales > 0 ? Math.min(100, Math.round((totalCollected / totalSales) * 100)) : 0;
+    const avgOrderValue = orders.length > 0 ? Math.round(totalSales / orders.length) : 0;
+
+    return {
+      totalSales,
+      totalOutflow,
+      totalCollected,
+      pendingCollection,
+      netProfit,
+      liquidCash,
+      profitMargin,
+      collectionRate,
+      avgOrderValue,
+      statusCounts,
+      recentOrders: orders.slice(0, 5),
+    };
+  }, [orders, expenses]);
+
+  const {
+    totalSales,
+    totalOutflow,
+    totalCollected,
+    pendingCollection,
+    netProfit,
+    liquidCash,
+    profitMargin,
+    collectionRate,
+    avgOrderValue,
+    statusCounts,
+    recentOrders,
+  } = dashboardStats;
 
   // Orders filtered by the currently active pipeline status
   const pipelineFilteredOrders = activePipelineStatus
@@ -484,7 +517,7 @@ export default function DashboardScreen() {
                   <Text style={styles.emptyTitle}>{t('dashboard.noOrdersYet')}</Text>
                 </View>
               ) : (
-                recentOrders.map((o, idx) => {
+                recentOrders.map((o: Order, idx: number) => {
                   const bal = orderBalance(o);
                   const isLast = idx === recentOrders.length - 1;
                   return (

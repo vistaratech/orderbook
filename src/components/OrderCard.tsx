@@ -11,7 +11,7 @@ interface Props {
   onPress: () => void;
 }
 
-export default function OrderCard({ order, onPress }: Props) {
+function OrderCardComponent({ order, onPress }: Props) {
   const { t } = useLanguage();
   const total = orderTotal(order);
   const balance = orderBalance(order);
@@ -207,3 +207,17 @@ const styles = StyleSheet.create({
     color: colors.danger,
   },
 });
+
+const OrderCard = React.memo(OrderCardComponent, (prev, next) => {
+  return (
+    prev.order.id === next.order.id &&
+    prev.order.updatedAt === next.order.updatedAt &&
+    prev.order.status === next.order.status &&
+    prev.order.paymentStatus === next.order.paymentStatus &&
+    prev.order.advance === next.order.advance &&
+    prev.order.customerName === next.order.customerName &&
+    prev.order.items.length === next.order.items.length
+  );
+});
+
+export default OrderCard;

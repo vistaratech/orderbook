@@ -8,6 +8,7 @@ import {
   TextInput,
   RefreshControl,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
@@ -64,13 +65,9 @@ export default function OrderListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadOrders(true);
+      loadOrders(false);
     }, [loadOrders])
   );
-
-  useEffect(() => {
-    loadOrders(true);
-  }, [loadOrders]);
 
   // Subscribe to live Firestore changes
   useEffect(() => {
@@ -80,10 +77,28 @@ export default function OrderListScreen() {
     return () => unsub();
   }, [loadOrders]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadOrders(true);
-  };
+  }, [loadOrders]);
+
+  const orderCounts = useMemo(() => {
+    let pendingCount = 0;
+    let paidCount = 0;
+    let deliveredCount = 0;
+    for (let i = 0; i < orders.length; i++) {
+      const o = orders[i];
+      if (o.paymentStatus === 'Paid') {
+        paidCount++;
+      } else if (orderBalance(o) > 0) {
+        pendingCount++;
+      }
+      if (o.status === 'Delivered') {
+        deliveredCount++;
+      }
+    }
+    return { pendingCount, paidCount, deliveredCount, totalCount: orders.length };
+  }, [orders]);
 
   const filteredOrders = useMemo(() => {
     let result = [...orders];
@@ -208,7 +223,7 @@ export default function OrderListScreen() {
               }}
             >
               <Text style={[styles.quickChipText, paymentFilter === 'All' && statusFilter === 'All' && styles.quickChipTextActive]}>
-                {t('orders.filterAll')} ({orders.length})
+                {t('orders.filterAll')} ({orderCounts.totalCount})
               </Text>
             </Pressable>
 
@@ -222,7 +237,7 @@ export default function OrderListScreen() {
             >
               <Ionicons name="time" size={13} color={paymentFilter === 'Pending' ? colors.white : colors.pending} />
               <Text style={[styles.quickChipText, paymentFilter === 'Pending' && styles.quickChipTextActive, { color: paymentFilter === 'Pending' ? colors.white : colors.pending }]}>
-                {t('dashboard.pendingDues')} ({orders.filter((o) => o.paymentStatus !== 'Paid' && orderBalance(o) > 0).length})
+                {t('dashboard.pendingDues')} ({orderCounts.pendingCount})
               </Text>
             </Pressable>
 
@@ -235,7 +250,7 @@ export default function OrderListScreen() {
             >
               <Ionicons name="checkmark-circle" size={13} color={paymentFilter === 'Paid' ? colors.white : colors.inflow} />
               <Text style={[styles.quickChipText, paymentFilter === 'Paid' && styles.quickChipTextActive, { color: paymentFilter === 'Paid' ? colors.white : colors.inflow }]}>
-                {t('orders.payPaid')} ({orders.filter((o) => o.paymentStatus === 'Paid').length})
+                {t('orders.payPaid')} ({orderCounts.paidCount})
               </Text>
             </Pressable>
 
@@ -247,7 +262,7 @@ export default function OrderListScreen() {
               }}
             >
               <Text style={[styles.quickChipText, statusFilter === 'Delivered' && styles.quickChipTextActive]}>
-                {t('orders.statusDelivered')} ({orders.filter((o) => o.status === 'Delivered').length})
+                {t('orders.statusDelivered')} ({orderCounts.deliveredCount})
               </Text>
             </Pressable>
           </ScrollView>
@@ -358,6 +373,12 @@ export default function OrderListScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          updateCellsBatchingPeriod={40}
+          removeClippedSubviews={Platform.OS === 'android'}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
           }

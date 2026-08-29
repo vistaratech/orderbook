@@ -22,6 +22,7 @@ import {
   loginWithPassword,
   loginAsGuest,
   sendResetPassword,
+  registerUser,
 } from '../storage/authStorage';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import AppLogo from '../components/AppLogo';
@@ -32,15 +33,33 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 type LoginMode = 'email' | 'pin';
 
-export default function LoginScreen({ navigation }: Props) {
+export default function LoginScreen({ navigation, route }: Props) {
   const { language, setLanguage, t, currentLangOption, availableLanguages } = useLanguage();
   const [showLangModal, setShowLangModal] = useState(false);
+  const [authTab, setAuthTab] = useState<'login' | 'register'>(route?.params?.initialTab || 'login');
   const [mode, setMode] = useState<LoginMode>('email');
+
+  // Update tab if route param changes
+  useEffect(() => {
+    if (route?.params?.initialTab) {
+      setAuthTab(route.params.initialTab);
+    }
+  }, [route?.params?.initialTab]);
 
   // Email state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Register state
+  const [businessName, setBusinessName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [regPin, setRegPin] = useState('');
+  const [registering, setRegistering] = useState(false);
 
   // PIN state
   const [pin, setPin] = useState('');
@@ -48,7 +67,7 @@ export default function LoginScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // ─── Google Sign In ────────────────────────────────────────────────
+  // ─── Google Sign In / Up ───────────────────────────────────────────
   const { signInWithGoogle, loading: googleLoading, error: googleError } = useGoogleAuth({
     onSuccess: () => navigation.replace('MainTabs'),
   });
@@ -63,6 +82,72 @@ export default function LoginScreen({ navigation }: Props) {
   const handleGoogleSignIn = async () => {
     setErrorMessage(null);
     await signInWithGoogle();
+  };
+
+  // ─── Register Handler ─────────────────────────────────────────────
+  const handleRegister = async () => {
+    setErrorMessage(null);
+    if (!businessName.trim()) {
+      const msg = 'Please enter your business or store name.';
+      setErrorMessage(msg);
+      Alert.alert('Store Name Required', msg);
+      return;
+    }
+    if (!ownerName.trim()) {
+      const msg = 'Please enter your name.';
+      setErrorMessage(msg);
+      Alert.alert('Name Required', msg);
+      return;
+    }
+    if (!regEmail.trim()) {
+      const msg = 'Please enter your email.';
+      setErrorMessage(msg);
+      Alert.alert('Email Required', msg);
+      return;
+    }
+    if (!regPassword.trim() || regPassword.trim().length < 6) {
+      const msg = 'Password must be at least 6 characters long.';
+      setErrorMessage(msg);
+      Alert.alert('Password Required', msg);
+      return;
+    }
+    if (regPin.trim().length > 0 && regPin.trim().length !== 4) {
+      const msg = 'Quick PIN must be exactly 4 digits.';
+      setErrorMessage(msg);
+      Alert.alert('Invalid PIN', msg);
+      return;
+    }
+
+    setRegistering(true);
+    try {
+      await registerUser({
+        name: ownerName.trim(),
+        businessName: businessName.trim(),
+        email: regEmail.trim(),
+        phone: phone.trim(),
+        password: regPassword.trim(),
+        pin: regPin.trim() || undefined,
+      });
+      navigation.replace('MainTabs');
+    } catch (e: any) {
+      const code = e?.code;
+      let msg = 'Registration failed. Please check your details and try again.';
+      if (code === 'auth/email-already-in-use') {
+        msg = 'This email is already registered! Please switch to Sign In.';
+      } else if (code === 'auth/weak-password') {
+        msg = 'Password is too weak. Please use at least 6 characters.';
+      } else if (code === 'auth/invalid-email') {
+        msg = 'The email address is formatted incorrectly.';
+      } else if (code === 'auth/operation-not-allowed') {
+        msg = 'Email/Password provider is not enabled in your Firebase Console.';
+      } else if (code === 'auth/network-request-failed') {
+        msg = 'Network connection error. Please check your internet.';
+      }
+      setErrorMessage(msg);
+      Alert.alert('Registration Error', msg);
+    } finally {
+      setRegistering(false);
+    }
   };
 
   // ─── Email Login ──────────────────────────────────────────────────
@@ -206,18 +291,21 @@ export default function LoginScreen({ navigation }: Props) {
           {/* ── Top Auth Tabs (Sign In / Create Account) ──── */}
           <View style={styles.modeTabs}>
             <Pressable
-              style={[styles.modeTab, styles.modeTabActive]}
-              onPress={() => setErrorMessage(null)}
+              style={[styles.modeTab, authTab === 'login' && styles.modeTabActive]}
+              onPress={() => {
+                setErrorMessage(null);
+                setAuthTab('login');
+              }}
             >
               <Ionicons
                 name="log-in-outline"
                 size={16}
-                color={colors.white}
+                color={authTab === 'login' ? colors.white : colors.inkSoft}
               />
               <Text
                 style={[
                   styles.modeTabText,
-                  styles.modeTabTextActive,
+                  authTab === 'login' && styles.modeTabTextActive,
                 ]}
               >
                 {t('auth.signInTab')}
@@ -225,162 +313,376 @@ export default function LoginScreen({ navigation }: Props) {
             </Pressable>
 
             <Pressable
-              style={styles.modeTab}
-              onPress={() => navigation.navigate('Register')}
+              style={[styles.modeTab, authTab === 'register' && styles.modeTabActive]}
+              onPress={() => {
+                setErrorMessage(null);
+                setAuthTab('register');
+              }}
             >
               <Ionicons
                 name="person-add-outline"
                 size={15}
-                color={colors.inkSoft}
+                color={authTab === 'register' ? colors.white : colors.inkSoft}
               />
-              <Text style={styles.modeTabText}>
+              <Text
+                style={[
+                  styles.modeTabText,
+                  authTab === 'register' && styles.modeTabTextActive,
+                ]}
+              >
                 {t('auth.createAccountTab')}
               </Text>
             </Pressable>
           </View>
 
-          {/* ── Login Form Card ─────────────────────────── */}
-          <View style={styles.emailCard}>
-            {/* Inline Error Message */}
-            {errorMessage ? (
-              <View style={styles.errorContainer}>
-                <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={styles.errorIcon} />
-                <Text style={styles.errorText}>{errorMessage}</Text>
-                <Pressable onPress={() => setErrorMessage(null)} style={styles.errorDismissBtn} hitSlop={8}>
-                  <Ionicons name="close-circle" size={18} color={colors.danger} />
-                </Pressable>
+          {/* ── Auth Form Card (Sign In / Register) ─────────── */}
+          {authTab === 'login' ? (
+            <View style={styles.emailCard}>
+              {/* Inline Error Message */}
+              {errorMessage ? (
+                <View style={styles.errorContainer}>
+                  <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={styles.errorIcon} />
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                  <Pressable onPress={() => setErrorMessage(null)} style={styles.errorDismissBtn} hitSlop={8}>
+                    <Ionicons name="close-circle" size={18} color={colors.danger} />
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {/* Google Sign In Button */}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.googleBtn,
+                  googleLoading && styles.googleBtnDisabled,
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={handleGoogleSignIn}
+                disabled={googleLoading || loading}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator size="small" color={colors.ink} />
+                ) : (
+                  <>
+                    <Ionicons name="logo-google" size={18} color="#EA4335" />
+                    <Text style={styles.googleBtnText}>{t('auth.googleSignIn')}</Text>
+                  </>
+                )}
+              </Pressable>
+
+              {/* Divider */}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>{t('auth.orEmailSignIn')}</Text>
+                <View style={styles.dividerLine} />
               </View>
-            ) : null}
 
-            {/* Google Sign In Button */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.googleBtn,
-                googleLoading && styles.googleBtnDisabled,
-                pressed && { opacity: 0.85 },
-              ]}
-              onPress={handleGoogleSignIn}
-              disabled={googleLoading || loading}
-            >
-              {googleLoading ? (
-                <ActivityIndicator size="small" color={colors.ink} />
-              ) : (
-                <>
-                  <Ionicons name="logo-google" size={18} color="#EA4335" />
-                  <Text style={styles.googleBtnText}>{t('auth.googleSignIn')}</Text>
-                </>
-              )}
-            </Pressable>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t('auth.orEmailSignIn')}</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Email */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{t('auth.email')}</Text>
-              <View style={styles.inputWrap}>
-                <Ionicons name="mail-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  value={email}
-                  onChangeText={(val) => {
-                    setEmail(val);
-                    if (errorMessage) setErrorMessage(null);
-                  }}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  placeholder={t('auth.emailPlaceholder')}
-                  placeholderTextColor={colors.inkSoft}
-                />
-              </View>
-            </View>
-
-            {/* Password */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{t('auth.password')}</Text>
-              <View style={styles.inputWrap}>
-                <Ionicons name="lock-closed-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.textInput, { flex: 1 }]}
-                  value={password}
-                  onChangeText={(val) => {
-                    setPassword(val);
-                    if (errorMessage) setErrorMessage(null);
-                  }}
-                  secureTextEntry={!showPassword}
-                  autoComplete="password"
-                  placeholder={t('auth.passwordPlaceholder')}
-                  placeholderTextColor={colors.inkSoft}
-                />
-                <Pressable
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeBtn}
-                  hitSlop={8}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={20}
-                    color={colors.inkSoft}
+              {/* Email */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t('auth.email')}</Text>
+                <View style={styles.inputWrap}>
+                  <Ionicons name="mail-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    value={email}
+                    onChangeText={(val) => {
+                      setEmail(val);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    placeholder={t('auth.emailPlaceholder')}
+                    placeholderTextColor={colors.inkSoft}
                   />
-                </Pressable>
+                </View>
               </View>
+
+              {/* Password */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t('auth.password')}</Text>
+                <View style={styles.inputWrap}>
+                  <Ionicons name="lock-closed-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.textInput, { flex: 1 }]}
+                    value={password}
+                    onChangeText={(val) => {
+                      setPassword(val);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
+                    secureTextEntry={!showPassword}
+                    autoComplete="password"
+                    placeholder={t('auth.passwordPlaceholder')}
+                    placeholderTextColor={colors.inkSoft}
+                  />
+                  <Pressable
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeBtn}
+                    hitSlop={8}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={colors.inkSoft}
+                    />
+                  </Pressable>
+                </View>
+              </View>
+
+              {/* Forgot Password */}
+              <Pressable style={styles.forgotBtn} onPress={handleForgotPassword}>
+                <Text style={styles.forgotText}>{t('auth.forgotPassword')}</Text>
+              </Pressable>
+
+              {/* Sign In Button */}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.signInBtn,
+                  loading && styles.signInBtnDisabled,
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={handleEmailLogin}
+                disabled={loading || googleLoading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <>
+                    <Ionicons name="log-in-outline" size={20} color={colors.white} />
+                    <Text style={styles.signInBtnText}>{t('auth.signInBtn')}</Text>
+                  </>
+                )}
+              </Pressable>
+
+              {/* Divider */}
+              <View style={[styles.divider, { marginVertical: 14 }]}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>{t('auth.or')}</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Guest Explore */}
+              <Pressable style={styles.guestBtn} onPress={handleGuestExplore}>
+                <Ionicons name="eye-outline" size={16} color={colors.duskDeep} />
+                <Text style={styles.guestBtnText}>{t('auth.guestExplore')}</Text>
+              </Pressable>
             </View>
+          ) : (
+            <View style={styles.emailCard}>
+              {/* Inline Error Message */}
+              {errorMessage ? (
+                <View style={styles.errorContainer}>
+                  <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={styles.errorIcon} />
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                  <Pressable onPress={() => setErrorMessage(null)} style={styles.errorDismissBtn} hitSlop={8}>
+                    <Ionicons name="close-circle" size={18} color={colors.danger} />
+                  </Pressable>
+                </View>
+              ) : null}
 
-            {/* Forgot Password */}
-            <Pressable style={styles.forgotBtn} onPress={handleForgotPassword}>
-              <Text style={styles.forgotText}>{t('auth.forgotPassword')}</Text>
-            </Pressable>
+              {/* Google Sign Up Button */}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.googleBtn,
+                  googleLoading && styles.googleBtnDisabled,
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={handleGoogleSignIn}
+                disabled={googleLoading || registering}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator size="small" color={colors.ink} />
+                ) : (
+                  <>
+                    <Ionicons name="logo-google" size={18} color="#EA4335" />
+                    <Text style={styles.googleBtnText}>{t('auth.googleSignUp')}</Text>
+                  </>
+                )}
+              </Pressable>
 
-            {/* Sign In Button */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.signInBtn,
-                loading && styles.signInBtnDisabled,
-                pressed && { opacity: 0.85 },
-              ]}
-              onPress={handleEmailLogin}
-              disabled={loading || googleLoading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <>
-                  <Ionicons name="log-in-outline" size={20} color={colors.white} />
-                  <Text style={styles.signInBtnText}>{t('auth.signInBtn')}</Text>
-                </>
-              )}
-            </Pressable>
+              {/* Divider */}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>{t('auth.orEmailSignUp')}</Text>
+                <View style={styles.dividerLine} />
+              </View>
 
-            {/* Divider */}
-            <View style={[styles.divider, { marginVertical: 14 }]}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t('auth.or')}</Text>
-              <View style={styles.dividerLine} />
+              {/* Business Name */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t('auth.businessName')} *</Text>
+                <View style={styles.inputWrap}>
+                  <Ionicons name="storefront-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    value={businessName}
+                    onChangeText={(val) => {
+                      setBusinessName(val);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
+                    placeholder={t('auth.businessNamePlaceholder')}
+                    placeholderTextColor={colors.inkSoft}
+                  />
+                </View>
+              </View>
+
+              {/* Owner Name */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t('auth.ownerName')} *</Text>
+                <View style={styles.inputWrap}>
+                  <Ionicons name="person-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    value={ownerName}
+                    onChangeText={(val) => {
+                      setOwnerName(val);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
+                    placeholder={t('auth.ownerNamePlaceholder')}
+                    placeholderTextColor={colors.inkSoft}
+                  />
+                </View>
+              </View>
+
+              {/* Email */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t('auth.email')} *</Text>
+                <View style={styles.inputWrap}>
+                  <Ionicons name="mail-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    value={regEmail}
+                    onChangeText={(val) => {
+                      setRegEmail(val);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    placeholder={t('auth.emailPlaceholder')}
+                    placeholderTextColor={colors.inkSoft}
+                  />
+                </View>
+              </View>
+
+              {/* Phone */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t('auth.phone')}</Text>
+                <View style={styles.inputWrap}>
+                  <Ionicons name="call-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    value={phone}
+                    onChangeText={(val) => {
+                      setPhone(val);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
+                    keyboardType="phone-pad"
+                    placeholder={t('auth.phonePlaceholder')}
+                    placeholderTextColor={colors.inkSoft}
+                  />
+                </View>
+              </View>
+
+              {/* Password */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t('auth.password')} * (min 6)</Text>
+                <View style={styles.inputWrap}>
+                  <Ionicons name="lock-closed-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.textInput, { flex: 1 }]}
+                    value={regPassword}
+                    onChangeText={(val) => {
+                      setRegPassword(val);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
+                    secureTextEntry={!showRegPassword}
+                    placeholder={t('auth.passwordPlaceholder')}
+                    placeholderTextColor={colors.inkSoft}
+                  />
+                  <Pressable
+                    onPress={() => setShowRegPassword(!showRegPassword)}
+                    style={styles.eyeBtn}
+                    hitSlop={8}
+                  >
+                    <Ionicons
+                      name={showRegPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={colors.inkSoft}
+                    />
+                  </Pressable>
+                </View>
+              </View>
+
+              {/* Quick PIN */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t('auth.quickPin')} {t('auth.pinOptional')}</Text>
+                <View style={styles.inputWrap}>
+                  <Ionicons name="keypad-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.textInput, { letterSpacing: 6, fontSize: 16 }]}
+                    value={regPin}
+                    onChangeText={(val) => {
+                      setRegPin(val);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    secureTextEntry
+                    placeholder="1234"
+                    placeholderTextColor={colors.inkSoft}
+                  />
+                </View>
+              </View>
+
+              {/* Create Account Button */}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.signInBtn,
+                  registering && styles.signInBtnDisabled,
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={handleRegister}
+                disabled={registering || googleLoading}
+              >
+                {registering ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <>
+                    <Ionicons name="person-add-outline" size={19} color={colors.white} />
+                    <Text style={styles.signInBtnText}>{t('auth.createAccountBtn')}</Text>
+                  </>
+                )}
+              </Pressable>
             </View>
-
-            {/* Guest Explore */}
-            <Pressable style={styles.guestBtn} onPress={handleGuestExplore}>
-              <Ionicons name="eye-outline" size={16} color={colors.duskDeep} />
-              <Text style={styles.guestBtnText}>{t('auth.guestExplore')}</Text>
-            </Pressable>
-          </View>
+          )}
 
           {/* ── Bottom Links ─────────────────────────────── */}
           <View style={styles.footerLinks}>
-            <Pressable
-              style={styles.createAccountLink}
-              onPress={() => navigation.navigate('Register')}
-            >
-              <Text style={styles.createAccountText}>
-                {t('auth.noAccount')}{' '}
-                <Text style={styles.createAccountBold}>{t('auth.createAccount')}</Text>
-              </Text>
-            </Pressable>
+            {authTab === 'login' ? (
+              <Pressable
+                style={styles.createAccountLink}
+                onPress={() => {
+                  setErrorMessage(null);
+                  setAuthTab('register');
+                }}
+              >
+                <Text style={styles.createAccountText}>
+                  {t('auth.noAccount')}{' '}
+                  <Text style={styles.createAccountBold}>{t('auth.createAccount')}</Text>
+                </Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                style={styles.createAccountLink}
+                onPress={() => {
+                  setErrorMessage(null);
+                  setAuthTab('login');
+                }}
+              >
+                <Text style={styles.createAccountText}>
+                  {t('auth.haveAccount')}{' '}
+                  <Text style={styles.createAccountBold}>{t('auth.signIn')}</Text>
+                </Text>
+              </Pressable>
+            )}
 
             <Pressable
               style={styles.wizardLink}

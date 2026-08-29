@@ -9,12 +9,21 @@ export const ORDER_STATUS_STEPS: OrderStatus[] = [
   'Delivered',
 ];
 
+export interface CustomColumn {
+  id: string;
+  name: string;
+  type?: 'text' | 'number';
+}
+
 export interface OrderItem {
   id: string;
   name: string;
   qty: number;
   price: number;
   unit?: string;
+  discount?: number;
+  tax?: number;
+  customValues?: Record<string, string>;
 }
 
 export interface Order {
@@ -30,6 +39,7 @@ export interface Order {
   dispatchMethod?: string;
   dispatchDate?: string;
 
+  customColumns?: CustomColumn[];
   items: OrderItem[];
   customerNote?: string;
   advance: number;
@@ -41,7 +51,7 @@ export interface Order {
 }
 
 export function orderTotal(order: Pick<Order, 'items'>): number {
-  return order.items.reduce((sum, item) => sum + item.qty * item.price, 0);
+  return order.items.reduce((sum, item) => sum + (item.qty || 0) * (item.price || 0), 0);
 }
 
 export function orderBalance(order: Pick<Order, 'items' | 'advance'>): number {

@@ -8,6 +8,7 @@ import {
   TextInput,
   RefreshControl,
   Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -26,6 +27,109 @@ import DesktopLayout from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+interface CustomerStats {
+  orderCount: number;
+  totalSpend: number;
+  pendingDue: number;
+}
+
+interface CustomerCardItemProps {
+  item: Customer;
+  stats: CustomerStats;
+  onPress: () => void;
+  onCall: (phone?: string) => void;
+  onWhatsApp: (phone?: string) => void;
+  t: (key: string, fallback?: string) => string;
+}
+
+const CustomerCardItem = React.memo(function CustomerCardItem({
+  item,
+  stats,
+  onPress,
+  onCall,
+  onWhatsApp,
+  t,
+}: CustomerCardItemProps) {
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.customerCard,
+        pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+      ]}
+      onPress={onPress}
+    >
+      <View style={styles.cardHeader}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {item.name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        <View style={styles.nameBlock}>
+          <Text style={styles.customerName}>{item.name}</Text>
+          {item.phone ? (
+            <Text style={styles.phoneText}>📞 {item.phone}</Text>
+          ) : null}
+          {item.address ? (
+            <Text style={styles.addressText} numberOfLines={1}>
+              📍 {item.address}
+            </Text>
+          ) : null}
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={colors.inkSoft} />
+      </View>
+
+      {/* Micro Stats Row */}
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
+          <Text style={styles.statLabel}>{t('nav.orders')}</Text>
+          <Text style={styles.statValue}>{stats.orderCount}</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statLabel}>{t('customers.totalPurchases')}</Text>
+          <Text style={[styles.statValue, { color: colors.inflow }]}>
+            {formatCurrency(stats.totalSpend)}
+          </Text>
+        </View>
+        {stats.pendingDue > 0 && (
+          <>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>{t('customers.dueBalance')}</Text>
+              <Text style={[styles.statValue, { color: colors.danger }]}>
+                {formatCurrency(stats.pendingDue)}
+              </Text>
+            </View>
+          </>
+        )}
+      </View>
+
+      {/* Quick Action Pills */}
+      <View style={styles.actionPillsRow}>
+        {item.phone ? (
+          <>
+            <Pressable
+              style={({ pressed }) => [styles.actionPill, pressed && { opacity: 0.7 }]}
+              onPress={() => onCall(item.phone)}
+            >
+              <Ionicons name="call" size={14} color={colors.clayDeep} />
+              <Text style={styles.actionPillText}>{t('customers.call')}</Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [styles.actionPill, styles.whatsappPill, pressed && { opacity: 0.7 }]}
+              onPress={() => onWhatsApp(item.phone)}
+            >
+              <Ionicons name="logo-whatsapp" size={14} color="#2E7D32" />
+              <Text style={[styles.actionPillText, { color: '#2E7D32' }]}>{t('customers.whatsapp')}</Text>
+            </Pressable>
+          </>
+        ) : null}
+      </View>
+    </Pressable>
+  );
+});
 
 export default function CustomerListScreen() {
   const navigation = useNavigation<Nav>();
@@ -49,7 +153,7 @@ export default function CustomerListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadData(true);
+      loadData(false);
     }, [loadData])
   );
 
@@ -61,10 +165,10 @@ export default function CustomerListScreen() {
     return () => unsub();
   }, [loadData]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadData(true);
-  };
+  }, [loadData]);
 
   // Build customer stats map
   const customerStats = useMemo(() => {
@@ -140,6 +244,12 @@ export default function CustomerListScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            updateCellsBatchingPeriod={40}
+            removeClippedSubviews={Platform.OS === 'android'}
+            scrollEventThrottle={16}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
             }
@@ -150,101 +260,14 @@ export default function CustomerListScreen() {
                 pendingDue: 0,
               };
               return (
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.customerCard,
-                    pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-                  ]}
-                  onPress={() =>
-                    navigation.navigate('CustomerDetail', { customerId: item.id })
-                  }
-                >
-                  <View style={styles.cardHeader}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>
-                        {item.name.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={styles.nameBlock}>
-                      <Text style={styles.customerName}>{item.name}</Text>
-                      {item.phone ? (
-                        <Text style={styles.phoneText}>📞 {item.phone}</Text>
-                      ) : null}
-                      {item.address ? (
-                        <Text style={styles.addressText} numberOfLines={1}>
-                          📍 {item.address}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color={colors.inkSoft} />
-                  </View>
-
-                  {/* Micro Stats Row */}
-                  <View style={styles.statsRow}>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statLabel}>{t('nav.orders')}</Text>
-                      <Text style={styles.statValue}>{stats.orderCount}</Text>
-                    </View>
-                    <View style={styles.statDivider} />
-                    <View style={styles.statItem}>
-                      <Text style={styles.statLabel}>{t('customers.totalPurchases')}</Text>
-                      <Text style={[styles.statValue, { color: colors.inflow }]}>
-                        {formatCurrency(stats.totalSpend)}
-                      </Text>
-                    </View>
-                    {stats.pendingDue > 0 && (
-                      <>
-                        <View style={styles.statDivider} />
-                        <View style={styles.statItem}>
-                          <Text style={styles.statLabel}>{t('customers.dueBalance')}</Text>
-                          <Text style={[styles.statValue, { color: colors.danger }]}>
-                            {formatCurrency(stats.pendingDue)}
-                          </Text>
-                        </View>
-                      </>
-                    )}
-                  </View>
-
-                  {/* Quick Action Pills */}
-                  <View style={styles.actionPillsRow}>
-                    {item.phone ? (
-                      <>
-                        <Pressable
-                          style={({ pressed }) => [styles.actionPill, pressed && { opacity: 0.7 }]}
-                          onPress={() => handleCall(item.phone)}
-                        >
-                          <Ionicons name="call" size={14} color={colors.clayDeep} />
-                          <Text style={styles.actionPillText}>{t('customers.call')}</Text>
-                        </Pressable>
-
-                        <Pressable
-                          style={({ pressed }) => [styles.actionPill, pressed && { opacity: 0.7 }]}
-                          onPress={() => handleWhatsApp(item.phone)}
-                        >
-                          <Ionicons name="logo-whatsapp" size={14} color={colors.success} />
-                          <Text style={[styles.actionPillText, { color: colors.success }]}>
-                            {t('customers.whatsapp')}
-                          </Text>
-                        </Pressable>
-                      </>
-                    ) : null}
-
-                    <Pressable
-                      style={({ pressed }) => [styles.actionPill, styles.newOrderPill, pressed && { opacity: 0.7 }]}
-                      onPress={() =>
-                        navigation.navigate('OrderForm', {
-                          prefillCustomerName: item.name,
-                          prefillPhone: item.phone,
-                        })
-                      }
-                    >
-                      <Ionicons name="add" size={14} color={colors.duskDeep} />
-                      <Text style={[styles.actionPillText, { color: colors.duskDeep }]}>
-                        {t('dashboard.newOrder')}
-                      </Text>
-                    </Pressable>
-                  </View>
-                </Pressable>
+                <CustomerCardItem
+                  item={item}
+                  stats={stats}
+                  onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}
+                  onCall={handleCall}
+                  onWhatsApp={handleWhatsApp}
+                  t={t}
+                />
               );
             }}
             ListEmptyComponent={
@@ -447,6 +470,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
     color: colors.clayDeep,
+  },
+  whatsappPill: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#C8E6C9',
   },
   newOrderPill: {
     marginLeft: 'auto',

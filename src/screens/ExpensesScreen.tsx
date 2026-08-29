@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TextInput,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -24,6 +25,60 @@ import { confirmAction } from '../utils/dialog';
 import { formatCurrency, formatDate } from '../utils/format';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+interface ExpenseItemProps {
+  item: Expense;
+  onEdit: (id: string) => void;
+  onDelete: (id: string, desc: string) => void;
+  t: (key: string, fallback?: string) => string;
+}
+
+const ExpenseCardItem = React.memo(function ExpenseCardItem({ item, onEdit, onDelete, t }: ExpenseItemProps) {
+  const color = categoryColor[item.category] || colors.duskDeep;
+  return (
+    <View style={styles.expenseCard}>
+      <View style={[styles.categoryIndicator, { backgroundColor: color }]} />
+      <View style={styles.expenseBody}>
+        <View style={styles.expenseTopRow}>
+          <View style={styles.expenseLeft}>
+            <View style={[styles.catBadge, { backgroundColor: color }]}>
+              <Text style={styles.catBadgeText}>{item.category}</Text>
+            </View>
+            <Text style={styles.expenseDesc} numberOfLines={2}>
+              {item.description || t('expenses.description')}
+            </Text>
+          </View>
+          <Text style={styles.expenseAmount}>-{formatCurrency(item.amount)}</Text>
+        </View>
+
+        <View style={styles.expenseBottomRow}>
+          <View style={styles.metaRow}>
+            <Ionicons name="calendar-outline" size={13} color={colors.inkSoft} />
+            <Text style={styles.metaText}>{formatDate(item.date)}</Text>
+            <Text style={styles.metaDivider}>•</Text>
+            <Ionicons name="card-outline" size={13} color={colors.inkSoft} />
+            <Text style={styles.metaText}>{item.paymentMethod || 'Cash'}</Text>
+          </View>
+
+          <View style={styles.actionIcons}>
+            <Pressable
+              style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+              onPress={() => onEdit(item.id)}
+            >
+              <Ionicons name="pencil" size={16} color={colors.inkSoft} />
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+              onPress={() => onDelete(item.id, item.description)}
+            >
+              <Ionicons name="trash-outline" size={16} color={colors.danger} />
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+});
 
 export default function ExpensesScreen() {
   const navigation = useNavigation<Nav>();
@@ -47,13 +102,9 @@ export default function ExpensesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadExpenses(true);
+      loadExpenses(false);
     }, [loadExpenses])
   );
-
-  useEffect(() => {
-    loadExpenses(true);
-  }, [loadExpenses]);
 
   // Subscribe to live Firestore updates
   useEffect(() => {
@@ -63,12 +114,16 @@ export default function ExpensesScreen() {
     return () => unsub();
   }, [loadExpenses]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadExpenses(true);
-  };
+  }, [loadExpenses]);
 
-  const handleDelete = (id: string, description: string) => {
+  const handleEdit = useCallback((id: string) => {
+    navigation.navigate('ExpenseForm', { expenseId: id });
+  }, [navigation]);
+
+  const handleDelete = useCallback((id: string, description: string) => {
     confirmAction({
       title: 'Delete Expense',
       message: `Remove "${description || 'this expense'}"?`,
@@ -77,10 +132,10 @@ export default function ExpensesScreen() {
       destructive: true,
       onConfirm: async () => {
         await deleteExpense(id);
-        loadExpenses();
+        loadExpenses(false);
       },
     });
-  };
+  }, [loadExpenses]);
 
   const filteredExpenses = useMemo(() => {
     let result = [...expenses];
@@ -189,55 +244,23 @@ export default function ExpensesScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          updateCellsBatchingPeriod={40}
+          removeClippedSubviews={Platform.OS === 'android'}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
           }
-          renderItem={({ item }) => {
-            const color = categoryColor[item.category] || colors.duskDeep;
-            return (
-              <View style={styles.expenseCard}>
-                <View style={[styles.categoryIndicator, { backgroundColor: color }]} />
-                <View style={styles.expenseBody}>
-                  <View style={styles.expenseTopRow}>
-                    <View style={styles.expenseLeft}>
-                      <View style={[styles.catBadge, { backgroundColor: color }]}>
-                        <Text style={styles.catBadgeText}>{item.category}</Text>
-                      </View>
-                      <Text style={styles.expenseDesc} numberOfLines={2}>
-                        {item.description || t('expenses.description')}
-                      </Text>
-                    </View>
-                    <Text style={styles.expenseAmount}>-{formatCurrency(item.amount)}</Text>
-                  </View>
-
-                  <View style={styles.expenseBottomRow}>
-                    <View style={styles.metaRow}>
-                      <Ionicons name="calendar-outline" size={13} color={colors.inkSoft} />
-                      <Text style={styles.metaText}>{formatDate(item.date)}</Text>
-                      <Text style={styles.metaDivider}>•</Text>
-                      <Ionicons name="card-outline" size={13} color={colors.inkSoft} />
-                      <Text style={styles.metaText}>{item.paymentMethod || 'Cash'}</Text>
-                    </View>
-
-                    <View style={styles.actionIcons}>
-                      <Pressable
-                        style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
-                        onPress={() => navigation.navigate('ExpenseForm', { expenseId: item.id })}
-                      >
-                        <Ionicons name="pencil" size={16} color={colors.inkSoft} />
-                      </Pressable>
-                      <Pressable
-                        style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
-                        onPress={() => handleDelete(item.id, item.description)}
-                      >
-                        <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                      </Pressable>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            );
-          }}
+          renderItem={({ item }) => (
+            <ExpenseCardItem
+              item={item}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              t={t}
+            />
+          )}
           ListEmptyComponent={
             !loading ? (
               <EmptyState

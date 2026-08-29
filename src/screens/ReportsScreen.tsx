@@ -44,13 +44,9 @@ export default function ReportsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadData(true);
+      loadData(false);
     }, [loadData])
   );
-
-  useEffect(() => {
-    loadData(true);
-  }, [loadData]);
 
   // Subscribe to live Firestore updates
   useEffect(() => {
@@ -60,10 +56,10 @@ export default function ReportsScreen() {
     return () => unsub();
   }, [loadData]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadData(true);
-  };
+  }, [loadData]);
 
   // Date filtering
   const now = new Date();
@@ -93,21 +89,55 @@ export default function ReportsScreen() {
     return expenses.filter((e) => (e.createdAt || e.date) >= filterDate);
   }, [expenses, filterDate]);
 
-  // Totals
-  const totalInflow = filteredOrders.reduce((sum, o) => sum + orderTotal(o), 0);
-  const totalOutflow = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const totalCollected = filteredOrders.reduce(
-    (sum, o) => sum + (orderTotal(o) - orderBalance(o)),
-    0
-  );
-  const totalPending = filteredOrders.reduce(
-    (sum, o) => sum + Math.max(0, orderBalance(o)),
-    0
-  );
-  const netProfit = totalInflow - totalOutflow;
-  const liquidCash = totalCollected - totalOutflow;
-  const profitMargin = totalInflow > 0 ? ((netProfit / totalInflow) * 100).toFixed(1) : '0';
-  const collectionRate = totalInflow > 0 ? Math.min(100, Math.round((totalCollected / totalInflow) * 100)) : 0;
+  // Memoized Totals
+  const reportTotals = useMemo(() => {
+    let totalInflow = 0;
+    let totalCollected = 0;
+    let totalPending = 0;
+
+    for (let i = 0; i < filteredOrders.length; i++) {
+      const o = filteredOrders[i];
+      const tot = orderTotal(o);
+      const bal = orderBalance(o);
+      totalInflow += tot;
+      totalCollected += tot - bal;
+      if (bal > 0) {
+        totalPending += bal;
+      }
+    }
+
+    let totalOutflow = 0;
+    for (let i = 0; i < filteredExpenses.length; i++) {
+      totalOutflow += filteredExpenses[i].amount;
+    }
+
+    const netProfit = totalInflow - totalOutflow;
+    const liquidCash = totalCollected - totalOutflow;
+    const profitMargin = totalInflow > 0 ? ((netProfit / totalInflow) * 100).toFixed(1) : '0';
+    const collectionRate = totalInflow > 0 ? Math.min(100, Math.round((totalCollected / totalInflow) * 100)) : 0;
+
+    return {
+      totalInflow,
+      totalOutflow,
+      totalCollected,
+      totalPending,
+      netProfit,
+      liquidCash,
+      profitMargin,
+      collectionRate,
+    };
+  }, [filteredOrders, filteredExpenses]);
+
+  const {
+    totalInflow,
+    totalOutflow,
+    totalCollected,
+    totalPending,
+    netProfit,
+    liquidCash,
+    profitMargin,
+    collectionRate,
+  } = reportTotals;
 
   // Expense breakdown by category
   const expenseByCategory = useMemo(() => {

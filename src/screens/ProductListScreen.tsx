@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TextInput,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -25,6 +26,51 @@ import DesktopLayout from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+interface ProductCardItemProps {
+  item: Product;
+  onEdit: (id: string) => void;
+  onDelete: (id: string, name: string) => void;
+}
+
+const ProductCardItem = React.memo(function ProductCardItem({
+  item,
+  onEdit,
+  onDelete,
+}: ProductCardItemProps) {
+  return (
+    <View style={styles.productCard}>
+      <View style={styles.productIconWrap}>
+        <Ionicons name="cube-outline" size={22} color={colors.duskDeep} />
+      </View>
+
+      <View style={styles.productLeft}>
+        <Text style={styles.productName}>{item.name}</Text>
+        <View style={styles.unitBadge}>
+          <Text style={styles.unitBadgeText}>{item.unit || 'pcs'}</Text>
+        </View>
+      </View>
+
+      <View style={styles.productRight}>
+        <Text style={styles.productPrice}>{formatCurrency(item.defaultPrice)}</Text>
+        <View style={styles.actions}>
+          <Pressable
+            style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+            onPress={() => onEdit(item.id)}
+          >
+            <Ionicons name="pencil" size={16} color={colors.inkSoft} />
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+            onPress={() => onDelete(item.id, item.name)}
+          >
+            <Ionicons name="trash-outline" size={16} color={colors.danger} />
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+});
 
 export default function ProductListScreen() {
   const navigation = useNavigation<Nav>();
@@ -46,7 +92,7 @@ export default function ProductListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadProducts(true);
+      loadProducts(false);
     }, [loadProducts])
   );
 
@@ -58,12 +104,16 @@ export default function ProductListScreen() {
     return () => unsub();
   }, [loadProducts]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadProducts(true);
-  };
+  }, [loadProducts]);
 
-  const handleDelete = (id: string, name: string) => {
+  const handleEdit = useCallback((id: string) => {
+    navigation.navigate('ProductForm', { productId: id });
+  }, [navigation]);
+
+  const handleDelete = useCallback((id: string, name: string) => {
     confirmAction({
       title: 'Delete Product',
       message: `Remove "${name}" from catalog?`,
@@ -72,10 +122,10 @@ export default function ProductListScreen() {
       destructive: true,
       onConfirm: async () => {
         await deleteProduct(id);
-        loadProducts();
+        loadProducts(false);
       },
     });
-  };
+  }, [loadProducts]);
 
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;
@@ -125,40 +175,21 @@ export default function ProductListScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            updateCellsBatchingPeriod={40}
+            removeClippedSubviews={Platform.OS === 'android'}
+            scrollEventThrottle={16}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
             }
             renderItem={({ item }) => (
-              <View style={styles.productCard}>
-                <View style={styles.productIconWrap}>
-                  <Ionicons name="cube-outline" size={22} color={colors.duskDeep} />
-                </View>
-
-                <View style={styles.productLeft}>
-                  <Text style={styles.productName}>{item.name}</Text>
-                  <View style={styles.unitBadge}>
-                    <Text style={styles.unitBadgeText}>{item.unit || 'pcs'}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.productRight}>
-                  <Text style={styles.productPrice}>{formatCurrency(item.defaultPrice)}</Text>
-                  <View style={styles.actions}>
-                    <Pressable
-                      style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
-                      onPress={() => navigation.navigate('ProductForm', { productId: item.id })}
-                    >
-                      <Ionicons name="pencil" size={16} color={colors.inkSoft} />
-                    </Pressable>
-                    <Pressable
-                      style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
-                      onPress={() => handleDelete(item.id, item.name)}
-                    >
-                      <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                    </Pressable>
-                  </View>
-                </View>
-              </View>
+              <ProductCardItem
+                item={item}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
             )}
             ListEmptyComponent={
               !loading ? (

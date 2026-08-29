@@ -364,15 +364,32 @@ Thank you for your business!`;
         </View>
 
         <View style={styles.itemHeaderRow}>
-          <Text style={[styles.itemHeaderCell, { flex: 3 }]}>{t('orders.itemName')}</Text>
-          <Text style={[styles.itemHeaderCell, { flex: 1, textAlign: 'center' }]}>{t('orders.quantity')}</Text>
-          <Text style={[styles.itemHeaderCell, { flex: 1.4, textAlign: 'right' }]}>{t('common.total')}</Text>
+          <Text style={[styles.itemHeaderCell, { flex: order.customColumns?.length ? 2.2 : 3 }]}>{t('orders.itemName')}</Text>
+          <Text style={[styles.itemHeaderCell, { flex: 0.9, textAlign: 'center' }]}>{t('orders.quantity')}</Text>
+          {order.customColumns?.map((col) => (
+            <Text key={col.id} style={[styles.itemHeaderCell, { flex: 1, textAlign: 'center' }]} numberOfLines={1}>
+              {col.name}
+            </Text>
+          ))}
+          <Text style={[styles.itemHeaderCell, { flex: 1.2, textAlign: 'right' }]}>{t('common.total')}</Text>
         </View>
         {order.items.map((item) => (
           <View key={item.id} style={styles.itemRow}>
-            <Text style={[styles.itemCell, { flex: 3 }]}>{item.name}</Text>
-            <Text style={[styles.itemCell, { flex: 1, textAlign: 'center' }]}>{item.qty}</Text>
-            <Text style={[styles.itemCell, { flex: 1.4, textAlign: 'right', fontFamily: fonts.bodyBold }]}>
+            <Text style={[styles.itemCell, { flex: order.customColumns?.length ? 2.2 : 3 }]}>{item.name}</Text>
+            <Text style={[styles.itemCell, { flex: 0.9, textAlign: 'center' }]}>
+              {item.qty}{item.unit ? ` ${item.unit}` : ''}
+            </Text>
+            {order.customColumns?.map((col) => {
+              const val =
+                item.customValues?.[col.id] ||
+                (col.name.toLowerCase() === 'unit' ? item.unit || '-' : '-');
+              return (
+                <Text key={col.id} style={[styles.itemCell, { flex: 1, textAlign: 'center', color: colors.inkSoft }]}>
+                  {val || '-'}
+                </Text>
+              );
+            })}
+            <Text style={[styles.itemCell, { flex: 1.2, textAlign: 'right', fontFamily: fonts.bodyBold }]}>
               {formatCurrency(item.qty * item.price)}
             </Text>
           </View>

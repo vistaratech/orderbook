@@ -498,3 +498,27 @@ export async function updateUserBusinessName(newBusinessName: string): Promise<v
 export async function setOnboardingComplete(complete = true): Promise<void> {
   await AsyncStorage.setItem(ONBOARDED_KEY, complete ? 'true' : 'false');
 }
+
+export async function sendResetPassword(email: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
+    await sendPasswordResetEmail(auth, cleanEmail);
+    return { success: true };
+  } catch (err: any) {
+    console.warn('Password reset error:', err);
+    let msg = 'Failed to send password reset email. Please try again.';
+    if (err?.code === 'auth/user-not-found') {
+      msg = 'No account found with this email address.';
+    } else if (err?.code === 'auth/invalid-email') {
+      msg = 'Invalid email address format.';
+    } else if (err?.code === 'auth/too-many-requests') {
+      msg = 'Too many attempts. Please wait a few moments and try again.';
+    } else if (err?.code === 'auth/network-request-failed') {
+      msg = 'Network error. Please check your internet connection.';
+    }
+    return { success: false, error: msg };
+  }
+}

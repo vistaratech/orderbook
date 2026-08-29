@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -20,7 +21,7 @@ import {
   loginWithPin,
   loginWithPassword,
   loginAsGuest,
-  resetPassword,
+  sendResetPassword,
 } from '../storage/authStorage';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import AppLogo from '../components/AppLogo';
@@ -89,29 +90,6 @@ export default function LoginScreen({ navigation }: Props) {
     }
   };
 
-  const handleForgotPassword = async () => {
-    setErrorMessage(null);
-    if (!email.trim()) {
-      const msg = 'Type your registered email address in the field above, then tap "Forgot password?" again.';
-      setErrorMessage(msg);
-      Alert.alert('Enter Your Email', msg);
-      return;
-    }
-    setLoading(true);
-    const sent = await resetPassword(email.trim());
-    setLoading(false);
-    if (sent) {
-      Alert.alert(
-        '📧 Reset Link Sent',
-        `A password reset link has been sent to ${email.trim()}.\n\nPlease check your inbox and spam folder.`
-      );
-    } else {
-      const msg = 'Could not send reset email. Please check the email address.';
-      setErrorMessage(msg);
-      Alert.alert('Reset Failed', msg);
-    }
-  };
-
   // ─── PIN Login ────────────────────────────────────────────────────
   const handlePinDigit = (digit: string) => {
     if (errorMessage) setErrorMessage(null);
@@ -143,6 +121,39 @@ export default function LoginScreen({ navigation }: Props) {
       setErrorMessage(msg);
       Alert.alert('Incorrect PIN', msg);
       setPin('');
+    }
+  };
+
+  // ─── Forgot Password State & Handler ─────────────────────────────
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+
+  const handleForgotPassword = () => {
+    setForgotEmail(email.trim());
+    setForgotError(null);
+    setForgotSuccess(null);
+    setShowForgotModal(true);
+  };
+
+  const handleSendResetEmail = async () => {
+    setForgotError(null);
+    setForgotSuccess(null);
+    if (!forgotEmail.trim() || !forgotEmail.includes('@')) {
+      setForgotError('Please enter a valid email address.');
+      return;
+    }
+
+    setForgotLoading(true);
+    const result = await sendResetPassword(forgotEmail.trim());
+    setForgotLoading(false);
+
+    if (result.success) {
+      setForgotSuccess(`Password reset email sent to ${forgotEmail.trim()}! Please check your inbox (and spam folder) to set a new password.`);
+    } else {
+      setForgotError(result.error || 'Failed to send password reset email.');
     }
   };
 
@@ -443,6 +454,118 @@ export default function LoginScreen({ navigation }: Props) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* ─── Forgot Password Modal ──────────────────────── */}
+      <Modal
+        visible={showForgotModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowForgotModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.modalCenterWrap}
+          >
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalIconWrap}>
+                  <Ionicons name="key-outline" size={22} color={colors.clayDeep} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalTitle}>Reset Password</Text>
+                  <Text style={styles.modalSub}>
+                    Enter your email to receive a password reset link
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => setShowForgotModal(false)}
+                  style={styles.modalCloseBtn}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close" size={20} color={colors.inkSoft} />
+                </Pressable>
+              </View>
+
+              {/* Success Banner */}
+              {forgotSuccess ? (
+                <View style={styles.forgotSuccessBox}>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.success} style={{ marginRight: 8 }} />
+                  <Text style={styles.forgotSuccessText}>{forgotSuccess}</Text>
+                </View>
+              ) : null}
+
+              {/* Error Banner */}
+              {forgotError ? (
+                <View style={styles.forgotErrorBox}>
+                  <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={{ marginRight: 8 }} />
+                  <Text style={styles.forgotErrorText}>{forgotError}</Text>
+                </View>
+              ) : null}
+
+              {!forgotSuccess ? (
+                <>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Registered Email Address</Text>
+                    <View style={styles.inputWrap}>
+                      <Ionicons name="mail-outline" size={18} color={colors.inkSoft} style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.textInput}
+                        value={forgotEmail}
+                        onChangeText={(val) => {
+                          setForgotEmail(val);
+                          if (forgotError) setForgotError(null);
+                        }}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoComplete="email"
+                        placeholder="your.email@example.com"
+                        placeholderTextColor={colors.inkSoft}
+                        autoFocus
+                      />
+                      {forgotEmail.length > 0 && (
+                        <Pressable onPress={() => setForgotEmail('')} hitSlop={8}>
+                          <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
+                        </Pressable>
+                      )}
+                    </View>
+                  </View>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.sendResetBtn,
+                      forgotLoading && { opacity: 0.6 },
+                      pressed && { opacity: 0.85 },
+                    ]}
+                    onPress={handleSendResetEmail}
+                    disabled={forgotLoading}
+                  >
+                    {forgotLoading ? (
+                      <ActivityIndicator size="small" color={colors.white} />
+                    ) : (
+                      <>
+                        <Ionicons name="paper-plane-outline" size={18} color={colors.white} style={{ marginRight: 6 }} />
+                        <Text style={styles.sendResetBtnText}>Send Reset Link</Text>
+                      </>
+                    )}
+                  </Pressable>
+                </>
+              ) : (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.sendResetBtn,
+                    { backgroundColor: colors.clayDeep, marginTop: 14 },
+                    pressed && { opacity: 0.85 },
+                  ]}
+                  onPress={() => setShowForgotModal(false)}
+                >
+                  <Text style={styles.sendResetBtnText}>Back to Sign In</Text>
+                </Pressable>
+              )}
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -750,4 +873,103 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.clayDeep,
   },
+
+  // ── Forgot Password Modal Styles ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCenterWrap: {
+    width: '100%',
+    maxWidth: 440,
+  },
+  modalCard: {
+    backgroundColor: colors.paperCard,
+    borderRadius: radius.lg,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+    ...shadow.card,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  modalIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.clayLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontFamily: fonts.display,
+    fontSize: 20,
+    color: colors.ink,
+  },
+  modalSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    padding: 6,
+    borderRadius: radius.sm,
+  },
+  forgotSuccessBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    borderColor: '#A5D6A7',
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: 14,
+    marginBottom: 16,
+  },
+  forgotSuccessText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: '#2E7D32',
+    flex: 1,
+    lineHeight: 18,
+  },
+  forgotErrorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.dangerLight,
+    borderColor: colors.danger,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: 12,
+    marginBottom: 14,
+  },
+  forgotErrorText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.danger,
+    flex: 1,
+  },
+  sendResetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.clayDeep,
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    marginTop: 10,
+    ...shadow.card,
+  },
+  sendResetBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+    color: colors.white,
+  },
 });
+

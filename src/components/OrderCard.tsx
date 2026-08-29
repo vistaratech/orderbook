@@ -66,9 +66,14 @@ function OrderCardComponent({ order, onPress }: Props) {
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <Text style={styles.totalLabel}>{t('orders.paymentStatus')}</Text>
-            <Text style={[styles.balance, balance > 0 ? styles.balanceDue : styles.balancePaid]}>
-              {balance > 0 ? `${t('common.due')} ${formatCurrency(balance)}` : `${t('common.paid')} ✓`}
-            </Text>
+            <View style={styles.paymentStatusRow}>
+              {balance <= 0 && (
+                <Ionicons name="checkmark-circle" size={13} color={colors.success} style={{ marginRight: 3 }} />
+              )}
+              <Text style={[styles.balance, balance > 0 ? styles.balanceDue : styles.balancePaid]}>
+                {balance > 0 ? `${t('common.due')} ${formatCurrency(balance)}` : t('common.paid')}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -195,6 +200,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 16,
     color: colors.ink,
+  },
+  paymentStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   balance: {
     fontFamily: fonts.bodyBold,

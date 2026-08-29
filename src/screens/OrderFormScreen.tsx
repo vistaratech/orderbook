@@ -627,12 +627,12 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               {/* Quick Presets Chips */}
               <View style={styles.presetChipsContainer}>
                 {[
-                  { name: 'Unit', label: '🏷️ Unit / அலகு' },
-                  { name: 'Size', label: '📏 Size / அளவு' },
-                  { name: 'Color', label: '🎨 Color / நிறம்' },
-                  { name: 'Discount', label: '💰 Discount (₹)' },
-                  { name: 'GST %', label: '📊 GST %' },
-                  { name: 'HSN', label: '🔢 HSN Code' },
+                  { name: 'Unit', label: 'Unit / அலகு', icon: 'pricetag-outline' },
+                  { name: 'Size', label: 'Size / அளவு', icon: 'resize-outline' },
+                  { name: 'Color', label: 'Color / நிறம்', icon: 'color-palette-outline' },
+                  { name: 'Discount', label: 'Discount (₹)', icon: 'trending-down-outline' },
+                  { name: 'GST %', label: 'GST %', icon: 'calculator-outline' },
+                  { name: 'HSN', label: 'HSN Code', icon: 'barcode-outline' },
                 ].map((preset) => {
                   const alreadyAdded = customColumns.some(
                     (c) => c.name.toLowerCase() === preset.name.toLowerCase()
@@ -651,14 +651,26 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                       }}
                       disabled={alreadyAdded}
                     >
+                      <Ionicons
+                        name={preset.icon as any}
+                        size={14}
+                        color={alreadyAdded ? colors.clayDeep : colors.inkSoft}
+                        style={{ marginRight: 4 }}
+                      />
                       <Text
                         style={[
                           styles.presetChipText,
                           alreadyAdded && styles.presetChipTextAdded,
                         ]}
                       >
-                        {preset.label} {alreadyAdded ? '✓' : '+'}
+                        {preset.label}
                       </Text>
+                      <Ionicons
+                        name={alreadyAdded ? 'checkmark-circle' : 'add'}
+                        size={14}
+                        color={alreadyAdded ? colors.clayDeep : colors.inkSoft}
+                        style={{ marginLeft: 4 }}
+                      />
                     </Pressable>
                   );
                 })}

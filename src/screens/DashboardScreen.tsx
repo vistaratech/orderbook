@@ -558,7 +558,10 @@ export default function DashboardScreen() {
                             {bal > 0 ? (
                               <Text style={styles.dueBadge}>₹{bal.toLocaleString('en-IN')} {t('common.due') || 'due'}</Text>
                             ) : (
-                              <Text style={styles.paidBadge}>{t('common.paid') || 'Paid'} ✓</Text>
+                              <View style={styles.paidBadgeInline}>
+                                <Ionicons name="checkmark-circle" size={12} color={colors.success} />
+                                <Text style={styles.paidBadge}>{t('common.paid') || 'Paid'}</Text>
+                              </View>
                             )}
                           </View>
                         </View>
@@ -755,7 +758,8 @@ export default function DashboardScreen() {
                             </View>
                           ) : (
                             <View style={styles.paidBadgeWrap}>
-                              <Text style={styles.paidBadgeText}>Paid ✓</Text>
+                              <Ionicons name="checkmark-circle" size={12} color={colors.statusDelivered} />
+                              <Text style={styles.paidBadgeText}>{t('common.paid') || 'Paid'}</Text>
                             </View>
                           )}
                         </View>
@@ -1309,6 +1313,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
     color: colors.danger,
+  },
+  paidBadgeInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
   },
   paidBadge: {
     fontFamily: fonts.bodyMedium,

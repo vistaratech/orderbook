@@ -210,7 +210,7 @@ export default function SettingsScreen() {
     const res = await backupToFirebaseCloud();
     setCloudSyncing(false);
     if (res.success) {
-      Alert.alert('☁️ Cloud Backup Success', `All store data backed up to Cloud Firestore at ${res.timestamp}!`);
+      Alert.alert('Cloud Backup Success', `All store data backed up to Cloud Firestore at ${res.timestamp}!`);
     } else {
       Alert.alert('Cloud Backup Failed', res.error || 'Could not connect to Firebase database.');
     }
@@ -218,7 +218,7 @@ export default function SettingsScreen() {
 
   const handleCloudRestore = () => {
     confirmAction({
-      title: '☁️ Restore from Firebase',
+      title: 'Restore from Firebase',
       message: 'This will download and restore your saved records from Firebase Cloud. Continue?',
       confirmText: 'Restore Now',
       cancelText: 'Cancel',
@@ -237,7 +237,7 @@ export default function SettingsScreen() {
 
   const handleClearAll = () => {
     confirmAction({
-      title: '⚠️ Clear All Data',
+      title: 'Clear All Data',
       message: 'This will permanently delete all orders, expenses, customers, and catalog items. This action CANNOT be undone!',
       confirmText: 'Delete Everything',
       cancelText: 'Cancel',
@@ -284,7 +284,7 @@ export default function SettingsScreen() {
                 <Text style={styles.sectionTitle}>{t('settings.languageSection')}</Text>
               </View>
               <View style={styles.activeLangBadge}>
-                <Text style={styles.activeLangBadgeText}>{currentLangOption.flag} {currentLangOption.nativeLabel}</Text>
+                <Text style={styles.activeLangBadgeText}>{currentLangOption.nativeLabel}</Text>
               </View>
             </View>
             <Text style={styles.sectionSub}>{t('settings.languageSubtitle')}</Text>

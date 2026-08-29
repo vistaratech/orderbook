@@ -68,12 +68,18 @@ const CustomerCardItem = React.memo(function CustomerCardItem({
         <View style={styles.nameBlock}>
           <Text style={styles.customerName}>{item.name}</Text>
           {item.phone ? (
-            <Text style={styles.phoneText}>📞 {item.phone}</Text>
+            <View style={styles.infoRow}>
+              <Ionicons name="call-outline" size={12} color={colors.inkSoft} />
+              <Text style={styles.phoneText}>{item.phone}</Text>
+            </View>
           ) : null}
           {item.address ? (
-            <Text style={styles.addressText} numberOfLines={1}>
-              📍 {item.address}
-            </Text>
+            <View style={styles.infoRow}>
+              <Ionicons name="location-outline" size={12} color={colors.inkSoft} />
+              <Text style={styles.addressText} numberOfLines={1}>
+                {item.address}
+              </Text>
+            </View>
           ) : null}
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.inkSoft} />
@@ -402,17 +408,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.ink,
   },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
   phoneText: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.inkSoft,
-    marginTop: 2,
   },
   addressText: {
     fontFamily: fonts.body,
     fontSize: 11,
     color: colors.inkSoft,
-    marginTop: 2,
   },
   statsRow: {
     flexDirection: 'row',

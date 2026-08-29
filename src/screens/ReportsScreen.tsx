@@ -191,7 +191,7 @@ export default function ReportsScreen() {
   }, [filteredOrders]);
 
   const handleShareSummary = async () => {
-    const msg = `📊 Business Financial Report (${period.replace('_', ' ').toUpperCase()})
+    const msg = `*BUSINESS FINANCIAL REPORT (${period.replace('_', ' ').toUpperCase()})*
 • Total Sales: ${formatCurrency(totalInflow)} (${filteredOrders.length} orders)
 • Outflow Expenses: ${formatCurrency(totalOutflow)} (${filteredExpenses.length} entries)
 • Net Balance: ${formatCurrency(netProfit)} (Margin: ${profitMargin}%)

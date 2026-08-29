@@ -28,7 +28,7 @@ export const firebaseConfig = {
 };
 
 if (__DEV__ && !firebaseConfig.apiKey) {
-  console.warn('⚠️ Missing EXPO_PUBLIC_FIREBASE_API_KEY. Please verify your .env file.');
+  console.warn('[Firebase] Missing EXPO_PUBLIC_FIREBASE_API_KEY. Please verify your .env file.');
 }
 
 // Initialize Firebase App (prevent re-initializing on hot reload)

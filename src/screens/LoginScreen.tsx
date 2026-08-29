@@ -273,7 +273,7 @@ export default function LoginScreen({ navigation, route }: Props) {
             >
               <Ionicons name="globe-outline" size={15} color={colors.clayDeep} />
               <Text style={styles.langDropdownText}>
-                {currentLangOption.flag} {currentLangOption.nativeLabel}
+                {currentLangOption.nativeLabel}
               </Text>
               <Ionicons name="chevron-down" size={13} color={colors.inkSoft} />
             </Pressable>

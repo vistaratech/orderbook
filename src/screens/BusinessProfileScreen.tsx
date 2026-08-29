@@ -266,7 +266,10 @@ export default function BusinessProfileScreen() {
 
         {/* ─── Contact & Address ─── */}
         <View style={styles.card}>
-          <Text style={styles.cardSectionTitle}>📍 {t('customers.address')}</Text>
+          <View style={styles.sectionHeaderTitleRow}>
+            <Ionicons name="location-outline" size={16} color={colors.clayDeep} />
+            <Text style={styles.cardSectionTitle}>{t('customers.address')}</Text>
+          </View>
 
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>{t('profile.phone')}</Text>
@@ -309,7 +312,10 @@ export default function BusinessProfileScreen() {
 
         {/* ─── Tax & Bank Details ─── */}
         <View style={styles.card}>
-          <Text style={styles.cardSectionTitle}>💳 {t('profile.bankDetails')}</Text>
+          <View style={styles.sectionHeaderTitleRow}>
+            <Ionicons name="card-outline" size={16} color={colors.clayDeep} />
+            <Text style={styles.cardSectionTitle}>{t('profile.bankDetails')}</Text>
+          </View>
 
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>{t('profile.gstin')}</Text>
@@ -406,11 +412,16 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     ...shadow.card,
   },
+  sectionHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
   cardSectionTitle: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.ink,
-    marginBottom: 12,
   },
   fieldGroup: { marginBottom: 14 },
   label: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.ink, marginBottom: 5 },

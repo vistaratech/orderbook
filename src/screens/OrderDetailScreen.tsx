@@ -161,7 +161,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
       .map((it) => `• ${it.name} (${it.qty} × ₹${it.price}) = ${formatCurrency(it.qty * it.price)}`)
       .join('\n');
 
-    const msg = `🧾 *Order Receipt — ${order.orderNumber}*
+    const msg = `*ORDER RECEIPT — ${order.orderNumber}*
 Date: ${formatDate(order.orderDate)}
 Customer: ${order.customerName}
 ${order.phoneNumber ? `Phone: ${order.phoneNumber}\n` : ''}
@@ -591,9 +591,12 @@ Thank you for your business!`;
                     {activeBusinessProfile.tagline || 'Official Business Invoice & Receipt'}
                   </Text>
                   {activeBusinessProfile.address ? (
-                    <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft, marginTop: 2 }}>
-                      📍 {activeBusinessProfile.address}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                      <Ionicons name="location-outline" size={11} color={colors.inkSoft} />
+                      <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft }}>
+                        {activeBusinessProfile.address}
+                      </Text>
+                    </View>
                   ) : null}
                   {activeBusinessProfile.gstin ? (
                     <Text style={{ fontFamily: fonts.bodyBold, fontSize: 11, color: colors.clayDeep, marginTop: 2 }}>
@@ -604,16 +607,19 @@ Thank you for your business!`;
                 <View
                   style={[
                     styles.pdfStatusBadge,
-                    { backgroundColor: balance <= 0 ? '#E8F5E9' : '#FFF3E0' },
+                    { backgroundColor: balance <= 0 ? '#E8F5E9' : '#FFF3E0', flexDirection: 'row', alignItems: 'center', gap: 4 },
                   ]}
                 >
+                  {balance <= 0 && (
+                    <Ionicons name="checkmark-circle" size={12} color="#2E7D32" />
+                  )}
                   <Text
                     style={[
                       styles.pdfStatusBadgeText,
                       { color: balance <= 0 ? '#2E7D32' : '#E65100' },
                     ]}
                   >
-                    {balance <= 0 ? 'PAID ✓' : 'BALANCE DUE'}
+                    {balance <= 0 ? 'PAID' : 'BALANCE DUE'}
                   </Text>
                 </View>
               </View>

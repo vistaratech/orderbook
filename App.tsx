@@ -139,7 +139,7 @@ export default function App() {
           height: 100%;
           height: 100dvh;
           min-height: 100dvh;
-          background-color: #EFE7DA;
+          background-color: #F6F1E7;
           margin: 0;
           padding: 0;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -188,19 +188,22 @@ export default function App() {
 
   if (!fontsLoaded || !initialRoute) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.paper }}>
-        <ActivityIndicator color={colors.clayDeep} size="large" />
-      </View>
+      <SafeAreaProvider style={{ flex: 1, backgroundColor: colors.paper }}>
+        <StatusBar style="dark" />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.paper }}>
+          <ActivityIndicator color={colors.clayDeep} size="large" />
+        </View>
+      </SafeAreaProvider>
     );
   }
 
   const isWeb = Platform.OS === 'web';
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ flex: 1, backgroundColor: colors.paper }}>
       <LanguageProvider>
-        <View style={isWeb ? styles.webOuterContainer : styles.mobileContainer}>
-          <View style={isWeb ? styles.webInnerFrame : styles.mobileContainer}>
+        <View style={[{ flex: 1, backgroundColor: colors.paper }, isWeb ? styles.webOuterContainer : styles.mobileContainer]}>
+          <View style={[{ flex: 1, backgroundColor: colors.paper }, isWeb ? styles.webInnerFrame : styles.mobileContainer]}>
             <NavigationContainer theme={navTheme}>
               <StatusBar style="dark" />
               <Stack.Navigator
@@ -211,6 +214,9 @@ export default function App() {
                   headerShadowVisible: false,
                   headerTintColor: colors.clayDeep,
                   contentStyle: { backgroundColor: colors.paper },
+                  animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
+                  gestureEnabled: true,
+                  fullScreenGestureEnabled: true,
                   headerLeft: (props) =>
                     props.canGoBack ? <GlassBackButton label="Back" /> : null,
                 }}

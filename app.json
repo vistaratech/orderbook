@@ -27,11 +27,21 @@
       "googleServicesFile": "./google-services.json",
       "hardwareAccelerated": true,
       "softwareKeyboardLayoutMode": "pan",
+      "backgroundColor": "#F6F1E7",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F6F1E7"
       },
       "permissions": []
+    },
+    "androidStatusBar": {
+      "barStyle": "dark-content",
+      "backgroundColor": "#F6F1E7",
+      "translucent": false
+    },
+    "androidNavigationBar": {
+      "barStyle": "dark-content",
+      "backgroundColor": "#F6F1E7"
     },
     "web": {
       "bundler": "metro",

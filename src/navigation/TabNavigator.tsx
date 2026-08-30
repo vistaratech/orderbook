@@ -25,6 +25,13 @@ export default function TabNavigator() {
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
   const [activeTab, setActiveTab] = useState<string>('DashboardTab');
+  const [visitedTabs, setVisitedTabs] = useState<Record<string, boolean>>({ DashboardTab: true });
+
+  const handleSelectTab = (tab: string) => {
+    if (!tab) return;
+    setActiveTab(tab);
+    setVisitedTabs((prev) => (prev[tab] ? prev : { ...prev, [tab]: true }));
+  };
 
   if (isDesktop) {
     return (
@@ -32,20 +39,54 @@ export default function TabNavigator() {
         <View style={styles.desktopLayout}>
           <SaaSSidebar
             currentTabName={activeTab}
-            onSelectTab={(tab) => {
-              if (tab) setActiveTab(tab);
-            }}
+            onSelectTab={handleSelectTab}
           />
           <View style={styles.desktopMainContent}>
-            {activeTab === 'DashboardTab' && <DashboardScreen />}
-            {activeTab === 'OrdersTab' && <OrderListScreen />}
-            {activeTab === 'ExpensesTab' && <ExpensesScreen />}
-            {activeTab === 'ReportsTab' && <ReportsScreen />}
-            {activeTab === 'CustomerList' && <CustomerListScreen />}
-            {activeTab === 'ProductList' && <ProductListScreen />}
-            {activeTab === 'History' && <HistoryScreen />}
-            {activeTab === 'Settings' && <SettingsScreen />}
-            {activeTab === 'MoreTab' && <MoreScreen />}
+            {visitedTabs['DashboardTab'] && (
+              <View style={[styles.tabContentContainer, activeTab !== 'DashboardTab' && styles.tabHidden]}>
+                <DashboardScreen />
+              </View>
+            )}
+            {visitedTabs['OrdersTab'] && (
+              <View style={[styles.tabContentContainer, activeTab !== 'OrdersTab' && styles.tabHidden]}>
+                <OrderListScreen />
+              </View>
+            )}
+            {visitedTabs['ExpensesTab'] && (
+              <View style={[styles.tabContentContainer, activeTab !== 'ExpensesTab' && styles.tabHidden]}>
+                <ExpensesScreen />
+              </View>
+            )}
+            {visitedTabs['ReportsTab'] && (
+              <View style={[styles.tabContentContainer, activeTab !== 'ReportsTab' && styles.tabHidden]}>
+                <ReportsScreen />
+              </View>
+            )}
+            {visitedTabs['CustomerList'] && (
+              <View style={[styles.tabContentContainer, activeTab !== 'CustomerList' && styles.tabHidden]}>
+                <CustomerListScreen />
+              </View>
+            )}
+            {visitedTabs['ProductList'] && (
+              <View style={[styles.tabContentContainer, activeTab !== 'ProductList' && styles.tabHidden]}>
+                <ProductListScreen />
+              </View>
+            )}
+            {visitedTabs['History'] && (
+              <View style={[styles.tabContentContainer, activeTab !== 'History' && styles.tabHidden]}>
+                <HistoryScreen />
+              </View>
+            )}
+            {visitedTabs['Settings'] && (
+              <View style={[styles.tabContentContainer, activeTab !== 'Settings' && styles.tabHidden]}>
+                <SettingsScreen />
+              </View>
+            )}
+            {visitedTabs['MoreTab'] && (
+              <View style={[styles.tabContentContainer, activeTab !== 'MoreTab' && styles.tabHidden]}>
+                <MoreScreen />
+              </View>
+            )}
           </View>
         </View>
       </DesktopSidebarContext.Provider>
@@ -128,6 +169,15 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     backgroundColor: colors.paper,
+    position: 'relative',
+  },
+  tabContentContainer: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  tabHidden: {
+    display: 'none',
   },
   tabBar: {
     backgroundColor: colors.paperCard,

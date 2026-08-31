@@ -13,6 +13,7 @@ export interface BusinessProfile {
   tagline?: string;
   logoUri?: string;
   bankDetails?: string;
+  upiId?: string;              // UPI VPA for payment links (e.g., store@upi)
   businessType?: BusinessType;
   updatedAt?: string;
 }

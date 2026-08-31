@@ -15,6 +15,7 @@ export interface BusinessProfile {
   tagline?: string;
   logoUri?: string;
   bankDetails?: string;
+  upiId?: string;
   businessType?: BusinessType;
 }
 
@@ -37,6 +38,8 @@ export function generateWhatsAppInvoiceText(
     .map(
       (item, idx) => {
         const unitStr = item.unit ? ` ${item.unit}` : '';
+        const hsnStr = item.hsnCode ? ` [HSN: ${item.hsnCode}]` : '';
+        const taxStr = item.taxRate ? ` (GST ${item.taxRate}%)` : '';
         let extraInfo = '';
         if (order.customColumns && order.customColumns.length > 0) {
           const extras = order.customColumns
@@ -49,7 +52,7 @@ export function generateWhatsAppInvoiceText(
             extraInfo = ` [${extras.join(', ')}]`;
           }
         }
-        return `${idx + 1}. *${item.name.trim() || 'Item'}*${extraInfo} × ${item.qty}${unitStr} @ ${formatCurrency(
+        return `${idx + 1}. *${item.name.trim() || 'Item'}*${hsnStr}${taxStr}${extraInfo} × ${item.qty}${unitStr} @ ${formatCurrency(
           item.price
         )} = *${formatCurrency(item.qty * item.price)}*`;
       }
@@ -62,6 +65,13 @@ export function generateWhatsAppInvoiceText(
       : `*BALANCE DUE: ${formatCurrency(balance)}* (Advance: ${formatCurrency(
         order.advance
       )})`;
+
+  // UPI payment link if balance is due
+  let upiSection = '';
+  if (balance > 0 && business?.upiId) {
+    const upiLink = `upi://pay?pa=${business.upiId}&pn=${encodeURIComponent(businessName)}&am=${balance}&cu=INR&tn=Order_${order.orderNumber}`;
+    upiSection = `\n*Quick Pay via UPI:*\n${upiLink}\n========================================\n`;
+  }
 
   return `*TAX INVOICE / CASH BILL*
 ========================================
@@ -80,7 +90,7 @@ ${itemRows || 'No items recorded'}
 *Advance Paid:* ${formatCurrency(order.advance)}
 *Payment Status:* ${paymentStatus}
 ========================================
-${business?.bankDetails ? `*Payment / Bank Details:*\n${business.bankDetails}\n========================================\n` : ''}${order.customerNote ? `*Customer Note:* ${order.customerNote}\n========================================\n` : ''}Thank you for your business!`;
+${upiSection}${business?.bankDetails ? `*Payment / Bank Details:*\n${business.bankDetails}\n========================================\n` : ''}${order.customerNote ? `*Customer Note:* ${order.customerNote}\n========================================\n` : ''}Thank you for your business!`;
 }
 
 /**
@@ -276,14 +286,31 @@ export function generatePrintableInvoiceHtml(
   const total = orderTotal(order);
   const balance = orderBalance(order);
   const businessName = business?.businessName || business?.name || DEFAULT_BUSINESS_NAME;
-
   const preset = getBusinessPreset(business?.businessType);
   const customCols = order.customColumns || [];
+
+  const hasGst = order.items.some((i) => (i.taxRate || 0) > 0 || !!i.hsnCode);
+  const isInterState = order.isInterState || false;
+
+    // Calculate tax breakdown
+    let totalTaxAmount = 0;
+    order.items.forEach((it) => {
+      const taxable = (it.qty || 0) * (it.price || 0) - (it.discount || 0);
+      const rate = it.taxRate || 0;
+      totalTaxAmount += (taxable * rate) / 100;
+    });
+    totalTaxAmount = Math.round(totalTaxAmount * 100) / 100;
+
+    const cgstAmount = Math.round((totalTaxAmount / 2) * 100) / 100;
+    const sgstAmount = Math.round((totalTaxAmount / 2) * 100) / 100;
+    const igstAmount = totalTaxAmount;
 
   const itemRowsHtml = order.items
     .map(
       (item, idx) => {
         const unitStr = item.unit ? ` <span style="font-size:11px; color:#64748B;">${item.unit}</span>` : '';
+        const hsnCell = hasGst ? `<td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: center; font-size: 12px; color: #64748B;">${item.hsnCode || '-'}</td>` : '';
+        const gstCell = hasGst ? `<td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: center; font-size: 12px; color: #64748B;">${item.taxRate ? `${item.taxRate}%` : '-'}</td>` : '';
         const customTds = customCols
           .map((c) => {
             const val =
@@ -298,9 +325,11 @@ export function generatePrintableInvoiceHtml(
       <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: center; font-size: 13px; color: #64748B;">${idx + 1}</td>
       <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; font-weight: 600; font-size: 14px; color: #1E293B;">${item.name || 'Item'
           }</td>
+      ${hsnCell}
       <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: center; font-weight: 600; font-size: 14px; color: #334155;">${item.qty
           }${unitStr}</td>
       ${customTds}
+      ${gstCell}
       <td style="padding: 12px 14px; border-bottom: 1px solid #E2E8F0; text-align: right; font-size: 13px; color: #475569;">${formatCurrency(
             item.price
           )}</td>
@@ -313,6 +342,14 @@ export function generatePrintableInvoiceHtml(
     .join('');
 
   const isPaid = balance <= 0;
+
+  // UPI payment link & QR
+  const upiPayUrl = business?.upiId && balance > 0
+    ? `upi://pay?pa=${business.upiId}&pn=${encodeURIComponent(businessName)}&am=${balance}&cu=INR&tn=Order_${order.orderNumber}`
+    : '';
+  const upiQrUrl = upiPayUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(upiPayUrl)}`
+    : '';
 
   return `<!DOCTYPE html>
 <html>
@@ -640,10 +677,12 @@ export function generatePrintableInvoiceHtml(
           <tr>
             <th style="text-align: center; width: 40px;">#</th>
             <th style="text-align: left;">${preset.invoiceItemLabel}</th>
-            <th style="text-align: center; width: 80px;">Qty</th>
+            ${hasGst ? '<th style="text-align: center; width: 70px;">HSN</th>' : ''}
+            <th style="text-align: center; width: 70px;">Qty</th>
             ${customCols.map((c) => `<th style="text-align: center; width: 80px;">${c.name}</th>`).join('')}
-            <th style="text-align: right; width: 100px;">Rate (₹)</th>
-            <th style="text-align: right; width: 110px;">Amount (₹)</th>
+            ${hasGst ? '<th style="text-align: center; width: 60px;">GST</th>' : ''}
+            <th style="text-align: right; width: 90px;">Rate (₹)</th>
+            <th style="text-align: right; width: 100px;">Amount (₹)</th>
           </tr>
         </thead>
         <tbody>
@@ -658,6 +697,22 @@ export function generatePrintableInvoiceHtml(
         </div>
 
         <div class="summary-box">
+          ${
+            hasGst && totalTaxAmount > 0
+              ? `
+          <div class="summary-row">
+            <span>Taxable Amount</span>
+            <span>${formatCurrency(total - totalTaxAmount)}</span>
+          </div>
+          ${
+            isInterState
+              ? `<div class="summary-row"><span>IGST</span><span>+${formatCurrency(igstAmount)}</span></div>`
+              : `<div class="summary-row"><span>CGST</span><span>+${formatCurrency(cgstAmount)}</span></div>
+                 <div class="summary-row"><span>SGST</span><span>+${formatCurrency(sgstAmount)}</span></div>`
+          }
+          `
+              : ''
+          }
           <div class="summary-row">
             <span>Advance Paid</span>
             <span style="color: #2e7d32; font-weight: 600;">${formatCurrency(order.advance)}</span>
@@ -667,19 +722,25 @@ export function generatePrintableInvoiceHtml(
             <span style="color: ${isPaid ? '#2e7d32' : '#c62828'}; font-weight: 600;">${isPaid ? 'PAID IN FULL (₹0)' : formatCurrency(balance)}</span>
           </div>
           <div class="summary-row total">
-            <span>Total</span>
+            <span>Grand Total</span>
             <span>${formatCurrency(total)}</span>
           </div>
         </div>
       </div>
 
-      ${business?.bankDetails
-      ? `<div class="bank-card">
-              <h5>Payment & Transfer Information</h5>
-              <p>${business.bankDetails}</p>
+      ${
+        upiQrUrl || business?.bankDetails
+          ? `<div class="bank-card" style="display: flex; justify-content: space-between; align-items: center; gap: 16px;">
+              <div style="flex: 1;">
+                <h5>Payment & Bank Details</h5>
+                ${business?.upiId ? `<p style="font-weight: 700; color: #0F172A; margin-bottom: 4px;">UPI ID: ${business.upiId}</p>` : ''}
+                ${business?.bankDetails ? `<p>${business.bankDetails}</p>` : ''}
+                ${upiPayUrl ? `<p style="font-size: 11px; color: #475569; margin-top: 4px;">Scan QR to pay directly via Google Pay / PhonePe / Paytm</p>` : ''}
+              </div>
+              ${upiQrUrl ? `<div style="text-align: center;"><img src="${upiQrUrl}" alt="UPI QR Code" style="width: 100px; height: 100px; border-radius: 6px; border: 1px solid #CBD5E1;" /><p style="font-size: 10px; color: #64748B; margin: 2px 0 0 0; font-weight: 600;">SCAN TO PAY</p></div>` : ''}
             </div>`
-      : ''
-    }
+          : ''
+      }
 
       <div class="signatory-row">
         <div class="terms-text">

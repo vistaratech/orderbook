@@ -7,18 +7,21 @@ interface Props {
   icon?: keyof typeof Ionicons.glyphMap;
   title?: string;
   message?: string;
+  subtitle?: string;
 }
 
 export default function EmptyState({
   icon = 'receipt-outline',
   title = 'No orders yet',
-  message = 'Tap the + button below to write your first order, just like a fresh page in the book.',
+  message,
+  subtitle,
 }: Props) {
+  const displayMsg = subtitle || message || 'Tap the + button below to write your first order, just like a fresh page in the book.';
   return (
     <View style={styles.wrap}>
       <Ionicons name={icon} size={48} color={colors.line} style={styles.icon} />
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.body}>{message}</Text>
+      <Text style={styles.body}>{displayMsg}</Text>
     </View>
   );
 }

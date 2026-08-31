@@ -249,6 +249,8 @@ export function setupRealtimeSync(uid: string): () => void {
     { name: 'expenses', key: 'order_book:expenses' },
     { name: 'products', key: 'order_book:products' },
     { name: 'payments', key: 'order_book:payments' },
+    { name: 'purchases', key: 'order_book:purchases' },
+    { name: 'estimates', key: 'order_book:estimates' },
   ];
 
   collections.forEach(({ name, key }) => {
@@ -475,6 +477,8 @@ export async function pullAllCloudDataToLocal(): Promise<void> {
       { name: 'expenses', key: 'order_book:expenses' },
       { name: 'products', key: 'order_book:products' },
       { name: 'payments', key: 'order_book:payments' },
+      { name: 'purchases', key: 'order_book:purchases' },
+      { name: 'estimates', key: 'order_book:estimates' },
     ];
 
     for (const { name, key } of collections) {

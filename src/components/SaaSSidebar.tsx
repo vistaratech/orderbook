@@ -156,6 +156,20 @@ export default function SaaSSidebar({
           action: () => handleNav('ProductList', 'ProductList'),
         },
         {
+          key: 'PurchaseList',
+          label: t('purchases.title', 'Purchases'),
+          icon: 'cart-outline' as const,
+          activeIcon: 'cart' as const,
+          action: () => handleNav('PurchaseList', 'PurchaseList'),
+        },
+        {
+          key: 'EstimateList',
+          label: t('estimates.title', 'Estimates / Quotes'),
+          icon: 'document-text-outline' as const,
+          activeIcon: 'document-text' as const,
+          action: () => handleNav('EstimateList', 'EstimateList'),
+        },
+        {
           key: 'History',
           label: t('nav.history'),
           icon: 'time-outline' as const,

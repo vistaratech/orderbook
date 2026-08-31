@@ -112,6 +112,21 @@ export async function saveOrder(
   await writeAll(orders);
   // Sync new item to cloud atomically
   await syncItemToCloud('orders', created);
+
+  // Auto-deduct stock for items matching catalog products
+  if (created.items && created.items.length > 0) {
+    try {
+      const { adjustStockByName } = await import('./productStorage');
+      for (const item of created.items) {
+        if (item.name && item.qty > 0) {
+          await adjustStockByName(item.name, -item.qty);
+        }
+      }
+    } catch (err) {
+      console.warn('Error adjusting stock on order save:', err);
+    }
+  }
+
   return created;
 }
 

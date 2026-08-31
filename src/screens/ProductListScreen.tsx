@@ -38,6 +38,13 @@ const ProductCardItem = React.memo(function ProductCardItem({
   onEdit,
   onDelete,
 }: ProductCardItemProps) {
+  const isOutOfStock = item.stockQty !== undefined && item.stockQty <= 0;
+  const isLowStock =
+    item.stockQty !== undefined &&
+    item.lowStockThreshold !== undefined &&
+    item.stockQty > 0 &&
+    item.stockQty <= item.lowStockThreshold;
+
   return (
     <View style={styles.productCard}>
       <View style={styles.productIconWrap}>
@@ -46,8 +53,46 @@ const ProductCardItem = React.memo(function ProductCardItem({
 
       <View style={styles.productLeft}>
         <Text style={styles.productName}>{item.name}</Text>
-        <View style={styles.unitBadge}>
-          <Text style={styles.unitBadgeText}>{item.unit || 'pcs'}</Text>
+        <View style={styles.badgeRow}>
+          <View style={styles.unitBadge}>
+            <Text style={styles.unitBadgeText}>{item.unit || 'pcs'}</Text>
+          </View>
+
+          {item.stockQty !== undefined ? (
+            <View
+              style={[
+                styles.stockBadge,
+                isOutOfStock
+                  ? { backgroundColor: '#FCEBE9' }
+                  : isLowStock
+                  ? { backgroundColor: '#FEF3C7' }
+                  : { backgroundColor: '#EAF5EC' },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.stockBadgeText,
+                  isOutOfStock
+                    ? { color: colors.danger }
+                    : isLowStock
+                    ? { color: '#B45309' }
+                    : { color: colors.success },
+                ]}
+              >
+                {isOutOfStock
+                  ? 'Out of Stock'
+                  : isLowStock
+                  ? `Low: ${item.stockQty}`
+                  : `${item.stockQty} in stock`}
+              </Text>
+            </View>
+          ) : null}
+
+          {item.taxRate ? (
+            <View style={[styles.unitBadge, { backgroundColor: colors.clayLight }]}>
+              <Text style={[styles.unitBadgeText, { color: colors.clayDeep }]}>GST {item.taxRate}%</Text>
+            </View>
+          ) : null}
         </View>
       </View>
 
@@ -79,6 +124,7 @@ export default function ProductListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterStock, setFilterStock] = useState<'all' | 'low'>('all');
 
   const loadProducts = useCallback(async (forceSync = false) => {
     try {
@@ -128,10 +174,28 @@ export default function ProductListScreen() {
   }, [loadProducts]);
 
   const filteredProducts = useMemo(() => {
-    if (!searchQuery.trim()) return products;
-    const q = searchQuery.toLowerCase().trim();
-    return products.filter((p) => p.name.toLowerCase().includes(q));
-  }, [products, searchQuery]);
+    let list = products;
+    if (filterStock === 'low') {
+      list = list.filter(
+        (p) =>
+          p.stockQty !== undefined &&
+          (p.stockQty <= 0 || (p.lowStockThreshold !== undefined && p.stockQty <= p.lowStockThreshold))
+      );
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter((p) => p.name.toLowerCase().includes(q) || (p.barcode && p.barcode.includes(q)));
+    }
+    return list;
+  }, [products, filterStock, searchQuery]);
+
+  const lowStockCount = useMemo(() => {
+    return products.filter(
+      (p) =>
+        p.stockQty !== undefined &&
+        (p.stockQty <= 0 || (p.lowStockThreshold !== undefined && p.stockQty <= p.lowStockThreshold))
+    ).length;
+  }, [products]);
 
   return (
     <DesktopLayout currentTabName="ProductList">
@@ -167,6 +231,36 @@ export default function ProductListScreen() {
                 <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
               </Pressable>
             )}
+          </View>
+
+          {/* Stock Filter Chips */}
+          <View style={styles.filterChipRow}>
+            <Pressable
+              style={[styles.filterChip, filterStock === 'all' && styles.filterChipActive]}
+              onPress={() => setFilterStock('all')}
+            >
+              <Text style={[styles.filterChipText, filterStock === 'all' && styles.filterChipTextActive]}>
+                All ({products.length})
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.filterChip,
+                { flexDirection: 'row', alignItems: 'center', gap: 5 },
+                filterStock === 'low' && styles.filterChipActiveLow,
+              ]}
+              onPress={() => setFilterStock('low')}
+            >
+              <Ionicons
+                name="warning-outline"
+                size={14}
+                color={filterStock === 'low' ? colors.white : '#B45309'}
+              />
+              <Text style={[styles.filterChipText, filterStock === 'low' && styles.filterChipTextActiveLow]}>
+                Low Stock ({lowStockCount})
+              </Text>
+            </Pressable>
           </View>
 
           {/* Product List */}
@@ -316,6 +410,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.ink,
   },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+    marginTop: 4,
+  },
   unitBadge: {
     alignSelf: 'flex-start',
     backgroundColor: colors.paper,
@@ -324,12 +425,56 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    marginTop: 3,
   },
   unitBadgeText: {
     fontFamily: fonts.body,
     fontSize: 11,
     color: colors.inkSoft,
+  },
+  stockBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: radius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  stockBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+  },
+  filterChipRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginHorizontal: 20,
+    marginBottom: 10,
+  },
+  filterChip: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: colors.paperCard,
+  },
+  filterChipActive: {
+    backgroundColor: colors.duskDeep,
+    borderColor: colors.duskDeep,
+  },
+  filterChipActiveLow: {
+    backgroundColor: '#B45309',
+    borderColor: '#B45309',
+  },
+  filterChipText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  filterChipTextActive: {
+    color: colors.white,
+    fontFamily: fonts.bodyBold,
+  },
+  filterChipTextActiveLow: {
+    color: colors.white,
+    fontFamily: fonts.bodyBold,
   },
   productRight: {
     alignItems: 'flex-end',

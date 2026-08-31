@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { ProductUnit, PRODUCT_UNITS } from '../types/order';
+import { ProductUnit, PRODUCT_UNITS, GST_RATES, GSTRate } from '../types/order';
 import { getProduct, saveProduct } from '../storage/productStorage';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { getBusinessProfile } from '../storage/businessProfileStorage';
@@ -30,6 +30,11 @@ export default function ProductFormScreen({ navigation, route }: Props) {
   const [name, setName] = useState('');
   const [defaultPrice, setDefaultPrice] = useState('');
   const [unit, setUnit] = useState<ProductUnit>('pcs');
+  const [stockQty, setStockQty] = useState('');
+  const [lowStockThreshold, setLowStockThreshold] = useState('');
+  const [hsnCode, setHsnCode] = useState('');
+  const [taxRate, setTaxRate] = useState<GSTRate>(0);
+  const [barcode, setBarcode] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -55,6 +60,11 @@ export default function ProductFormScreen({ navigation, route }: Props) {
         setName(p.name);
         setDefaultPrice(String(p.defaultPrice));
         setUnit(p.unit || 'pcs');
+        setStockQty(p.stockQty !== undefined ? String(p.stockQty) : '');
+        setLowStockThreshold(p.lowStockThreshold !== undefined ? String(p.lowStockThreshold) : '');
+        setHsnCode(p.hsnCode || '');
+        setTaxRate(p.taxRate || 0);
+        setBarcode(p.barcode || '');
       });
     }
   }, [productId]);
@@ -76,6 +86,11 @@ export default function ProductFormScreen({ navigation, route }: Props) {
       name: name.trim(),
       defaultPrice: price,
       unit,
+      stockQty: stockQty ? parseInt(stockQty, 10) : undefined,
+      lowStockThreshold: lowStockThreshold ? parseInt(lowStockThreshold, 10) : undefined,
+      hsnCode: hsnCode.trim() || undefined,
+      taxRate: taxRate || undefined,
+      barcode: barcode.trim() || undefined,
     });
     setSaving(false);
     navigation.goBack();
@@ -137,6 +152,87 @@ export default function ProductFormScreen({ navigation, route }: Props) {
           </View>
         </View>
 
+        {/* Stock Management Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="cube-outline" size={18} color={colors.inflow} />
+            <Text style={styles.sectionTitle}>{t('products.stockTitle', 'Stock / Inventory')}</Text>
+          </View>
+
+          <View style={styles.row}>
+            <View style={[styles.field, { flex: 1 }]}>
+              <Text style={styles.fieldLabel}>{t('products.stockQty', 'Current Stock')}</Text>
+              <TextInput
+                style={styles.input}
+                value={stockQty}
+                onChangeText={setStockQty}
+                keyboardType="numeric"
+                placeholder="e.g. 100"
+                placeholderTextColor={colors.inkSoft}
+              />
+            </View>
+            <View style={[styles.field, { flex: 1 }]}>
+              <Text style={styles.fieldLabel}>{t('products.lowStockAlert', 'Low Stock Alert')}</Text>
+              <TextInput
+                style={styles.input}
+                value={lowStockThreshold}
+                onChangeText={setLowStockThreshold}
+                keyboardType="numeric"
+                placeholder="e.g. 10"
+                placeholderTextColor={colors.inkSoft}
+              />
+            </View>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>{t('products.barcode', 'Barcode / SKU')}</Text>
+            <TextInput
+              style={styles.input}
+              value={barcode}
+              onChangeText={setBarcode}
+              placeholder="Scan or enter barcode"
+              placeholderTextColor={colors.inkSoft}
+            />
+          </View>
+        </View>
+
+        {/* GST Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="receipt-outline" size={18} color={colors.clayDeep} />
+            <Text style={styles.sectionTitle}>{t('products.gstTitle', 'GST Details')}</Text>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>{t('products.hsnCode', 'HSN / SAC Code')}</Text>
+            <TextInput
+              style={styles.input}
+              value={hsnCode}
+              onChangeText={setHsnCode}
+              placeholder="e.g. 6106"
+              placeholderTextColor={colors.inkSoft}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>{t('products.taxRate', 'Default GST Rate')}</Text>
+            <View style={styles.chipRow}>
+              {GST_RATES.map((rate) => {
+                const active = rate === taxRate;
+                return (
+                  <Pressable
+                    key={rate}
+                    style={[styles.chip, active && styles.chipActiveGst]}
+                    onPress={() => setTaxRate(rate)}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{rate}%</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+
         <Pressable
           style={({ pressed }) => [styles.saveBtn, saving && { opacity: 0.6 }, pressed && { opacity: 0.85 }]}
           onPress={handleSave}
@@ -161,7 +257,7 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
     width: '100%',
     maxWidth: 720,
-    alignSelf: 'center',
+    alignSelf: 'center' as any,
   },
   section: {
     backgroundColor: colors.paperCard,
@@ -182,6 +278,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: 22,
     color: colors.clayDeep,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
   },
   field: {
     marginBottom: 14,
@@ -219,6 +319,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.duskDeep,
     borderColor: colors.duskDeep,
   },
+  chipActiveGst: {
+    backgroundColor: colors.clayDeep,
+    borderColor: colors.clayDeep,
+  },
   chipText: {
     fontFamily: fonts.body,
     fontSize: 13,
@@ -242,3 +346,4 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
 });
+

@@ -4,7 +4,7 @@ export type RootStackParamList = {
   Register: { initialTab?: 'login' | 'register' } | undefined;
   MainTabs: undefined;
   OrderList: undefined;
-  OrderForm: { orderId?: string; prefillCustomerName?: string; prefillPhone?: string } | undefined;
+  OrderForm: { orderId?: string; prefillCustomerName?: string; prefillPhone?: string; fromEstimateId?: string } | undefined;
   OrderDetail: { orderId: string };
   ExpenseForm: { expenseId?: string } | undefined;
   CustomerList: undefined;
@@ -16,6 +16,11 @@ export type RootStackParamList = {
   BusinessProfile: undefined;
   History: undefined;
   ResetPassword: { oobCode?: string } | undefined;
+  PurchaseList: undefined;
+  PurchaseForm: { purchaseId?: string } | undefined;
+  EstimateList: undefined;
+  EstimateForm: { estimateId?: string } | undefined;
+  EstimateDetail: { estimateId: string };
 };
 
 export type MainTabParamList = {
@@ -25,3 +30,4 @@ export type MainTabParamList = {
   ReportsTab: undefined;
   MoreTab: undefined;
 };
+

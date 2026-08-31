@@ -14,8 +14,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Order, Expense, orderTotal, orderBalance } from '../types/order';
+import { Purchase, purchaseTotal } from '../types/purchase';
 import { getOrders } from '../storage/orderStorage';
 import { getExpenses } from '../storage/expenseStorage';
+import { getPurchases } from '../storage/purchaseStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import { colors, fonts, radius, shadow, categoryColor } from '../theme/theme';
 import { formatCurrency } from '../utils/format';
@@ -30,12 +32,18 @@ export default function ReportsScreen() {
   const [period, setPeriod] = useState<Period>('this_month');
   const [orders, setOrders] = useState<Order[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
 
   const loadData = useCallback(async (forceSync = false) => {
     try {
-      const [o, e] = await Promise.all([getOrders(forceSync), getExpenses(forceSync)]);
+      const [o, e, p] = await Promise.all([
+        getOrders(forceSync),
+        getExpenses(forceSync),
+        getPurchases(forceSync),
+      ]);
       setOrders(o);
       setExpenses(e);
+      setPurchases(p);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -89,6 +97,11 @@ export default function ReportsScreen() {
     return expenses.filter((e) => (e.createdAt || e.date) >= filterDate);
   }, [expenses, filterDate]);
 
+  const filteredPurchases = useMemo(() => {
+    if (!filterDate) return purchases;
+    return purchases.filter((p) => (p.createdAt || p.purchaseDate) >= filterDate);
+  }, [purchases, filterDate]);
+
   // Memoized Totals
   const reportTotals = useMemo(() => {
     let totalInflow = 0;
@@ -106,18 +119,26 @@ export default function ReportsScreen() {
       }
     }
 
+    let totalPurchases = 0;
+    for (let i = 0; i < filteredPurchases.length; i++) {
+      totalPurchases += purchaseTotal(filteredPurchases[i]);
+    }
+
     let totalOutflow = 0;
     for (let i = 0; i < filteredExpenses.length; i++) {
       totalOutflow += filteredExpenses[i].amount;
     }
 
-    const netProfit = totalInflow - totalOutflow;
-    const liquidCash = totalCollected - totalOutflow;
+    const grossProfit = totalInflow - totalPurchases;
+    const netProfit = grossProfit - totalOutflow;
+    const liquidCash = totalCollected - totalOutflow - totalPurchases;
     const profitMargin = totalInflow > 0 ? ((netProfit / totalInflow) * 100).toFixed(1) : '0';
     const collectionRate = totalInflow > 0 ? Math.min(100, Math.round((totalCollected / totalInflow) * 100)) : 0;
 
     return {
       totalInflow,
+      totalPurchases,
+      grossProfit,
       totalOutflow,
       totalCollected,
       totalPending,
@@ -126,10 +147,12 @@ export default function ReportsScreen() {
       profitMargin,
       collectionRate,
     };
-  }, [filteredOrders, filteredExpenses]);
+  }, [filteredOrders, filteredExpenses, filteredPurchases]);
 
   const {
     totalInflow,
+    totalPurchases,
+    grossProfit,
     totalOutflow,
     totalCollected,
     totalPending,
@@ -266,6 +289,30 @@ Generated from KadaiBook • kadaibook.in`;
                   +{formatCurrency(totalInflow)}
                 </Text>
               </View>
+
+              {totalPurchases > 0 ? (
+                <>
+                  <View style={styles.pnlRow}>
+                    <View style={styles.pnlLabelRow}>
+                      <Ionicons name="cart-outline" size={18} color="#C97A1E" />
+                      <Text style={styles.pnlLabel} numberOfLines={1}>Stock Purchases (COGS)</Text>
+                    </View>
+                    <Text style={[styles.pnlValue, { color: '#C97A1E' }]}>
+                      -{formatCurrency(totalPurchases)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.pnlRow}>
+                    <View style={styles.pnlLabelRow}>
+                      <Ionicons name="trending-up-outline" size={18} color={colors.clayDeep} />
+                      <Text style={[styles.pnlLabel, { fontFamily: fonts.bodyBold }]} numberOfLines={1}>Gross Profit</Text>
+                    </View>
+                    <Text style={[styles.pnlValue, { color: grossProfit >= 0 ? colors.inflow : colors.outflow, fontFamily: fonts.bodyBold }]}>
+                      {formatCurrency(grossProfit)}
+                    </Text>
+                  </View>
+                </>
+              ) : null}
 
               <View style={styles.pnlRow}>
                 <View style={styles.pnlLabelRow}>

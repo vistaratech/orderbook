@@ -6,43 +6,68 @@ import {
   Pressable,
   StyleSheet,
   Linking,
+  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
-import { Customer, Order, orderBalance, orderTotal } from '../types/order';
+import { Customer, Order, PaymentEntry, orderBalance, orderTotal } from '../types/order';
 import { getCustomer, deleteCustomer } from '../storage/customerStorage';
 import { getOrders } from '../storage/orderStorage';
+import { getAllPayments } from '../storage/paymentStorage';
+import { getBusinessProfile, BusinessProfile } from '../storage/businessProfileStorage';
 import { addDataListener } from '../storage/firebaseSync';
+import { sendPaymentReminder } from '../utils/reminderGenerator';
 import OrderCard from '../components/OrderCard';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { confirmAction } from '../utils/dialog';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatDate } from '../utils/format';
 import DesktopLayout from '../components/DesktopLayout';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CustomerDetail'>;
+
+interface LedgerEntry {
+  id: string;
+  date: string;
+  type: 'order' | 'payment';
+  title: string;
+  debit?: number;   // Order total (money owed by customer)
+  credit?: number;  // Payment received (money paid by customer)
+  orderId?: string;
+}
 
 export default function CustomerDetailScreen({ navigation, route }: Props) {
   const { customerId } = route.params;
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
+  const [customerPayments, setCustomerPayments] = useState<PaymentEntry[]>([]);
+  const [bizProfile, setBizProfile] = useState<BusinessProfile | null>(null);
+  const [viewMode, setViewMode] = useState<'orders' | 'ledger'>('orders');
 
   const loadCustomerData = useCallback(() => {
     let active = true;
+    getBusinessProfile().then((b) => {
+      if (active) setBizProfile(b);
+    });
+
     getCustomer(customerId).then((c) => {
       if (!active || !c) return;
       setCustomer(c);
-      getOrders().then((all) => {
+      Promise.all([getOrders(), getAllPayments()]).then(([allOrders, allPayments]) => {
         if (!active) return;
-        const filtered = all.filter(
+        const filteredOrders = allOrders.filter(
           (o) =>
             (o.customerName &&
               o.customerName.toLowerCase().trim() === c.name.toLowerCase().trim()) ||
             (o.phoneNumber && c.phone && o.phoneNumber === c.phone)
         );
-        setCustomerOrders(filtered);
+        setCustomerOrders(filteredOrders);
+
+        const orderIds = new Set(filteredOrders.map((o) => o.id));
+        const filteredPayments = allPayments.filter((p) => orderIds.has(p.orderId));
+        setCustomerPayments(filteredPayments);
       });
     });
     return () => {
@@ -73,6 +98,76 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
     (sum, o) => sum + Math.max(0, orderBalance(o)),
     0
   );
+
+  // Build Chronological Ledger Entries
+  const ledgerEntries: LedgerEntry[] = [];
+  customerOrders.forEach((o) => {
+    ledgerEntries.push({
+      id: `ord_${o.id}`,
+      date: o.orderDate || o.createdAt,
+      type: 'order',
+      title: `Order ${o.orderNumber}`,
+      debit: orderTotal(o),
+      orderId: o.id,
+    });
+    if (o.advance > 0) {
+      ledgerEntries.push({
+        id: `adv_${o.id}`,
+        date: o.orderDate || o.createdAt,
+        type: 'payment',
+        title: `Advance for ${o.orderNumber}`,
+        credit: o.advance,
+        orderId: o.id,
+      });
+    }
+  });
+
+  customerPayments.forEach((p) => {
+    ledgerEntries.push({
+      id: `pay_${p.id}`,
+      date: p.date || p.createdAt,
+      type: 'payment',
+      title: `Payment (${p.method})`,
+      credit: p.amount,
+      orderId: p.orderId,
+    });
+  });
+
+  // Sort chronological (oldest to newest for calculating balance, then reverse for display)
+  ledgerEntries.sort((a, b) => (a.date > b.date ? 1 : -1));
+
+  let runningBalance = 0;
+  const ledgerWithBalance = ledgerEntries.map((entry) => {
+    runningBalance += (entry.debit || 0) - (entry.credit || 0);
+    return { ...entry, balance: runningBalance };
+  }).reverse();
+
+  const handleSendReminder = async () => {
+    if (!customer.phone) {
+      Alert.alert('Phone Required', 'Please add a phone number for this customer to send a WhatsApp reminder.');
+      return;
+    }
+    if (totalPending <= 0) {
+      Alert.alert('No Dues', `${customer.name} has no pending balance.`);
+      return;
+    }
+
+    const pendingOrderNums = customerOrders
+      .filter((o) => orderBalance(o) > 0)
+      .map((o) => o.orderNumber);
+
+    const sent = await sendPaymentReminder({
+      customerName: customer.name,
+      phoneNumber: customer.phone,
+      balanceAmount: totalPending,
+      businessName: bizProfile?.businessName || 'KadaiBook Store',
+      orderNumbers: pendingOrderNums,
+    });
+
+    if (sent) {
+      Alert.alert('Sent', 'Payment reminder sent to WhatsApp!');
+    }
+  };
 
   const handleDelete = () => {
     confirmAction({
@@ -127,6 +222,16 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
               </>
             ) : null}
 
+            {totalPending > 0 && customer.phone ? (
+              <Pressable
+                style={({ pressed }) => [styles.actionBtn, { backgroundColor: '#C97A1E' }, pressed && { opacity: 0.8 }]}
+                onPress={handleSendReminder}
+              >
+                <Ionicons name="notifications-outline" size={16} color={colors.white} />
+                <Text style={styles.actionBtnText}>Remind</Text>
+              </Pressable>
+            ) : null}
+
             <Pressable
               style={({ pressed }) => [styles.actionBtn, { backgroundColor: colors.clayDeep }, pressed && { opacity: 0.8 }]}
               onPress={() =>
@@ -173,21 +278,75 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
           </View>
         ) : null}
 
-        {/* Order History */}
-        <View style={styles.ordersHeaderRow}>
-          <Text style={styles.sectionTitle}>Order History ({customerOrders.length})</Text>
+        {/* View Mode Toggle: Orders vs Ledger */}
+        <View style={styles.viewToggleRow}>
+          <Pressable
+            style={[styles.viewToggleBtn, viewMode === 'orders' && styles.viewToggleBtnActive]}
+            onPress={() => setViewMode('orders')}
+          >
+            <Ionicons name="receipt-outline" size={16} color={viewMode === 'orders' ? colors.white : colors.ink} />
+            <Text style={[styles.viewToggleText, viewMode === 'orders' && styles.viewToggleTextActive]}>
+              Orders ({customerOrders.length})
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.viewToggleBtn, viewMode === 'ledger' && styles.viewToggleBtnActive]}
+            onPress={() => setViewMode('ledger')}
+          >
+            <Ionicons name="book-outline" size={16} color={viewMode === 'ledger' ? colors.white : colors.ink} />
+            <Text style={[styles.viewToggleText, viewMode === 'ledger' && styles.viewToggleTextActive]}>
+              Khata / Ledger
+            </Text>
+          </Pressable>
         </View>
 
-        {customerOrders.length === 0 ? (
-          <Text style={styles.emptyOrders}>No orders recorded for this customer yet.</Text>
+        {/* Order History or Ledger Display */}
+        {viewMode === 'orders' ? (
+          customerOrders.length === 0 ? (
+            <Text style={styles.emptyOrders}>No orders recorded for this customer yet.</Text>
+          ) : (
+            customerOrders.map((o) => (
+              <OrderCard
+                key={o.id}
+                order={o}
+                onPress={() => navigation.navigate('OrderDetail', { orderId: o.id })}
+              />
+            ))
+          )
         ) : (
-          customerOrders.map((o) => (
-            <OrderCard
-              key={o.id}
-              order={o}
-              onPress={() => navigation.navigate('OrderDetail', { orderId: o.id })}
-            />
-          ))
+          <View style={styles.ledgerContainer}>
+            {ledgerWithBalance.length === 0 ? (
+              <Text style={styles.emptyOrders}>No transactions recorded yet.</Text>
+            ) : (
+              ledgerWithBalance.map((item) => (
+                <View key={item.id} style={styles.ledgerRow}>
+                  <View style={styles.ledgerLeft}>
+                    <View style={[styles.ledgerIconCircle, item.type === 'order' ? { backgroundColor: '#FCEBE9' } : { backgroundColor: '#EAF5EC' }]}>
+                      <Ionicons
+                        name={item.type === 'order' ? 'arrow-up-outline' : 'arrow-down-outline'}
+                        size={16}
+                        color={item.type === 'order' ? colors.danger : colors.success}
+                      />
+                    </View>
+                    <View>
+                      <Text style={styles.ledgerTitle}>{item.title}</Text>
+                      <Text style={styles.ledgerDate}>{formatDate(item.date)}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.ledgerRight}>
+                    {item.debit ? (
+                      <Text style={styles.debitText}>+{formatCurrency(item.debit)}</Text>
+                    ) : (
+                      <Text style={styles.creditText}>-{formatCurrency(item.credit || 0)}</Text>
+                    )}
+                    <Text style={styles.ledgerBalance}>Bal: {formatCurrency(item.balance)}</Text>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
         )}
 
         {/* Manage Customer Buttons */}
@@ -405,5 +564,96 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 13,
     color: colors.danger,
+  },
+  viewToggleRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginVertical: 12,
+  },
+  viewToggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.paperCard,
+  },
+  viewToggleBtnActive: {
+    backgroundColor: colors.clayDeep,
+    borderColor: colors.clayDeep,
+  },
+  viewToggleText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.ink,
+  },
+  viewToggleTextActive: {
+    color: colors.white,
+    fontFamily: fonts.bodyBold,
+  },
+  ledgerContainer: {
+    backgroundColor: colors.paperCard,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    overflow: 'hidden',
+    marginBottom: 14,
+    ...shadow.card,
+  },
+  ledgerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  ledgerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  ledgerIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ledgerTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  ledgerDate: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
+  ledgerRight: {
+    alignItems: 'flex-end',
+  },
+  debitText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.danger,
+  },
+  creditText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.success,
+  },
+  ledgerBalance: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+    marginTop: 2,
   },
 });

@@ -29,6 +29,11 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import BusinessProfileScreen from './src/screens/BusinessProfileScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
+import PurchaseListScreen from './src/screens/PurchaseListScreen';
+import PurchaseFormScreen from './src/screens/PurchaseFormScreen';
+import EstimateListScreen from './src/screens/EstimateListScreen';
+import EstimateFormScreen from './src/screens/EstimateFormScreen';
+import EstimateDetailScreen from './src/screens/EstimateDetailScreen';
 import GlassBackButton from './src/components/GlassBackButton';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './src/config/firebase';
@@ -305,6 +310,31 @@ export default function App() {
                   name="ResetPassword"
                   component={ResetPasswordScreen}
                   options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="PurchaseList"
+                  component={PurchaseListScreen}
+                  options={{ title: 'Purchases' }}
+                />
+                <Stack.Screen
+                  name="PurchaseForm"
+                  component={PurchaseFormScreen}
+                  options={{ title: 'New Purchase' }}
+                />
+                <Stack.Screen
+                  name="EstimateList"
+                  component={EstimateListScreen}
+                  options={{ title: 'Estimates' }}
+                />
+                <Stack.Screen
+                  name="EstimateForm"
+                  component={EstimateFormScreen}
+                  options={{ title: 'New Estimate' }}
+                />
+                <Stack.Screen
+                  name="EstimateDetail"
+                  component={EstimateDetailScreen}
+                  options={{ title: 'Estimate Details' }}
                 />
               </Stack.Navigator>
             </NavigationContainer>

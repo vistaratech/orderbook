@@ -23,9 +23,11 @@ import {
   orderBalance,
   orderTotal,
   Expense,
+  Product,
 } from '../types/order';
 import { getOrders, setOrderStatus } from '../storage/orderStorage';
 import { getExpenses } from '../storage/expenseStorage';
+import { getLowStockProducts } from '../storage/productStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
 import { formatCurrency, formatDate } from '../utils/format';
@@ -57,6 +59,7 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
 
   // Pipeline Status Quick-Update Modal State
   const [activePipelineStatus, setActivePipelineStatus] = useState<OrderStatus | null>(null);
@@ -65,9 +68,14 @@ export default function DashboardScreen() {
 
   const loadData = useCallback(async (forceSync = false) => {
     try {
-      const [o, e] = await Promise.all([getOrders(forceSync), getExpenses(forceSync)]);
+      const [o, e, lowStock] = await Promise.all([
+        getOrders(forceSync),
+        getExpenses(forceSync),
+        getLowStockProducts(),
+      ]);
       setOrders(o);
       setExpenses(e);
+      setLowStockProducts(lowStock);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -444,6 +452,32 @@ export default function DashboardScreen() {
                 </Text>
               </Pressable>
             </View>
+
+            {/* ─── Low Stock Alert Banner ─── */}
+            {lowStockProducts.length > 0 && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.lowStockBanner,
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
+                ]}
+                onPress={() => navigation.navigate('ProductList')}
+              >
+                <View style={styles.lowStockBannerLeft}>
+                  <View style={styles.lowStockIconWrap}>
+                    <Ionicons name="warning-outline" size={20} color="#B45309" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.lowStockBannerTitle}>
+                      {lowStockProducts.length} Product{lowStockProducts.length > 1 ? 's' : ''} Low on Stock!
+                    </Text>
+                    <Text style={styles.lowStockBannerSubtitle} numberOfLines={1}>
+                      {lowStockProducts.map((p) => `${p.name} (${p.stockQty ?? 0})`).join(', ')}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#B45309" />
+              </Pressable>
+            )}
 
             {/* ─── Order Pipeline ─── */}
             <View style={styles.sectionCard}>
@@ -1646,5 +1680,42 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 13,
     color: colors.white,
+  },
+  lowStockBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: radius.md,
+    padding: 14,
+    marginBottom: 16,
+    ...shadow.card,
+  },
+  lowStockBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  lowStockIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FDE68A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lowStockBannerTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: '#92400E',
+  },
+  lowStockBannerSubtitle: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: '#B45309',
+    marginTop: 2,
   },
 });

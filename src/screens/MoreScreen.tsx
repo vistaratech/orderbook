@@ -50,6 +50,22 @@ export default function MoreScreen() {
       action: () => navigation.navigate('ProductList'),
     },
     {
+      title: t('purchases.title', 'Purchases'),
+      subtitle: t('purchases.menuSubtitle', 'Track supplier bills & stock purchases'),
+      icon: 'cart' as const,
+      color: '#6E9E71',
+      bg: '#E8F5E9',
+      action: () => navigation.navigate('PurchaseList'),
+    },
+    {
+      title: t('estimates.title', 'Estimates / Quotations'),
+      subtitle: t('estimates.menuSubtitle', 'Create quotes & convert to orders'),
+      icon: 'document-text' as const,
+      color: '#9B84B0',
+      bg: '#F3E5F5',
+      action: () => navigation.navigate('EstimateList'),
+    },
+    {
       title: t('more.settingsAndBackup'),
       subtitle: t('more.settingsAndBackupSub'),
       icon: 'settings' as const,

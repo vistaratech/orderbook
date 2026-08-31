@@ -44,6 +44,8 @@ import {
 } from '../utils/invoiceGenerator';
 import StatusTracker from '../components/StatusTracker';
 import { AppLogoIcon } from '../components/AppLogo';
+import DesktopLayout from '../components/DesktopLayout';
+import { sendPaymentReminder } from '../utils/reminderGenerator';
 import { useLanguage } from '../i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OrderDetail'>;
@@ -221,131 +223,192 @@ Thank you for your business!`;
     }
   };
 
+  const handleSendReminder = async () => {
+    if (!order.phoneNumber) {
+      Alert.alert('Phone Required', 'No phone number on this order.');
+      return;
+    }
+    if (balance <= 0) {
+      Alert.alert('Paid in Full', 'This order has no balance due.');
+      return;
+    }
+    const sent = await sendPaymentReminder({
+      customerName: order.customerName,
+      phoneNumber: order.phoneNumber,
+      balanceAmount: balance,
+      businessName: bizProfile?.businessName || 'KadaiBook Store',
+      orderNumbers: [order.orderNumber],
+    });
+    if (sent) {
+      Alert.alert('Sent', 'Payment reminder sent to customer via WhatsApp!');
+    }
+  };
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Hero Header Card */}
-      <View style={styles.heroHeaderCard}>
-        <View style={styles.heroTopRow}>
-          <View>
-            <Text style={styles.orderNumber}>{order.orderNumber}</Text>
-            <Text style={styles.heroDate}>Created on {formatDate(order.orderDate)}</Text>
-          </View>
-
-          <View style={[styles.statusChip, { backgroundColor: statusColor[order.status] || colors.clay }]}>
-            <Text style={styles.statusChipText}>{t('status.' + order.status.toLowerCase(), order.status)}</Text>
-          </View>
-        </View>
-
-        {/* Financial Highlights inside Hero */}
-        <View style={styles.heroStatsRow}>
-          <View style={styles.heroStatItem}>
-            <Text style={styles.heroStatLabel}>{t('orders.advancePaid')}</Text>
-            <Text style={[styles.heroStatValue, { color: colors.inflow }]}>
-              {formatCurrency(order.advance)}
-            </Text>
-          </View>
-
-          <View style={styles.heroStatDivider} />
-
-          <View style={styles.heroStatItem}>
-            <Text style={styles.heroStatLabel}>{t('orders.balanceDue')}</Text>
-            <Text
-              style={[
-                styles.heroStatValue,
-                { color: balance > 0 ? colors.danger : colors.success },
-              ]}
-            >
-              {formatCurrency(balance)}
-            </Text>
-          </View>
-
-          <View style={styles.heroStatDivider} />
-
-          <View style={styles.heroStatItem}>
-            <Text style={styles.heroStatLabel}>{t('orders.totalAmount')}</Text>
-            <Text style={styles.heroStatValue}>{formatCurrency(total)}</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* ─── Premium Invoice & Receipt Action Card ─── */}
-      <View style={styles.invoiceActionCard}>
-        <View style={styles.invoiceActionCardHeader}>
-          <Ionicons name="receipt-outline" size={18} color={colors.clayDeep} />
-          <Text style={styles.invoiceActionCardTitle}>{t('orders.orderDetailsTitle')}</Text>
-        </View>
-
-        {/* Primary PDF Document Action Banner */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.pdfBannerCard,
-            pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
-          ]}
-          onPress={sharePdfCustomer}
-        >
-          <View style={styles.pdfBannerLeft}>
-            <View style={styles.pdfIconBadge}>
-              <Ionicons name="document-text-outline" size={20} color={colors.white} />
+    <DesktopLayout currentTabName="OrdersTab">
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={[styles.content, { paddingBottom: 60 + insets.bottom }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Order Header / Hero Card */}
+        <View style={styles.heroHeaderCard}>
+          <View style={styles.heroTopRow}>
+            <View>
+              <Text style={styles.orderNumber}>{order.orderNumber}</Text>
+              <Text style={styles.heroDate}>Created on {formatDate(order.orderDate)}</Text>
             </View>
-            <View style={styles.pdfBannerTextBlock}>
-              <Text style={styles.pdfBannerTitle}>{t('orders.downloadPdf')}</Text>
-              <Text style={styles.pdfBannerSubtitle}>
-                {order.phoneNumber
-                  ? `${order.customerName || 'Customer'} (${order.phoneNumber})`
-                  : t('orders.shareInvoice')}
+
+            <View style={[styles.statusChip, { backgroundColor: statusColor[order.status] || colors.clay }]}>
+              <Text style={styles.statusChipText}>{t('status.' + order.status.toLowerCase(), order.status)}</Text>
+            </View>
+          </View>
+
+          {/* Financial Highlights inside Hero */}
+          <View style={styles.heroStatsRow}>
+            <View style={styles.heroStatItem}>
+              <Text style={styles.heroStatLabel}>{t('orders.advancePaid')}</Text>
+              <Text style={[styles.heroStatValue, { color: colors.inflow }]}>
+                {formatCurrency(order.advance)}
               </Text>
             </View>
-          </View>
-          <View style={styles.pdfDownloadPill}>
-            <Ionicons name="download-outline" size={14} color={colors.white} />
-            <Text style={styles.pdfDownloadPillText}>PDF</Text>
-          </View>
-        </Pressable>
 
-        {/* Sub Action Buttons Row */}
-        <View style={styles.invoiceSubActionsRow}>
+            <View style={styles.heroStatDivider} />
+
+            <View style={styles.heroStatItem}>
+              <Text style={styles.heroStatLabel}>{t('orders.balanceDue')}</Text>
+              <Text
+                style={[
+                  styles.heroStatValue,
+                  { color: balance > 0 ? colors.danger : colors.success },
+                ]}
+              >
+                {formatCurrency(balance)}
+              </Text>
+            </View>
+
+            <View style={styles.heroStatDivider} />
+
+            <View style={styles.heroStatItem}>
+              <Text style={styles.heroStatLabel}>{t('orders.totalAmount')}</Text>
+              <Text style={styles.heroStatValue}>{formatCurrency(total)}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ─── Premium Invoice & Receipt Action Card ─── */}
+        <View style={styles.invoiceActionCard}>
+          <View style={styles.invoiceActionCardHeader}>
+            <Ionicons name="receipt-outline" size={18} color={colors.clayDeep} />
+            <Text style={styles.invoiceActionCardTitle}>{t('orders.orderDetailsTitle')}</Text>
+          </View>
+
+          {/* Primary PDF Document Action Banner */}
           <Pressable
             style={({ pressed }) => [
-              styles.pdfActionBtn,
-              pressed && { opacity: 0.85 },
+              styles.pdfBannerCard,
+              pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
             ]}
-            onPress={() => setShowPdfModal(true)}
+            onPress={sharePdfCustomer}
           >
-            <Ionicons name="eye-outline" size={15} color={colors.clayDeep} />
-            <Text style={styles.pdfActionBtnText} numberOfLines={1} adjustsFontSizeToFit>
-              {t('common.details')}
-            </Text>
+            <View style={styles.pdfBannerLeft}>
+              <View style={styles.pdfIconBadge}>
+                <Ionicons name="document-text-outline" size={20} color={colors.white} />
+              </View>
+              <View style={styles.pdfBannerTextBlock}>
+                <Text style={styles.pdfBannerTitle}>{t('orders.downloadPdf')}</Text>
+                <Text style={styles.pdfBannerSubtitle}>
+                  {order.phoneNumber
+                    ? `${order.customerName || 'Customer'} (${order.phoneNumber})`
+                    : t('orders.shareInvoice')}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.pdfDownloadPill}>
+              <Ionicons name="download-outline" size={14} color={colors.white} />
+              <Text style={styles.pdfDownloadPillText}>PDF</Text>
+            </View>
           </Pressable>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.shareActionBtn,
-              pressed && { opacity: 0.85 },
-            ]}
-            onPress={whatsappCustomer}
-          >
-            <Ionicons name="logo-whatsapp" size={15} color="#2E7D32" />
-            <Text style={styles.shareActionBtnText} numberOfLines={1} adjustsFontSizeToFit>
-              WhatsApp
-            </Text>
-          </Pressable>
-
-          {order.phoneNumber ? (
+          {/* Sub Action Buttons Row */}
+          <View style={styles.invoiceSubActionsRow}>
             <Pressable
               style={({ pressed }) => [
-                styles.callActionBtn,
+                styles.pdfActionBtn,
                 pressed && { opacity: 0.85 },
               ]}
-              onPress={callCustomer}
+              onPress={() => setShowPdfModal(true)}
             >
-              <Ionicons name="call-outline" size={15} color={colors.duskDeep} />
-              <Text style={styles.callActionBtnText} numberOfLines={1} adjustsFontSizeToFit>
-                {t('customers.call')}
+              <Ionicons name="eye-outline" size={15} color={colors.clayDeep} />
+              <Text style={styles.pdfActionBtnText} numberOfLines={1} adjustsFontSizeToFit>
+                {t('common.details')}
               </Text>
             </Pressable>
-          ) : null}
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.shareActionBtn,
+                pressed && { opacity: 0.85 },
+              ]}
+              onPress={whatsappCustomer}
+            >
+              <Ionicons name="logo-whatsapp" size={15} color="#2E7D32" />
+              <Text style={styles.shareActionBtnText} numberOfLines={1} adjustsFontSizeToFit>
+                WhatsApp
+              </Text>
+            </Pressable>
+
+            {order.phoneNumber && balance > 0 ? (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.shareActionBtn,
+                  { borderColor: '#F59E0B', backgroundColor: '#FFFBEB' },
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={handleSendReminder}
+              >
+                <Ionicons name="notifications-outline" size={15} color="#B45309" />
+                <Text style={[styles.shareActionBtnText, { color: '#B45309' }]} numberOfLines={1} adjustsFontSizeToFit>
+                  Remind
+                </Text>
+              </Pressable>
+            ) : null}
+
+            {order.phoneNumber ? (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.callActionBtn,
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={callCustomer}
+              >
+                <Ionicons name="call-outline" size={15} color={colors.duskDeep} />
+                <Text style={styles.callActionBtnText} numberOfLines={1} adjustsFontSizeToFit>
+                  {t('customers.call')}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
-      </View>
+
+        {/* Attached Photos Gallery */}
+        {order.photos && order.photos.length > 0 && (
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Ionicons name="images-outline" size={18} color={colors.clayDeep} />
+              <Text style={styles.cardTitle}>Attached Photos ({order.photos.length})</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -4 }}>
+              {order.photos.map((uri, idx) => (
+                <Image
+                  key={idx}
+                  source={{ uri }}
+                  style={{ width: 120, height: 120, borderRadius: 8, marginHorizontal: 4, backgroundColor: colors.line }}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
       {/* Fulfillment Status Tracker */}
       <View style={styles.card}>
@@ -789,6 +852,7 @@ Thank you for your business!`;
         </SafeAreaView>
       </Modal>
     </ScrollView>
+    </DesktopLayout>
   );
 }
 
@@ -1211,7 +1275,7 @@ const styles = StyleSheet.create({
   pdfFooterText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
-    color: colors.inkSoft,
+    color: colors.ink,
   },
   pdfFooterSubText: {
     fontFamily: fonts.body,

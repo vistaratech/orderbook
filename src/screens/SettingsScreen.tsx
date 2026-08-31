@@ -748,7 +748,7 @@ export default function SettingsScreen() {
               size={50}
               variant="vertical"
               showTagline
-              taglineText="KadaiBook v1.2.0 • kadaibook.in"
+              taglineText="KadaiBook v1.5.0 • kadaibook.in"
             />
           </View>
         </ScrollView>

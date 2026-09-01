@@ -40,11 +40,17 @@ import {
   sharePdfInvoiceToWhatsApp,
   printPdfInvoice,
   generatePrintableInvoiceHtml,
-  InvoiceTemplateId,
 } from '../utils/invoiceGenerator';
+import {
+  InvoiceTemplateConfig,
+  InvoiceTemplateId,
+  INVOICE_THEME_PRESETS,
+  DEFAULT_INVOICE_TEMPLATE_CONFIG,
+} from '../types/invoiceTemplate';
+import { getInvoiceTemplateConfig } from '../storage/invoiceTemplateStorage';
 import StatusTracker from '../components/StatusTracker';
 import { AppLogoIcon } from '../components/AppLogo';
-import DesktopLayout from '../components/DesktopLayout';
+import GlassBackButton from '../components/GlassBackButton';
 import { sendPaymentReminder } from '../utils/reminderGenerator';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -67,15 +73,20 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
   const [payMethod, setPayMethod] = useState('UPI');
   const [payNote, setPayNote] = useState('');
   const [isSavingPayment, setIsSavingPayment] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<InvoiceTemplateId>('dark');
+  const [selectedTemplate, setSelectedTemplate] = useState<InvoiceTemplateId>('modern_slate');
+  const [templateConfig, setTemplateConfig] = useState<InvoiceTemplateConfig>(DEFAULT_INVOICE_TEMPLATE_CONFIG);
 
-  // Fetch logged in business profile & full branding
+  // Fetch logged in business profile, branding & invoice template config
   useEffect(() => {
     getAuthState().then((state) => {
       if (state.user) setUserProfile(state.user);
     });
     getBusinessProfile().then((b) => {
       if (b) setBizProfile(b);
+    });
+    getInvoiceTemplateConfig().then((cfg) => {
+      setTemplateConfig(cfg);
+      if (cfg.templateId) setSelectedTemplate(cfg.templateId);
     });
   }, []);
 
@@ -104,9 +115,17 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
 
   if (!order) {
     return (
-      <View style={styles.screen}>
-        <Text style={styles.loading}>Loading order details…</Text>
-      </View>
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <View style={styles.content}>
+          <View style={styles.topHeaderRow}>
+            <GlassBackButton label={t('common.back', 'Back')} />
+          </View>
+          <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 60 }}>
+            <ActivityIndicator size="large" color={colors.clayDeep} />
+            <Text style={styles.loading}>{t('common.loading', 'Loading order details…')}</Text>
+          </View>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -213,13 +232,17 @@ Thank you for your business!`;
 
   const whatsappCustomer = async () => {
     if (order) {
-      await sendWhatsAppInvoice(order, activeBusinessProfile);
+      await sendWhatsAppInvoice(order, activeBusinessProfile, templateConfig);
     }
   };
 
   const sharePdfCustomer = async () => {
     if (order) {
-      await sharePdfInvoiceToWhatsApp(order, activeBusinessProfile, selectedTemplate);
+      const activeConfig: InvoiceTemplateConfig = {
+        ...templateConfig,
+        templateId: selectedTemplate,
+      };
+      await sharePdfInvoiceToWhatsApp(order, activeBusinessProfile, activeConfig);
     }
   };
 
@@ -245,12 +268,21 @@ Thank you for your business!`;
   };
 
   return (
-    <DesktopLayout currentTabName="OrdersTab">
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={[styles.content, { paddingBottom: 60 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Top Header Bar Aligned Directly Above Cards */}
+        <View style={styles.topHeaderRow}>
+          <GlassBackButton label={t('common.back', 'Back')} />
+          <View style={styles.topHeaderTitleWrap}>
+            <Text style={styles.topHeaderTitle}>{t('orders.orderDetailsTitle', 'Order Details')}</Text>
+            <Text style={styles.topHeaderSub}>{order.orderNumber} • {order.customerName}</Text>
+          </View>
+        </View>
+
         {/* Order Header / Hero Card */}
         <View style={styles.heroHeaderCard}>
           <View style={styles.heroTopRow}>
@@ -667,52 +699,72 @@ Thank you for your business!`;
               },
             ]}
           >
-            <Pressable
-              style={styles.pdfModalCloseBtn}
-              onPress={() => setShowPdfModal(false)}
-            >
-              <Ionicons name="close" size={24} color={colors.ink} />
-            </Pressable>
-            <Text style={styles.pdfModalTitle}>PDF Invoice Preview</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Pressable
+                style={styles.pdfModalCloseBtn}
+                onPress={() => setShowPdfModal(false)}
+              >
+                <Ionicons name="close" size={24} color={colors.ink} />
+              </Pressable>
+              <Text style={styles.pdfModalTitle}>PDF Invoice Preview</Text>
+            </View>
 
-            <Pressable
-              style={styles.pdfModalPrintBtn}
-              onPress={() => {
-                if (order) printPdfInvoice(order, activeBusinessProfile, selectedTemplate);
-              }}
-            >
-              <Ionicons name="print-outline" size={18} color={colors.white} />
-              <Text style={styles.pdfModalPrintBtnText}>Print PDF</Text>
-            </Pressable>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Pressable
+                style={[styles.pdfModalPrintBtn, { backgroundColor: colors.paperCard, borderWidth: 1, borderColor: colors.line }]}
+                onPress={() => {
+                  setShowPdfModal(false);
+                  navigation.navigate('InvoiceTemplateCustomizer');
+                }}
+              >
+                <Ionicons name="options-outline" size={16} color={colors.ink} />
+                <Text style={[styles.pdfModalPrintBtnText, { color: colors.ink }]}>Customize</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.pdfModalPrintBtn}
+                onPress={() => {
+                  const activeConfig: InvoiceTemplateConfig = {
+                    ...templateConfig,
+                    templateId: selectedTemplate,
+                  };
+                  if (order) printPdfInvoice(order, activeBusinessProfile, activeConfig);
+                }}
+              >
+                <Ionicons name="print-outline" size={16} color={colors.white} />
+                <Text style={styles.pdfModalPrintBtnText}>Print PDF</Text>
+              </Pressable>
+            </View>
           </View>
 
           {/* Template Selector Chips Bar */}
           <View style={styles.templateSelectorBar}>
             <Text style={styles.templateBarLabel}>Select Template Style:</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.templateChipsRow}>
-              {[
-                { id: 'dark', label: 'Dark Slate', color: '#0F172A' },
-                { id: 'terracotta', label: 'Terracotta', color: '#B96659' },
-                { id: 'classic', label: 'Classic Minimal', color: '#334155' },
-                { id: 'emerald', label: 'Emerald', color: '#15803D' },
-              ].map((tmpl) => (
+              {Object.values(INVOICE_THEME_PRESETS).map((tmpl) => (
                 <Pressable
                   key={tmpl.id}
                   style={[
                     styles.templateChip,
                     selectedTemplate === tmpl.id && styles.templateChipActive,
-                    selectedTemplate === tmpl.id && { borderColor: tmpl.color, backgroundColor: tmpl.color + '15' },
+                    selectedTemplate === tmpl.id && {
+                      borderColor: tmpl.primaryColor,
+                      backgroundColor: tmpl.primaryColor + '15',
+                    },
                   ]}
                   onPress={() => setSelectedTemplate(tmpl.id as InvoiceTemplateId)}
                 >
-                  <View style={[styles.templateDot, { backgroundColor: tmpl.color }]} />
+                  <View style={[styles.templateDot, { backgroundColor: tmpl.primaryColor }]} />
                   <Text
                     style={[
                       styles.templateChipText,
-                      selectedTemplate === tmpl.id && { color: tmpl.color, fontFamily: fonts.bodyBold },
+                      selectedTemplate === tmpl.id && {
+                        color: tmpl.primaryColor,
+                        fontFamily: fonts.bodyBold,
+                      },
                     ]}
                   >
-                    {tmpl.label}
+                    {tmpl.name}
                   </Text>
                 </Pressable>
               ))}
@@ -852,7 +904,7 @@ Thank you for your business!`;
         </SafeAreaView>
       </Modal>
     </ScrollView>
-    </DesktopLayout>
+    </SafeAreaView>
   );
 }
 
@@ -891,6 +943,28 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 900,
     alignSelf: 'center',
+  },
+  topHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+    paddingTop: Platform.select({ web: 6, default: 4 }),
+  },
+  topHeaderTitleWrap: {
+    flex: 1,
+  },
+  topHeaderTitle: {
+    fontFamily: fonts.display,
+    fontSize: 22,
+    color: colors.ink,
+    lineHeight: 26,
+  },
+  topHeaderSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 1,
   },
   loading: { fontFamily: fonts.body, color: colors.inkSoft, marginTop: 40, textAlign: 'center' },
 

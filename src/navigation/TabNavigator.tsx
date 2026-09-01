@@ -10,6 +10,8 @@ import ExpensesScreen from '../screens/ExpensesScreen';
 import ReportsScreen from '../screens/ReportsScreen';
 import CustomerListScreen from '../screens/CustomerListScreen';
 import ProductListScreen from '../screens/ProductListScreen';
+import PurchaseListScreen from '../screens/PurchaseListScreen';
+import EstimateListScreen from '../screens/EstimateListScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import MoreScreen from '../screens/MoreScreen';
@@ -70,6 +72,16 @@ export default function TabNavigator() {
             {visitedTabs['ProductList'] && (
               <View style={[styles.tabContentContainer, activeTab !== 'ProductList' && styles.tabHidden]}>
                 <ProductListScreen />
+              </View>
+            )}
+            {visitedTabs['PurchaseList'] && (
+              <View style={[styles.tabContentContainer, activeTab !== 'PurchaseList' && styles.tabHidden]}>
+                <PurchaseListScreen />
+              </View>
+            )}
+            {visitedTabs['EstimateList'] && (
+              <View style={[styles.tabContentContainer, activeTab !== 'EstimateList' && styles.tabHidden]}>
+                <EstimateListScreen />
               </View>
             )}
             {visitedTabs['History'] && (

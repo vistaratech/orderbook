@@ -19,6 +19,8 @@ import { colors, fonts, radius, shadow } from '../theme/theme';
 import { getBusinessProfile } from '../storage/businessProfileStorage';
 import { getBusinessPreset } from '../config/businessTypes';
 import { useLanguage } from '../i18n/LanguageContext';
+import GlassBackButton from '../components/GlassBackButton';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProductForm'>;
 
@@ -97,12 +99,23 @@ export default function ProductFormScreen({ navigation, route }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View style={styles.section}>
+    <SafeAreaView style={styles.flex} edges={['top']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {/* Top Header Bar Aligned Directly Above Card Container */}
+          <View style={styles.topHeaderRow}>
+            <GlassBackButton label={t('common.back', 'Back')} />
+            <View style={styles.topHeaderTitleWrap}>
+              <Text style={styles.topHeaderTitle}>
+                {isEditing ? t('products.editProduct', 'Edit Product') : t('products.addProductBtn', 'Add Product')}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Ionicons name="pricetag-outline" size={18} color={colors.duskDeep} />
             <Text style={styles.sectionTitle}>{t('products.productDetailsTitle')}</Text>
@@ -242,8 +255,9 @@ export default function ProductFormScreen({ navigation, route }: Props) {
             {saving ? t('common.loading') : isEditing ? t('common.update') : t('products.saveProductBtn')}
           </Text>
         </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -258,6 +272,22 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center' as any,
+  },
+  topHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    paddingTop: Platform.select({ web: 6, default: 4 }),
+  },
+  topHeaderTitleWrap: {
+    flex: 1,
+  },
+  topHeaderTitle: {
+    fontFamily: fonts.display,
+    fontSize: 22,
+    color: colors.ink,
+    lineHeight: 26,
   },
   section: {
     backgroundColor: colors.paperCard,

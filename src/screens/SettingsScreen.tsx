@@ -414,6 +414,49 @@ export default function SettingsScreen() {
             </Pressable>
           </View>
 
+          {/* ─── Bill & Invoice Templates Card ─── */}
+          <Pressable
+            style={({ pressed }) => [
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 16,
+                backgroundColor: colors.paperCard,
+                borderRadius: radius.md,
+                borderWidth: 1.5,
+                borderColor: '#0284C740',
+                marginBottom: 16,
+              },
+              pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
+            ]}
+            onPress={() => navigation.navigate('InvoiceTemplateCustomizer')}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  backgroundColor: '#E0F2FE',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="color-palette" size={20} color="#0284C7" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sectionTitle, { fontSize: 14 }]}>
+                  {t('invoice.templateTitle', 'Bill & Invoice Templates')}
+                </Text>
+                <Text style={styles.sectionSub} numberOfLines={1}>
+                  {t('invoice.templateSubtitle', 'Customize 8 styles, colors, columns & UPI QR')}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#0284C7" />
+          </Pressable>
+
           {/* ─── Expandable Business Profile Section ─── */}
           <View style={styles.section}>
             <Pressable

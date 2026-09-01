@@ -66,6 +66,14 @@ export default function MoreScreen() {
       action: () => navigation.navigate('EstimateList'),
     },
     {
+      title: t('invoice.templateTitle', 'Bill & Invoice Templates'),
+      subtitle: t('invoice.templateSubtitle', 'Customize bills, 8 styles, UPI QR & colors'),
+      icon: 'color-palette' as const,
+      color: '#0284C7',
+      bg: '#E0F2FE',
+      action: () => navigation.navigate('InvoiceTemplateCustomizer'),
+    },
+    {
       title: t('more.settingsAndBackup'),
       subtitle: t('more.settingsAndBackupSub'),
       icon: 'settings' as const,

@@ -25,6 +25,8 @@ import StatusTracker from '../components/StatusTracker';
 import { getBusinessProfile } from '../storage/businessProfileStorage';
 import { getBusinessPreset } from '../config/businessTypes';
 import { useLanguage } from '../i18n/LanguageContext';
+import GlassBackButton from '../components/GlassBackButton';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OrderForm'>;
 
@@ -307,16 +309,28 @@ export default function OrderFormScreen({ navigation, route }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.flex} edges={['top']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Section title={t('orders.customerInfo')} icon="person-outline">
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Top Header Bar Aligned Directly Above Card Container */}
+          <View style={styles.topHeaderRow}>
+            <GlassBackButton label={t('common.back', 'Back')} />
+            <View style={styles.topHeaderTitleWrap}>
+              <Text style={styles.topHeaderTitle}>
+                {isEditing ? t('orders.editOrderTitle', 'Edit Order') : t('orders.newOrderTitle', 'New Order')}
+              </Text>
+              {orderNumber ? <Text style={styles.topHeaderSub}>{orderNumber}</Text> : null}
+            </View>
+          </View>
+
+          <Section title={t('orders.customerInfo')} icon="person-outline">
           <Field label={t('orders.customerName') + ' *'}>
             <TextInput
               style={styles.input}
@@ -715,6 +729,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
         </View>
       </Modal>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -732,10 +747,8 @@ function Section({
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-          {icon && <Ionicons name={icon as any} size={18} color={colors.clayDeep} />}
-          <Text style={styles.sectionTitle}>{title}</Text>
-        </View>
+        {icon && <Ionicons name={icon as any} size={18} color={colors.clayDeep} />}
+        <Text style={styles.sectionTitle}>{title}</Text>
         {rightAction}
       </View>
       {children}
@@ -772,7 +785,7 @@ function ChipRow({
 }: {
   options: string[];
   value: string;
-  onChange: (v: string) => void;
+  onChange: (opt: string) => void;
   getLabel?: (opt: string) => string;
 }) {
   return (
@@ -802,6 +815,28 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 860,
     alignSelf: 'center',
+  },
+  topHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    paddingTop: Platform.select({ web: 6, default: 4 }),
+  },
+  topHeaderTitleWrap: {
+    flex: 1,
+  },
+  topHeaderTitle: {
+    fontFamily: fonts.display,
+    fontSize: 22,
+    color: colors.ink,
+    lineHeight: 26,
+  },
+  topHeaderSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 1,
   },
   section: {
     backgroundColor: colors.paperCard,

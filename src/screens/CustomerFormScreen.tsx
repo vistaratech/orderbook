@@ -16,6 +16,8 @@ import { RootStackParamList } from '../navigation/types';
 import { getCustomer, saveCustomer } from '../storage/customerStorage';
 import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
+import GlassBackButton from '../components/GlassBackButton';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CustomerForm'>;
 
@@ -70,12 +72,23 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View style={styles.section}>
+    <SafeAreaView style={styles.flex} edges={['top']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {/* Top Header Bar Aligned Directly Above Card Container */}
+          <View style={styles.topHeaderRow}>
+            <GlassBackButton label={t('common.back', 'Back')} />
+            <View style={styles.topHeaderTitleWrap}>
+              <Text style={styles.topHeaderTitle}>
+                {isEditing ? t('customers.editCustomer', 'Edit Customer') : t('customers.addCustomerBtn', 'Add Customer')}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Ionicons name="person-outline" size={18} color={colors.clayDeep} />
             <Text style={styles.sectionTitle}>{t('customers.customerProfileTitle')}</Text>
@@ -152,8 +165,9 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
             {saving ? t('common.loading') : isEditing ? t('common.update') : t('customers.saveCustomerBtn')}
           </Text>
         </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -168,6 +182,22 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
+  },
+  topHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    paddingTop: Platform.select({ web: 6, default: 4 }),
+  },
+  topHeaderTitleWrap: {
+    flex: 1,
+  },
+  topHeaderTitle: {
+    fontFamily: fonts.display,
+    fontSize: 22,
+    color: colors.ink,
+    lineHeight: 26,
   },
   section: {
     backgroundColor: colors.paperCard,

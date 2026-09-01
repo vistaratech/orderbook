@@ -34,6 +34,7 @@ import PurchaseFormScreen from './src/screens/PurchaseFormScreen';
 import EstimateListScreen from './src/screens/EstimateListScreen';
 import EstimateFormScreen from './src/screens/EstimateFormScreen';
 import EstimateDetailScreen from './src/screens/EstimateDetailScreen';
+import InvoiceTemplateCustomizerScreen from './src/screens/InvoiceTemplateCustomizerScreen';
 import GlassBackButton from './src/components/GlassBackButton';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './src/config/firebase';
@@ -254,17 +255,17 @@ export default function App() {
                 <Stack.Screen
                   name="OrderForm"
                   component={OrderFormScreen}
-                  options={{ title: 'New Order' }}
+                  options={{ headerShown: false }}
                 />
                 <Stack.Screen
                   name="OrderDetail"
                   component={OrderDetailScreen}
-                  options={{ title: 'Order Details' }}
+                  options={{ headerShown: false }}
                 />
                 <Stack.Screen
                   name="ExpenseForm"
                   component={ExpenseFormScreen}
-                  options={{ title: 'Record Outflow' }}
+                  options={{ headerShown: false }}
                 />
                 <Stack.Screen
                   name="CustomerList"
@@ -274,12 +275,12 @@ export default function App() {
                 <Stack.Screen
                   name="CustomerDetail"
                   component={CustomerDetailScreen}
-                  options={{ title: 'Customer Profile' }}
+                  options={{ headerShown: false }}
                 />
                 <Stack.Screen
                   name="CustomerForm"
                   component={CustomerFormScreen}
-                  options={{ title: 'Customer' }}
+                  options={{ headerShown: false }}
                 />
                 <Stack.Screen
                   name="ProductList"
@@ -289,7 +290,7 @@ export default function App() {
                 <Stack.Screen
                   name="ProductForm"
                   component={ProductFormScreen}
-                  options={{ title: 'Product' }}
+                  options={{ headerShown: false }}
                 />
                 <Stack.Screen
                   name="Settings"
@@ -319,7 +320,7 @@ export default function App() {
                 <Stack.Screen
                   name="PurchaseForm"
                   component={PurchaseFormScreen}
-                  options={{ title: 'New Purchase' }}
+                  options={{ headerShown: false }}
                 />
                 <Stack.Screen
                   name="EstimateList"
@@ -329,12 +330,17 @@ export default function App() {
                 <Stack.Screen
                   name="EstimateForm"
                   component={EstimateFormScreen}
-                  options={{ title: 'New Estimate' }}
+                  options={{ headerShown: false }}
                 />
                 <Stack.Screen
                   name="EstimateDetail"
                   component={EstimateDetailScreen}
-                  options={{ title: 'Estimate Details' }}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="InvoiceTemplateCustomizer"
+                  component={InvoiceTemplateCustomizerScreen}
+                  options={{ headerShown: false }}
                 />
               </Stack.Navigator>
             </NavigationContainer>

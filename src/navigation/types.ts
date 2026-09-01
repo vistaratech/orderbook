@@ -21,6 +21,7 @@ export type RootStackParamList = {
   EstimateList: undefined;
   EstimateForm: { estimateId?: string } | undefined;
   EstimateDetail: { estimateId: string };
+  InvoiceTemplateCustomizer: undefined;
 };
 
 export type MainTabParamList = {

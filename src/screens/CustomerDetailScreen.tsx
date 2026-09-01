@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Linking,
   Alert,
+  Platform,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -24,7 +25,8 @@ import OrderCard from '../components/OrderCard';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { confirmAction } from '../utils/dialog';
 import { formatCurrency, formatDate } from '../utils/format';
-import DesktopLayout from '../components/DesktopLayout';
+import GlassBackButton from '../components/GlassBackButton';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CustomerDetail'>;
 
@@ -87,9 +89,14 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
 
   if (!customer) {
     return (
-      <View style={styles.screen}>
-        <Text style={styles.loading}>Loading customer…</Text>
-      </View>
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <View style={styles.content}>
+          <View style={styles.topHeaderRow}>
+            <GlassBackButton label="Back" />
+          </View>
+          <Text style={styles.loading}>Loading customer…</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -184,8 +191,17 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
   };
 
   return (
-    <DesktopLayout currentTabName="CustomerList">
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Top Header Bar Aligned Directly Above Card Container */}
+        <View style={styles.topHeaderRow}>
+          <GlassBackButton label="Back" />
+          <View style={styles.topHeaderTitleWrap}>
+            <Text style={styles.topHeaderTitle}>Customer Profile</Text>
+            <Text style={styles.topHeaderSub}>{customer.name}</Text>
+          </View>
+        </View>
+
         {/* Customer Header Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
@@ -368,7 +384,7 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
           </Pressable>
         </View>
       </ScrollView>
-    </DesktopLayout>
+    </SafeAreaView>
   );
 }
 
@@ -383,6 +399,28 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 900,
     alignSelf: 'center',
+  },
+  topHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    paddingTop: Platform.select({ web: 6, default: 4 }),
+  },
+  topHeaderTitleWrap: {
+    flex: 1,
+  },
+  topHeaderTitle: {
+    fontFamily: fonts.display,
+    fontSize: 22,
+    color: colors.ink,
+    lineHeight: 26,
+  },
+  topHeaderSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 1,
   },
   loading: {
     fontFamily: fonts.body,

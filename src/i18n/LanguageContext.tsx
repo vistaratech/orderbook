@@ -19,7 +19,7 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType>({
   language: 'en',
-  setLanguage: async () => {},
+  setLanguage: async () => { },
   t: (path: string) => path,
   currentLangOption: SUPPORTED_LANGUAGES[0],
   availableLanguages: SUPPORTED_LANGUAGES,
@@ -36,14 +36,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
           setLangState(saved as LanguageCode);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const setLanguage = useCallback(async (newLang: LanguageCode) => {
     setLangState(newLang);
     try {
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, newLang);
-    } catch {}
+    } catch { }
   }, []);
 
   /**

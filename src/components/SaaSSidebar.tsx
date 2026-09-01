@@ -182,6 +182,13 @@ export default function SaaSSidebar({
       group: 'PREFERENCES',
       items: [
         {
+          key: 'InvoiceTemplateCustomizer',
+          label: t('invoice.templateTitle', 'Bill Templates'),
+          icon: 'color-palette-outline' as const,
+          activeIcon: 'color-palette' as const,
+          action: () => handleNav('InvoiceTemplateCustomizer', 'InvoiceTemplateCustomizer'),
+        },
+        {
           key: 'Settings',
           label: t('nav.settings'),
           icon: 'settings-outline' as const,

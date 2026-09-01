@@ -37,11 +37,11 @@ import { useLanguage } from '../i18n/LanguageContext';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 // Greeting based on time of day
-function getGreeting(): string {
+function getGreeting(t: (path: string, fallback?: string) => string): string {
   const h = new Date().getHours();
-  if (h < 12) return 'Good Morning';
-  if (h < 17) return 'Good Afternoon';
-  return 'Good Evening';
+  if (h < 12) return t('common.greetingMorning', 'Good Morning');
+  if (h < 17) return t('common.greetingAfternoon', 'Good Afternoon');
+  return t('common.greetingEvening', 'Good Evening');
 }
 
 // Status icon map
@@ -54,7 +54,7 @@ const statusIcons: Record<OrderStatus, string> = {
 
 export default function DashboardScreen() {
   const navigation = useNavigation<Nav>();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -201,11 +201,11 @@ export default function DashboardScreen() {
             <AppLogo size={40} variant="icon" />
             <View style={styles.headerTextBlock}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Text style={styles.greeting}>{getGreeting()}</Text>
+                <Text style={styles.greeting}>{getGreeting(t)}</Text>
                 <Ionicons name="sparkles" size={14} color={colors.clayDeep} />
               </View>
               <Text style={styles.headerDate}>
-                {new Date().toLocaleDateString('en-IN', {
+                {new Date().toLocaleDateString(language === 'ta' ? 'ta-IN' : language === 'hi' ? 'hi-IN' : 'en-IN', {
                   weekday: 'long',
                   day: 'numeric',
                   month: 'short',
@@ -240,7 +240,7 @@ export default function DashboardScreen() {
             <View style={styles.heroCard}>
               {/* Top Row: Label + Profit Percentage Pill */}
               <View style={styles.heroTopRow}>
-                <Text style={styles.heroLabel}>Net Business Balance</Text>
+                <Text style={styles.heroLabel}>{t('dashboard.netBusinessBalance', 'Net Business Balance')}</Text>
                 <View
                   style={[
                     styles.profitPill,
@@ -260,7 +260,7 @@ export default function DashboardScreen() {
                       { color: netProfit >= 0 ? colors.inflow : colors.outflow },
                     ]}
                   >
-                    {netProfit >= 0 ? `Profit (${profitMargin}%)` : `Deficit (${profitMargin}%)`}
+                    {netProfit >= 0 ? `${t('dashboard.profit', 'Profit')} (${profitMargin}%)` : `${t('dashboard.deficit', 'Deficit')} (${profitMargin}%)`}
                   </Text>
                 </View>
               </View>
@@ -280,7 +280,7 @@ export default function DashboardScreen() {
                 <View style={styles.liquidBadge}>
                   <Ionicons name="cash-outline" size={12} color={colors.clayDeep} />
                   <Text style={styles.liquidBadgeText}>
-                    Liquid Cash: {formatCurrency(liquidCash)}
+                    {t('dashboard.liquidCashLabel', 'Liquid Cash')}: {formatCurrency(liquidCash)}
                   </Text>
                 </View>
               </View>
@@ -288,8 +288,8 @@ export default function DashboardScreen() {
               {/* Cash Collection Progress Bar */}
               <View style={styles.collectionProgressWrap}>
                 <View style={styles.collectionProgressLabelRow}>
-                  <Text style={styles.collectionProgressTitle}>Collection Health</Text>
-                  <Text style={styles.collectionProgressPct}>{collectionRate}% Collected</Text>
+                  <Text style={styles.collectionProgressTitle}>{t('dashboard.collectionHealth', 'Collection Health')}</Text>
+                  <Text style={styles.collectionProgressPct}>{collectionRate}% {t('dashboard.collectedPct', 'Collected')}</Text>
                 </View>
                 <View style={styles.collectionProgressBarBg}>
                   <View

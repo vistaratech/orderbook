@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   Share,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -21,6 +22,11 @@ import { colors, fonts, radius, shadow } from '../theme/theme';
 import { confirmAction } from '../utils/dialog';
 import { formatCurrency, formatDate } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
+import GlassBackButton from '../components/GlassBackButton';
+import { getBusinessProfile, BusinessProfile } from '../storage/businessProfileStorage';
+import { getInvoiceTemplateConfig } from '../storage/invoiceTemplateStorage';
+import { generateEstimateHtml } from '../utils/invoiceGenerator';
+import * as Print from 'expo-print';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EstimateDetail'>;
 
@@ -52,9 +58,14 @@ export default function EstimateDetailScreen({ navigation, route }: Props) {
 
   if (!estimate) {
     return (
-      <View style={styles.screen}>
-        <Text style={styles.loading}>Loading estimate…</Text>
-      </View>
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <View style={styles.content}>
+          <View style={styles.topHeaderRow}>
+            <GlassBackButton label={t('common.back', 'Back')} />
+          </View>
+          <Text style={styles.loading}>Loading estimate…</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -78,7 +89,10 @@ export default function EstimateDetailScreen({ navigation, route }: Props) {
   const handleDelete = () => {
     confirmAction({
       title: 'Delete Estimate',
-      message: `Remove estimate ${estimate.estimateNumber}?`,
+      message: `Remove estimate for ${estimate.customerName}?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
       onConfirm: async () => {
         await deleteEstimate(estimate.id);
         navigation.goBack();
@@ -107,10 +121,63 @@ ${estimate.customerNote ? `\nNote: ${estimate.customerNote}` : ''}`;
     await Share.share({ message: text, title: `Estimate ${estimate.estimateNumber}` });
   };
 
+  const handlePrintPdf = async () => {
+    if (!estimate) return;
+    try {
+      const [bp, cfg] = await Promise.all([
+        getBusinessProfile(),
+        getInvoiceTemplateConfig(),
+      ]);
+      const html = generateEstimateHtml(estimate, bp, cfg);
+
+      if (Platform.OS === 'web') {
+        if (typeof document !== 'undefined') {
+          let iframe = document.getElementById('print-invoice-iframe') as HTMLIFrameElement | null;
+          if (iframe) iframe.remove();
+          iframe = document.createElement('iframe');
+          iframe.id = 'print-invoice-iframe';
+          iframe.style.position = 'fixed';
+          iframe.style.right = '0';
+          iframe.style.bottom = '0';
+          iframe.style.width = '0';
+          iframe.style.height = '0';
+          iframe.style.border = '0';
+          iframe.style.visibility = 'hidden';
+          document.body.appendChild(iframe);
+
+          const doc = iframe.contentWindow?.document || iframe.contentDocument;
+          if (doc) {
+            doc.open();
+            doc.write(html);
+            doc.close();
+            setTimeout(() => {
+              iframe?.contentWindow?.focus();
+              iframe?.contentWindow?.print();
+            }, 300);
+          }
+        }
+      } else {
+        await Print.printAsync({ html });
+      }
+    } catch (err) {
+      console.error('Error printing estimate:', err);
+    }
+  };
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      {/* Header Card */}
-      <View style={styles.headerCard}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        {/* Top Header Bar Aligned Directly Above Card Container */}
+        <View style={styles.topHeaderRow}>
+          <GlassBackButton label={t('common.back', 'Back')} />
+          <View style={styles.topHeaderTitleWrap}>
+            <Text style={styles.topHeaderTitle}>{t('estimates.estimateDetailsTitle', 'Estimate Details')}</Text>
+            <Text style={styles.topHeaderSub}>{estimate.estimateNumber} • {estimate.customerName}</Text>
+          </View>
+        </View>
+
+        {/* Header Card */}
+        <View style={styles.headerCard}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.estimateNum}>{estimate.estimateNumber}</Text>
@@ -197,6 +264,14 @@ ${estimate.customerNote ? `\nNote: ${estimate.customerNote}` : ''}`;
         </Pressable>
 
         <Pressable
+          style={({ pressed }) => [styles.actionBtn, { backgroundColor: colors.ink }, pressed && { opacity: 0.85 }]}
+          onPress={handlePrintPdf}
+        >
+          <Ionicons name="print-outline" size={18} color={colors.white} />
+          <Text style={styles.actionBtnText}>Print PDF</Text>
+        </Pressable>
+
+        <Pressable
           style={({ pressed }) => [styles.actionBtn, styles.shareBtn, pressed && { opacity: 0.85 }]}
           onPress={handleShare}
         >
@@ -223,12 +298,35 @@ ${estimate.customerNote ? `\nNote: ${estimate.customerNote}` : ''}`;
         </Pressable>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
   content: { padding: 20, paddingBottom: 80, width: '100%', maxWidth: 720, alignSelf: 'center' as any },
+  topHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    paddingTop: Platform.select({ web: 6, default: 4 }),
+  },
+  topHeaderTitleWrap: {
+    flex: 1,
+  },
+  topHeaderTitle: {
+    fontFamily: fonts.display,
+    fontSize: 22,
+    color: colors.ink,
+    lineHeight: 26,
+  },
+  topHeaderSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
   loading: { fontFamily: fonts.body, fontSize: 14, color: colors.inkSoft, textAlign: 'center', marginTop: 40 },
   headerCard: {
     backgroundColor: colors.paperCard,

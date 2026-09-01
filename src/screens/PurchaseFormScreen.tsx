@@ -20,6 +20,8 @@ import { generateId } from '../utils/id';
 import { formatCurrency, todayIso } from '../utils/format';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { useLanguage } from '../i18n/LanguageContext';
+import GlassBackButton from '../components/GlassBackButton';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PurchaseForm'>;
 
@@ -139,13 +141,25 @@ export default function PurchaseFormScreen({ navigation, route }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        {/* Supplier Details */}
-        <View style={styles.section}>
+    <SafeAreaView style={styles.flex} edges={['top']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {/* Top Header Row Aligned Directly Above Card Container */}
+          <View style={styles.topHeaderRow}>
+            <GlassBackButton label={t('common.back', 'Back')} />
+            <View style={styles.topHeaderTitleWrap}>
+              <Text style={styles.topHeaderTitle}>
+                {isEditing ? t('purchases.editTitle', 'Edit Purchase') : t('purchases.newTitle', 'New Purchase')}
+              </Text>
+              {purchaseNumber ? <Text style={styles.topHeaderSub}>{purchaseNumber}</Text> : null}
+            </View>
+          </View>
+
+          {/* Supplier Details */}
+          <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Ionicons name="business-outline" size={18} color={colors.duskDeep} />
             <Text style={styles.sectionTitle}>{t('purchases.supplierDetails', 'Supplier Details')}</Text>
@@ -315,14 +329,37 @@ export default function PurchaseFormScreen({ navigation, route }: Props) {
             {saving ? t('common.loading', 'Saving...') : isEditing ? t('common.update', 'Update') : t('purchases.saveBtn', 'Save Purchase')}
           </Text>
         </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.paper },
   content: { padding: 20, paddingBottom: 60, width: '100%', maxWidth: 720, alignSelf: 'center' as any },
+  topHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    paddingTop: Platform.select({ web: 6, default: 4 }),
+  },
+  topHeaderTitleWrap: {
+    flex: 1,
+  },
+  topHeaderTitle: {
+    fontFamily: fonts.display,
+    fontSize: 22,
+    color: colors.ink,
+    lineHeight: 26,
+  },
+  topHeaderSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
   section: {
     backgroundColor: colors.paperCard,
     borderRadius: radius.md,

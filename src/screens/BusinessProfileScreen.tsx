@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,12 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import useCollapsibleHeader from '../hooks/useCollapsibleHeader';
 
 import * as ImagePicker from 'expo-image-picker';
 
@@ -24,7 +26,9 @@ import {
 } from '../storage/businessProfileStorage';
 import AppLogo from '../components/AppLogo';
 import GlassBackButton from '../components/GlassBackButton';
+import DesktopLayout, { DesktopSidebarContext } from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
+import { showAppAlert } from '../utils/dialog';
 import {
   BusinessType,
   BUSINESS_TYPES_LIST,
@@ -34,8 +38,17 @@ import {
 export default function BusinessProfileScreen() {
   const navigation = useNavigation();
   const { t } = useLanguage();
+  const hasParentSidebar = useContext(DesktopSidebarContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const {
+    onScroll,
+    scrollEventThrottle,
+    headerAnimatedStyle,
+    onHeaderLayout,
+    headerHeight,
+  } = useCollapsibleHeader({ initialHeight: 65 });
 
   const [businessName, setBusinessName] = useState('');
   const [phone, setPhone] = useState('');
@@ -98,7 +111,7 @@ export default function BusinessProfileScreen() {
 
   const handleSave = async () => {
     if (!businessName.trim()) {
-      Alert.alert('Required Field', 'Please enter your Business / Shop Name.');
+      showAppAlert('Required Field', 'Please enter your Business / Shop Name.');
       return;
     }
 
@@ -116,10 +129,12 @@ export default function BusinessProfileScreen() {
         businessType,
       });
 
-      Alert.alert('Success', 'Business profile & invoice branding saved successfully!');
-      navigation.goBack();
+      showAppAlert('Success', 'Business profile & invoice branding saved successfully!');
+      if (!hasParentSidebar && navigation.canGoBack()) {
+        navigation.goBack();
+      }
     } catch (err) {
-      Alert.alert('Error', 'Failed to save business profile.');
+      showAppAlert('Error', 'Failed to save business profile.');
     } finally {
       setSaving(false);
     }
@@ -127,26 +142,47 @@ export default function BusinessProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.screen}>
-        <View style={styles.loaderWrap}>
-          <ActivityIndicator color={colors.clayDeep} size="large" />
-        </View>
-      </SafeAreaView>
+      <DesktopLayout currentTabName="BusinessProfile">
+        <SafeAreaView style={styles.screen}>
+          <View style={styles.loaderWrap}>
+            <ActivityIndicator color={colors.clayDeep} size="large" />
+          </View>
+        </SafeAreaView>
+      </DesktopLayout>
     );
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* Top Header Bar */}
-      <View style={styles.topHeader}>
-        <GlassBackButton label={t('common.back')} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.topHeaderTitle}>{t('profile.title')}</Text>
-          <Text style={styles.topHeaderSub}>{t('profile.subtitle')}</Text>
-        </View>
-      </View>
+    <DesktopLayout currentTabName="BusinessProfile">
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        {/* Top Header Bar */}
+        <Animated.View
+          style={[styles.topHeader, headerAnimatedStyle]}
+          onLayout={onHeaderLayout}
+        >
+          <GlassBackButton
+            label={t('common.back')}
+            onPress={hasParentSidebar ? () => (navigation as any).navigate('MainTabs', { screen: 'DashboardTab' }) : undefined}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.topHeaderTitle}>{t('profile.title')}</Text>
+            <Text style={styles.topHeaderSub}>{businessName || t('profile.subtitle')}</Text>
+          </View>
+          <View style={styles.headerLogoWrap}>
+            {logoUri ? (
+              <Image source={{ uri: logoUri }} style={styles.headerLogoImage} />
+            ) : (
+              <AppLogo size={36} variant="icon" />
+            )}
+          </View>
+        </Animated.View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingTop: headerHeight + 12 }]}
+          showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={scrollEventThrottle}
+        >
         {/* Header Banner */}
         <View style={styles.bannerCard}>
           <View style={styles.bannerIconWrap}>
@@ -364,6 +400,7 @@ export default function BusinessProfileScreen() {
         </Pressable>
       </ScrollView>
     </SafeAreaView>
+  </DesktopLayout>
   );
 }
 
@@ -570,6 +607,10 @@ const styles = StyleSheet.create({
 
   // Custom Header Styles
   topHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: 20,
     paddingVertical: 12,
     flexDirection: 'row',
@@ -578,6 +619,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
+    zIndex: 20,
+    maxWidth: 860,
+    width: '100%',
+    alignSelf: 'center',
+    ...shadow.card,
+  },
+  headerLogoWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  headerLogoImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    resizeMode: 'cover',
   },
   backBtn: {
     padding: 4,

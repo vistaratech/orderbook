@@ -47,3 +47,17 @@ export function confirmAction({
     },
   ]);
 }
+
+/**
+ * Cross-platform alert dialog that displays standard alerts on Web and Native.
+ */
+export function showAppAlert(title: string, message: string, onOk?: () => void) {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined') {
+      window.alert(`${title}\n\n${message}`);
+    }
+    onOk?.();
+    return;
+  }
+  Alert.alert(title, message, [{ text: 'OK', onPress: onOk }]);
+}

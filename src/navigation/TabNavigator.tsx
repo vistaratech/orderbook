@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { StyleSheet, Platform, View, useWindowDimensions } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { StyleSheet, Platform, View, Text, Pressable, useWindowDimensions } from 'react-native';
+import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { MainTabParamList } from './types';
@@ -15,12 +16,124 @@ import EstimateListScreen from '../screens/EstimateListScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import MoreScreen from '../screens/MoreScreen';
+import InvoiceTemplateCustomizerScreen from '../screens/InvoiceTemplateCustomizerScreen';
+import BusinessProfileScreen from '../screens/BusinessProfileScreen';
 import SaaSSidebar from '../components/SaaSSidebar';
 import { DesktopSidebarContext } from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
-import { colors, fonts } from '../theme/theme';
+import { colors, fonts, radius, shadow } from '../theme/theme';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
+function CentralOrderBottomBar({ state, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
+  const currentRoute = state.routes[state.index]?.name;
+  const isTabActive = (tabName: string) => currentRoute === tabName;
+
+  return (
+    <View
+      style={[
+        styles.customTabBarContainer,
+        { paddingBottom: Math.max(insets.bottom, 8) },
+      ]}
+    >
+      {/* Tab 1: Home */}
+      <Pressable
+        style={styles.tabItem}
+        onPress={() => navigation.navigate('DashboardTab')}
+      >
+        <Ionicons
+          name={isTabActive('DashboardTab') ? 'home' : 'home-outline'}
+          size={22}
+          color={isTabActive('DashboardTab') ? colors.clayDeep : colors.inkSoft}
+        />
+        <Text
+          style={[
+            styles.tabItemLabel,
+            isTabActive('DashboardTab') && styles.tabItemLabelActive,
+          ]}
+        >
+          {t('nav.dashboard', 'Home')}
+        </Text>
+      </Pressable>
+
+      {/* Tab 2: Orders */}
+      <Pressable
+        style={styles.tabItem}
+        onPress={() => navigation.navigate('OrdersTab')}
+      >
+        <Ionicons
+          name={isTabActive('OrdersTab') ? 'receipt' : 'receipt-outline'}
+          size={22}
+          color={isTabActive('OrdersTab') ? colors.clayDeep : colors.inkSoft}
+        />
+        <Text
+          style={[
+            styles.tabItemLabel,
+            isTabActive('OrdersTab') && styles.tabItemLabelActive,
+          ]}
+        >
+          {t('nav.orders', 'Orders')}
+        </Text>
+      </Pressable>
+
+      {/* Tab 3: Central "New Order" Elevated Action Button */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.centralActionWrap,
+          pressed && styles.centralActionWrapPressed,
+        ]}
+        onPress={() => (navigation as any).navigate('OrderForm')}
+      >
+        <View style={styles.centralFabCircle}>
+          <Ionicons name="add" size={26} color={colors.white} />
+        </View>
+        <Text style={styles.centralFabLabel}>New Order</Text>
+      </Pressable>
+
+      {/* Tab 4: Expenses */}
+      <Pressable
+        style={styles.tabItem}
+        onPress={() => navigation.navigate('ExpensesTab')}
+      >
+        <Ionicons
+          name={isTabActive('ExpensesTab') ? 'wallet' : 'wallet-outline'}
+          size={22}
+          color={isTabActive('ExpensesTab') ? colors.clayDeep : colors.inkSoft}
+        />
+        <Text
+          style={[
+            styles.tabItemLabel,
+            isTabActive('ExpensesTab') && styles.tabItemLabelActive,
+          ]}
+        >
+          {t('nav.expenses', 'Expenses')}
+        </Text>
+      </Pressable>
+
+      {/* Tab 5: More */}
+      <Pressable
+        style={styles.tabItem}
+        onPress={() => navigation.navigate('MoreTab')}
+      >
+        <Ionicons
+          name={isTabActive('MoreTab') ? 'grid' : 'grid-outline'}
+          size={22}
+          color={isTabActive('MoreTab') ? colors.clayDeep : colors.inkSoft}
+        />
+        <Text
+          style={[
+            styles.tabItemLabel,
+            isTabActive('MoreTab') && styles.tabItemLabelActive,
+          ]}
+        >
+          {t('nav.more', 'More')}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
 
 export default function TabNavigator() {
   const { t } = useLanguage();
@@ -94,6 +207,16 @@ export default function TabNavigator() {
                 <SettingsScreen />
               </View>
             )}
+            {visitedTabs['InvoiceTemplateCustomizer'] && (
+              <View style={[styles.tabContentContainer, activeTab !== 'InvoiceTemplateCustomizer' && styles.tabHidden]}>
+                <InvoiceTemplateCustomizerScreen />
+              </View>
+            )}
+            {visitedTabs['BusinessProfile'] && (
+              <View style={[styles.tabContentContainer, activeTab !== 'BusinessProfile' && styles.tabHidden]}>
+                <BusinessProfileScreen />
+              </View>
+            )}
             {visitedTabs['MoreTab'] && (
               <View style={[styles.tabContentContainer, activeTab !== 'MoreTab' && styles.tabHidden]}>
                 <MoreScreen />
@@ -107,63 +230,30 @@ export default function TabNavigator() {
 
   return (
     <Tab.Navigator
+      tabBar={(props) => <CentralOrderBottomBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: colors.clayDeep,
-        tabBarInactiveTintColor: colors.inkSoft,
-        tabBarLabelStyle: styles.tabLabel,
       }}
     >
       <Tab.Screen
         name="DashboardTab"
         component={DashboardScreen}
-        options={{
-          tabBarLabel: t('nav.dashboard'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />
-          ),
-        }}
       />
       <Tab.Screen
         name="OrdersTab"
         component={OrderListScreen}
-        options={{
-          tabBarLabel: t('nav.orders'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'receipt' : 'receipt-outline'} size={22} color={color} />
-          ),
-        }}
       />
       <Tab.Screen
         name="ExpensesTab"
         component={ExpensesScreen}
-        options={{
-          tabBarLabel: t('nav.expenses'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'wallet' : 'wallet-outline'} size={22} color={color} />
-          ),
-        }}
       />
       <Tab.Screen
         name="ReportsTab"
         component={ReportsScreen}
-        options={{
-          tabBarLabel: t('nav.reports'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'bar-chart' : 'bar-chart-outline'} size={22} color={color} />
-          ),
-        }}
       />
       <Tab.Screen
         name="MoreTab"
         component={MoreScreen}
-        options={{
-          tabBarLabel: t('nav.more'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'grid' : 'grid-outline'} size={22} color={color} />
-          ),
-        }}
       />
     </Tab.Navigator>
   );
@@ -191,16 +281,65 @@ const styles = StyleSheet.create({
   tabHidden: {
     display: 'none',
   },
-  tabBar: {
+
+  // ─── Custom Mobile Bottom Bar with Central New Order Button ───
+  customTabBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
     backgroundColor: colors.paperCard,
-    borderTopColor: colors.line,
     borderTopWidth: 1,
-    height: Platform.select({ ios: 86, web: 56, default: 64 }),
-    paddingBottom: Platform.select({ ios: 28, web: 6, default: 10 }),
-    paddingTop: 8,
+    borderTopColor: colors.line,
+    paddingTop: 6,
+    paddingHorizontal: 8,
+    ...shadow.card,
   },
-  tabLabel: {
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    gap: 2,
+  },
+  tabItemLabel: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 11,
+    fontSize: 10,
+    color: colors.inkSoft,
+  },
+  tabItemLabelActive: {
+    color: colors.clayDeep,
+    fontFamily: fonts.bodyBold,
+  },
+  centralActionWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    marginTop: -16,
+    gap: 2,
+  },
+  centralActionWrapPressed: {
+    transform: [{ scale: 0.94 }],
+    opacity: 0.9,
+  },
+  centralFabCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.clayDeep,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: colors.clayDeep,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    borderWidth: 3,
+    borderColor: colors.paperCard,
+  },
+  centralFabLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    color: colors.clayDeep,
+    letterSpacing: 0.2,
   },
 });

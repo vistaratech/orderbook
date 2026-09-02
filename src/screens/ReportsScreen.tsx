@@ -8,9 +8,11 @@ import {
   ActivityIndicator,
   RefreshControl,
   Share,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import useCollapsibleHeader from '../hooks/useCollapsibleHeader';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Order, Expense, orderTotal, orderBalance } from '../types/order';
@@ -33,6 +35,14 @@ export default function ReportsScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+
+  const {
+    onScroll,
+    scrollEventThrottle,
+    headerAnimatedStyle,
+    onHeaderLayout,
+    headerHeight,
+  } = useCollapsibleHeader({ initialHeight: 110 });
 
   const loadData = useCallback(async (forceSync = false) => {
     try {
@@ -227,12 +237,10 @@ Generated from KadaiBook • kadaibook.in`;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
-        }
+      {/* ─── Collapsible Header & Period Selector ─── */}
+      <Animated.View
+        style={[styles.fixedHeaderContainer, headerAnimatedStyle]}
+        onLayout={onHeaderLayout}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -268,7 +276,17 @@ Generated from KadaiBook • kadaibook.in`;
             </Pressable>
           ))}
         </View>
+      </Animated.View>
 
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 12 }]}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
+        }
+      >
         {loading ? (
           <ActivityIndicator size="large" color={colors.clayDeep} style={{ marginTop: 40 }} />
         ) : (
@@ -454,16 +472,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.paper,
   },
+  fixedHeaderContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.paper,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    paddingHorizontal: 20,
+    paddingTop: 6,
+    paddingBottom: 12,
+    zIndex: 20,
+    width: '100%',
+    maxWidth: 1040,
+    alignSelf: 'center',
+    ...shadow.card,
+  },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 16,
     paddingBottom: 40,
     width: '100%',
     maxWidth: 1040,
     alignSelf: 'center',
   },
   header: {
-    paddingVertical: 14,
+    paddingVertical: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -506,7 +541,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paperCard,
     borderRadius: 20,
     padding: 3,
-    marginBottom: 14,
+    marginTop: 4,
+    marginBottom: 0,
     borderWidth: 1,
     borderColor: colors.line,
   },

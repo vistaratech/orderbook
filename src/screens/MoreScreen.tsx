@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,6 +9,7 @@ import { RootStackParamList } from '../navigation/types';
 import AppLogo from '../components/AppLogo';
 import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
+import useCollapsibleHeader from '../hooks/useCollapsibleHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -16,7 +17,23 @@ export default function MoreScreen() {
   const navigation = useNavigation<Nav>();
   const { t } = useLanguage();
 
+  const {
+    onScroll,
+    scrollEventThrottle,
+    headerAnimatedStyle,
+    onHeaderLayout,
+    headerHeight,
+  } = useCollapsibleHeader({ initialHeight: 70 });
+
   const menuItems = [
+    {
+      title: t('reports.title', 'Financial Reports'),
+      subtitle: t('reports.subtitle', 'P&L, cash flow, top items & customers'),
+      icon: 'bar-chart' as const,
+      color: '#0284C7',
+      bg: '#E0F2FE',
+      action: () => (navigation as any).navigate('MainTabs', { screen: 'ReportsTab' }),
+    },
     {
       title: t('more.storeActivity'),
       subtitle: t('more.storeActivitySub'),
@@ -85,17 +102,28 @@ export default function MoreScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {/* ─── Collapsible Header Bar ─── */}
+      <Animated.View
+        style={[styles.fixedHeaderContainer, headerAnimatedStyle]}
+        onLayout={onHeaderLayout}
+      >
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <AppLogo size={42} variant="icon" />
+            <AppLogo size={40} variant="icon" />
             <View>
               <Text style={styles.title}>{t('more.title')}</Text>
               <Text style={styles.subtitle}>{t('more.subtitle')}</Text>
             </View>
           </View>
         </View>
+      </Animated.View>
 
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 12 }]}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
+      >
         <View style={styles.menuList}>
           {menuItems.map((item) => (
             <Pressable
@@ -138,19 +166,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.paper,
   },
-  content: {
+  fixedHeaderContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.paper,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    zIndex: 20,
+    maxWidth: 760,
+    width: '100%',
+    alignSelf: 'center',
+    ...shadow.card,
   },
   header: {
-    paddingVertical: 14,
-    marginBottom: 4,
+    paddingVertical: 12,
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 40,
+    maxWidth: 760,
+    width: '100%',
+    alignSelf: 'center',
   },
   title: {
     fontFamily: fonts.display,
-    fontSize: 32,
+    fontSize: 28,
     color: colors.ink,
-    lineHeight: 36,
+    lineHeight: 32,
   },
   subtitle: {
     fontFamily: fonts.body,

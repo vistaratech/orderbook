@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,12 @@ import {
   StatusBar,
   Image,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import useCollapsibleHeader from '../hooks/useCollapsibleHeader';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
@@ -76,6 +78,14 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
   const [selectedTemplate, setSelectedTemplate] = useState<InvoiceTemplateId>('modern_slate');
   const [templateConfig, setTemplateConfig] = useState<InvoiceTemplateConfig>(DEFAULT_INVOICE_TEMPLATE_CONFIG);
 
+  const {
+    onScroll,
+    scrollEventThrottle,
+    headerAnimatedStyle,
+    onHeaderLayout,
+    headerHeight,
+  } = useCollapsibleHeader({ initialHeight: 200 });
+
   // Fetch logged in business profile, branding & invoice template config
   useEffect(() => {
     getAuthState().then((state) => {
@@ -98,10 +108,36 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
     getPaymentsForOrder(orderId).then((p) => {
       if (active) setPayments(p);
     });
+    getBusinessProfile().then((b) => {
+      if (active && b) setBizProfile(b);
+    });
+    getInvoiceTemplateConfig().then((cfg) => {
+      if (active && cfg) {
+        setTemplateConfig(cfg);
+        if (cfg.templateId) setSelectedTemplate(cfg.templateId);
+      }
+    });
     return () => {
       active = false;
     };
   }, [orderId]);
+
+  const openPdfModal = useCallback(async () => {
+    try {
+      const [cfg, bp] = await Promise.all([
+        getInvoiceTemplateConfig(),
+        getBusinessProfile(),
+      ]);
+      if (cfg) {
+        setTemplateConfig(cfg);
+        if (cfg.templateId) setSelectedTemplate(cfg.templateId);
+      }
+      if (bp) setBizProfile(bp);
+    } catch (e) {
+      console.error('Error refreshing template config for modal:', e);
+    }
+    setShowPdfModal(true);
+  }, []);
 
   useFocusEffect(loadData);
 
@@ -112,6 +148,29 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
     });
     return () => unsub();
   }, [loadData]);
+
+  const activeBusinessProfile: BusinessProfile = useMemo(() => ({
+    businessName: bizProfile?.businessName || userProfile?.businessName || 'KadaiBook Store',
+    phone: bizProfile?.phone || userProfile?.phone || '',
+    email: bizProfile?.email || userProfile?.email || '',
+    address: bizProfile?.address || '',
+    gstin: bizProfile?.gstin || '',
+    tagline: bizProfile?.tagline || '',
+    logoUri: bizProfile?.logoUri || '',
+    bankDetails: bizProfile?.bankDetails || '',
+  }), [bizProfile, userProfile]);
+
+  const selectedPreset = INVOICE_THEME_PRESETS[selectedTemplate] || INVOICE_THEME_PRESETS['modern_slate'];
+
+  const activeConfig: InvoiceTemplateConfig = useMemo(() => ({
+    ...templateConfig,
+    templateId: selectedTemplate,
+  }), [templateConfig, selectedTemplate]);
+
+  const invoiceHtml = useMemo(() => {
+    if (!order) return '';
+    return generatePrintableInvoiceHtml(order, activeBusinessProfile, activeConfig);
+  }, [order, activeBusinessProfile, activeConfig]);
 
   if (!order) {
     return (
@@ -219,29 +278,14 @@ Thank you for your business!`;
     if (order.phoneNumber) Linking.openURL(`tel:${order.phoneNumber}`);
   };
 
-  const activeBusinessProfile: BusinessProfile = {
-    businessName: bizProfile?.businessName || userProfile?.businessName || 'KadaiBook Store',
-    phone: bizProfile?.phone || userProfile?.phone || '',
-    email: bizProfile?.email || userProfile?.email || '',
-    address: bizProfile?.address || '',
-    gstin: bizProfile?.gstin || '',
-    tagline: bizProfile?.tagline || '',
-    logoUri: bizProfile?.logoUri || '',
-    bankDetails: bizProfile?.bankDetails || '',
-  };
-
   const whatsappCustomer = async () => {
     if (order) {
-      await sendWhatsAppInvoice(order, activeBusinessProfile, templateConfig);
+      await sendWhatsAppInvoice(order, activeBusinessProfile, activeConfig);
     }
   };
 
   const sharePdfCustomer = async () => {
     if (order) {
-      const activeConfig: InvoiceTemplateConfig = {
-        ...templateConfig,
-        templateId: selectedTemplate,
-      };
       await sharePdfInvoiceToWhatsApp(order, activeBusinessProfile, activeConfig);
     }
   };
@@ -269,10 +313,10 @@ Thank you for your business!`;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView
-        style={styles.screen}
-        contentContainerStyle={[styles.content, { paddingBottom: 60 + insets.bottom }]}
-        showsVerticalScrollIndicator={false}
+      {/* ─── Collapsible Top Header & Order Info ─── */}
+      <Animated.View
+        style={[styles.fixedHeaderContainer, headerAnimatedStyle]}
+        onLayout={onHeaderLayout}
       >
         {/* Top Header Bar Aligned Directly Above Cards */}
         <View style={styles.topHeaderRow}>
@@ -327,12 +371,23 @@ Thank you for your business!`;
             </View>
           </View>
         </View>
+      </Animated.View>
 
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: headerHeight + 12, paddingBottom: 60 + insets.bottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
+      >
         {/* ─── Premium Invoice & Receipt Action Card ─── */}
         <View style={styles.invoiceActionCard}>
           <View style={styles.invoiceActionCardHeader}>
             <Ionicons name="receipt-outline" size={18} color={colors.clayDeep} />
-            <Text style={styles.invoiceActionCardTitle}>{t('orders.orderDetailsTitle')}</Text>
+            <Text style={styles.invoiceActionCardTitle}>{t('invoice.templateTitle', 'Bill & Invoice Templates')}</Text>
           </View>
 
           {/* Primary PDF Document Action Banner */}
@@ -369,7 +424,7 @@ Thank you for your business!`;
                 styles.pdfActionBtn,
                 pressed && { opacity: 0.85 },
               ]}
-              onPress={() => setShowPdfModal(true)}
+              onPress={openPdfModal}
             >
               <Ionicons name="eye-outline" size={15} color={colors.clayDeep} />
               <Text style={styles.pdfActionBtnText} numberOfLines={1} adjustsFontSizeToFit>
@@ -699,47 +754,43 @@ Thank you for your business!`;
               },
             ]}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
               <Pressable
                 style={styles.pdfModalCloseBtn}
                 onPress={() => setShowPdfModal(false)}
               >
                 <Ionicons name="close" size={24} color={colors.ink} />
               </Pressable>
-              <Text style={styles.pdfModalTitle}>PDF Invoice Preview</Text>
+              <Text style={styles.pdfModalTitle} numberOfLines={1}>Invoice Preview</Text>
             </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <Pressable
-                style={[styles.pdfModalPrintBtn, { backgroundColor: colors.paperCard, borderWidth: 1, borderColor: colors.line }]}
+                style={[styles.pdfModalPrintBtn, { backgroundColor: colors.paperCard, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 10 }]}
                 onPress={() => {
                   setShowPdfModal(false);
                   navigation.navigate('InvoiceTemplateCustomizer');
                 }}
               >
-                <Ionicons name="options-outline" size={16} color={colors.ink} />
-                <Text style={[styles.pdfModalPrintBtnText, { color: colors.ink }]}>Customize</Text>
+                <Ionicons name="options-outline" size={15} color={colors.ink} />
+                <Text style={[styles.pdfModalPrintBtnText, { color: colors.ink, fontSize: 11 }]}>Customize</Text>
               </Pressable>
 
               <Pressable
-                style={styles.pdfModalPrintBtn}
+                style={[styles.pdfModalPrintBtn, { paddingHorizontal: 10 }]}
                 onPress={() => {
-                  const activeConfig: InvoiceTemplateConfig = {
-                    ...templateConfig,
-                    templateId: selectedTemplate,
-                  };
                   if (order) printPdfInvoice(order, activeBusinessProfile, activeConfig);
                 }}
               >
-                <Ionicons name="print-outline" size={16} color={colors.white} />
-                <Text style={styles.pdfModalPrintBtnText}>Print PDF</Text>
+                <Ionicons name="print-outline" size={15} color={colors.white} />
+                <Text style={[styles.pdfModalPrintBtnText, { fontSize: 11 }]}>Print</Text>
               </Pressable>
             </View>
           </View>
 
           {/* Template Selector Chips Bar */}
           <View style={styles.templateSelectorBar}>
-            <Text style={styles.templateBarLabel}>Select Template Style:</Text>
+            <Text style={styles.templateBarLabel}>Select Template Style</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.templateChipsRow}>
               {Object.values(INVOICE_THEME_PRESETS).map((tmpl) => (
                 <Pressable
@@ -771,136 +822,201 @@ Thank you for your business!`;
             </ScrollView>
           </View>
 
-          {/* Printable Invoice Page Preview */}
-          <ScrollView contentContainerStyle={styles.pdfPageContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.pdfPaperCard}>
-              <View style={styles.pdfHeaderRow}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-                  {activeBusinessProfile.logoUri ? (
-                    <Image
-                      source={{ uri: activeBusinessProfile.logoUri }}
-                      style={styles.pdfHeaderLogo}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <AppLogoIcon size={48} />
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.pdfBrandTitle}>
-                      {activeBusinessProfile.businessName?.toUpperCase()}
-                    </Text>
-                    <Text style={styles.pdfBrandSubtitle}>
-                      {activeBusinessProfile.tagline || 'Official Business Invoice & Receipt'}
-                    </Text>
-                    {activeBusinessProfile.address ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                        <Ionicons name="location-outline" size={11} color={colors.inkSoft} />
-                        <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft }}>
-                          {activeBusinessProfile.address}
-                        </Text>
-                      </View>
-                    ) : null}
-                    {activeBusinessProfile.gstin ? (
-                      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 11, color: colors.clayDeep, marginTop: 2 }}>
-                        GSTIN: {activeBusinessProfile.gstin}
-                      </Text>
-                    ) : null}
-                  </View>
-                </View>
+          {/* Real Printable Invoice Preview */}
+          {Platform.OS === 'web' ? (
+            <View style={styles.pdfWebContainer}>
+              <iframe
+                key={`${selectedTemplate}-${JSON.stringify(activeConfig)}`}
+                title="Invoice Real Preview"
+                srcDoc={invoiceHtml}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  minHeight: '620px',
+                  border: 'none',
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  display: 'block',
+                }}
+              />
+            </View>
+          ) : (
+            <ScrollView contentContainerStyle={styles.pdfPageContent} showsVerticalScrollIndicator={false}>
+              <View style={[styles.pdfPaperCard, { borderColor: selectedPreset.cardBorderColor || colors.line }]}>
+                {/* Dynamically styled header using the selected preset */}
                 <View
                   style={[
-                    styles.pdfStatusBadge,
-                    { backgroundColor: balance <= 0 ? '#E8F5E9' : '#FFF3E0', flexDirection: 'row', alignItems: 'center', gap: 4 },
+                    styles.pdfHeaderRow,
+                    {
+                      backgroundColor: selectedPreset.headerBgColor,
+                      borderBottomColor: selectedPreset.primaryColor,
+                    },
                   ]}
                 >
-                  {balance <= 0 && (
-                    <Ionicons name="checkmark-circle" size={12} color="#2E7D32" />
-                  )}
-                  <Text
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                    {activeBusinessProfile.logoUri ? (
+                      <Image
+                        source={{ uri: activeBusinessProfile.logoUri }}
+                        style={styles.pdfHeaderLogo}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <AppLogoIcon size={48} />
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[
+                          styles.pdfBrandTitle,
+                          { color: selectedPreset.headerTextColor || colors.clayDeep },
+                        ]}
+                      >
+                        {activeBusinessProfile.businessName?.toUpperCase()}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.pdfBrandSubtitle,
+                          {
+                            color: selectedPreset.headerTextColor
+                              ? selectedPreset.headerTextColor + 'CC'
+                              : colors.inkSoft,
+                          },
+                        ]}
+                      >
+                        {activeBusinessProfile.tagline || 'Official Business Invoice & Receipt'}
+                      </Text>
+                      {activeBusinessProfile.address ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                          <Ionicons
+                            name="location-outline"
+                            size={11}
+                            color={selectedPreset.headerTextColor || colors.inkSoft}
+                          />
+                          <Text
+                            style={{
+                              fontFamily: fonts.body,
+                              fontSize: 11,
+                              color: selectedPreset.headerTextColor || colors.inkSoft,
+                            }}
+                          >
+                            {activeBusinessProfile.address}
+                          </Text>
+                        </View>
+                      ) : null}
+                      {activeBusinessProfile.gstin ? (
+                        <Text
+                          style={{
+                            fontFamily: fonts.bodyBold,
+                            fontSize: 11,
+                            color: selectedPreset.primaryColor || colors.clayDeep,
+                            marginTop: 2,
+                          }}
+                        >
+                          GSTIN: {activeBusinessProfile.gstin}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                  <View
                     style={[
-                      styles.pdfStatusBadgeText,
-                      { color: balance <= 0 ? '#2E7D32' : '#E65100' },
+                      styles.pdfStatusBadge,
+                      {
+                        backgroundColor: balance <= 0 ? '#E8F5E9' : '#FFF3E0',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 4,
+                      },
                     ]}
                   >
-                    {balance <= 0 ? 'PAID' : 'BALANCE DUE'}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.pdfGridRow}>
-                <View style={styles.pdfGridBox}>
-                  <Text style={styles.pdfGridLabel}>CUSTOMER DETAILS</Text>
-                  <Text style={styles.pdfGridValue}>{order.customerName || 'Walk-in Customer'}</Text>
-                  <Text style={styles.pdfGridSubValue}>{order.phoneNumber || 'No phone recorded'}</Text>
-                </View>
-
-                <View style={[styles.pdfGridBox, { alignItems: 'flex-end' }]}>
-                  <Text style={styles.pdfGridLabel}>INVOICE METADATA</Text>
-                  <Text style={styles.pdfGridValue}>Order #{order.orderNumber}</Text>
-                  <Text style={styles.pdfGridSubValue}>{formatDate(order.orderDate)}</Text>
-                </View>
-              </View>
-
-              {/* Itemized Table */}
-              <View style={styles.pdfTableWrap}>
-                <View style={styles.pdfTableHeader}>
-                  <Text style={[styles.pdfTh, { flex: 0.5 }]}>#</Text>
-                  <Text style={[styles.pdfTh, { flex: 2.5 }]}>Item Description</Text>
-                  <Text style={[styles.pdfTh, { flex: 1, textAlign: 'center' }]}>Qty</Text>
-                  <Text style={[styles.pdfTh, { flex: 1.5, textAlign: 'right' }]}>Rate</Text>
-                  <Text style={[styles.pdfTh, { flex: 1.5, textAlign: 'right' }]}>Amount</Text>
-                </View>
-
-                {order.items.map((item, idx) => (
-                  <View key={item.id || idx} style={styles.pdfTableRow}>
-                    <Text style={[styles.pdfTd, { flex: 0.5, color: colors.inkSoft }]}>{idx + 1}</Text>
-                    <Text style={[styles.pdfTd, { flex: 2.5, fontFamily: fonts.bodyBold }]}>
-                      {item.name || 'Item'}
-                    </Text>
-                    <Text style={[styles.pdfTd, { flex: 1, textAlign: 'center' }]}>{item.qty}</Text>
-                    <Text style={[styles.pdfTd, { flex: 1.5, textAlign: 'right' }]}>
-                      {formatCurrency(item.price)}
-                    </Text>
-                    <Text style={[styles.pdfTd, { flex: 1.5, textAlign: 'right', fontFamily: fonts.bodyBold }]}>
-                      {formatCurrency(item.qty * item.price)}
+                    {balance <= 0 && (
+                      <Ionicons name="checkmark-circle" size={12} color="#2E7D32" />
+                    )}
+                    <Text
+                      style={[
+                        styles.pdfStatusBadgeText,
+                        { color: balance <= 0 ? '#2E7D32' : '#E65100' },
+                      ]}
+                    >
+                      {balance <= 0 ? 'PAID' : 'BALANCE DUE'}
                     </Text>
                   </View>
-                ))}
-              </View>
-
-              {/* Total Summary */}
-              <View style={styles.pdfSummaryBox}>
-                <View style={styles.pdfSummaryRow}>
-                  <Text style={styles.pdfSummaryLabel}>Advance Paid</Text>
-                  <Text style={[styles.pdfSummaryVal, { color: colors.inflow }]}>
-                    {formatCurrency(order.advance)}
-                  </Text>
                 </View>
 
-                <View style={styles.pdfSummaryRow}>
-                  <Text style={styles.pdfSummaryLabel}>Balance Due</Text>
-                  <Text
-                    style={[
-                      styles.pdfSummaryVal,
-                      { color: balance > 0 ? colors.danger : colors.success, fontFamily: fonts.bodyBold },
-                    ]}
-                  >
-                    {formatCurrency(balance)}
-                  </Text>
+                <View style={styles.pdfGridRow}>
+                  <View style={styles.pdfGridBox}>
+                    <Text style={[styles.pdfGridLabel, { color: selectedPreset.primaryColor }]}>CUSTOMER DETAILS</Text>
+                    <Text style={styles.pdfGridValue}>{order.customerName || 'Walk-in Customer'}</Text>
+                    <Text style={styles.pdfGridSubValue}>{order.phoneNumber || 'No phone recorded'}</Text>
+                  </View>
+
+                  <View style={[styles.pdfGridBox, { alignItems: 'flex-end' }]}>
+                    <Text style={[styles.pdfGridLabel, { color: selectedPreset.primaryColor }]}>INVOICE METADATA</Text>
+                    <Text style={styles.pdfGridValue}>Order #{order.orderNumber}</Text>
+                    <Text style={styles.pdfGridSubValue}>{formatDate(order.orderDate)}</Text>
+                  </View>
                 </View>
 
-                <View style={[styles.pdfSummaryRow, styles.pdfSummaryTotalRow]}>
-                  <Text style={styles.pdfSummaryTotalLabel}>Total</Text>
-                  <Text style={styles.pdfSummaryTotalVal}>{formatCurrency(total)}</Text>
+                {/* Itemized Table */}
+                <View style={styles.pdfTableWrap}>
+                  <View style={[styles.pdfTableHeader, { backgroundColor: selectedPreset.primaryColor + '12' }]}>
+                    <Text style={[styles.pdfTh, { flex: 0.5, color: selectedPreset.primaryColor }]}>#</Text>
+                    <Text style={[styles.pdfTh, { flex: 2.5, color: selectedPreset.primaryColor }]}>Item Description</Text>
+                    <Text style={[styles.pdfTh, { flex: 1, textAlign: 'center', color: selectedPreset.primaryColor }]}>Qty</Text>
+                    <Text style={[styles.pdfTh, { flex: 1.5, textAlign: 'right', color: selectedPreset.primaryColor }]}>Rate</Text>
+                    <Text style={[styles.pdfTh, { flex: 1.5, textAlign: 'right', color: selectedPreset.primaryColor }]}>Amount</Text>
+                  </View>
+
+                  {order.items.map((item, idx) => (
+                    <View key={item.id || idx} style={styles.pdfTableRow}>
+                      <Text style={[styles.pdfTd, { flex: 0.5, color: colors.inkSoft }]}>{idx + 1}</Text>
+                      <Text style={[styles.pdfTd, { flex: 2.5, fontFamily: fonts.bodyBold }]}>
+                        {item.name || 'Item'}
+                      </Text>
+                      <Text style={[styles.pdfTd, { flex: 1, textAlign: 'center' }]}>{item.qty}</Text>
+                      <Text style={[styles.pdfTd, { flex: 1.5, textAlign: 'right' }]}>
+                        {formatCurrency(item.price)}
+                      </Text>
+                      <Text style={[styles.pdfTd, { flex: 1.5, textAlign: 'right', fontFamily: fonts.bodyBold }]}>
+                        {formatCurrency(item.qty * item.price)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Total Summary */}
+                <View style={[styles.pdfSummaryBox, { backgroundColor: selectedPreset.primaryColor + '0A', borderColor: selectedPreset.primaryColor + '20' }]}>
+                  <View style={styles.pdfSummaryRow}>
+                    <Text style={styles.pdfSummaryLabel}>Advance Paid</Text>
+                    <Text style={[styles.pdfSummaryVal, { color: colors.inflow }]}>
+                      {formatCurrency(order.advance)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.pdfSummaryRow}>
+                    <Text style={styles.pdfSummaryLabel}>Balance Due</Text>
+                    <Text
+                      style={[
+                        styles.pdfSummaryVal,
+                        { color: balance > 0 ? colors.danger : colors.success, fontFamily: fonts.bodyBold },
+                      ]}
+                    >
+                      {formatCurrency(balance)}
+                    </Text>
+                  </View>
+
+                  <View style={[styles.pdfSummaryRow, styles.pdfSummaryTotalRow, { borderTopColor: selectedPreset.primaryColor + '30' }]}>
+                    <Text style={[styles.pdfSummaryTotalLabel, { color: selectedPreset.primaryColor }]}>Total</Text>
+                    <Text style={[styles.pdfSummaryTotalVal, { color: selectedPreset.primaryColor }]}>{formatCurrency(total)}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.pdfFooter}>
+                  <Text style={styles.pdfFooterText}>Thank you for your business!</Text>
+                  <Text style={styles.pdfFooterSubText}>Generated via KadaiBook • kadaibook.in</Text>
                 </View>
               </View>
-
-              <View style={styles.pdfFooter}>
-                <Text style={styles.pdfFooterText}>Thank you for your business!</Text>
-                <Text style={styles.pdfFooterSubText}>Generated via KadaiBook • kadaibook.in</Text>
-              </View>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          )}
         </SafeAreaView>
       </Modal>
     </ScrollView>
@@ -937,8 +1053,26 @@ function DetailRow({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
+  fixedHeaderContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.paper,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    paddingHorizontal: 20,
+    paddingTop: Platform.select({ web: 6, default: 4 }),
+    paddingBottom: 12,
+    zIndex: 20,
+    width: '100%',
+    maxWidth: 900,
+    alignSelf: 'center',
+    ...shadow.card,
+  },
   content: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 14,
     paddingBottom: 60,
     width: '100%',
     maxWidth: 900,
@@ -948,8 +1082,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 14,
-    paddingTop: Platform.select({ web: 6, default: 4 }),
+    marginBottom: 10,
   },
   topHeaderTitleWrap: {
     flex: 1,
@@ -971,9 +1104,9 @@ const styles = StyleSheet.create({
   // Hero Card
   heroHeaderCard: {
     backgroundColor: colors.paperCard,
-    borderRadius: radius.lg,
-    padding: 18,
-    marginBottom: 12,
+    borderRadius: radius.md,
+    padding: 14,
+    marginBottom: 0,
     borderWidth: 1,
     borderColor: colors.line,
     ...shadow.card,
@@ -982,9 +1115,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 10,
   },
-  orderNumber: { fontFamily: fonts.display, fontSize: 32, color: colors.clayDeep, lineHeight: 36 },
+  orderNumber: { fontFamily: fonts.display, fontSize: 26, color: colors.clayDeep, lineHeight: 30 },
   heroDate: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft, marginTop: 2 },
   pinnedBadge: {
     flexDirection: 'row',
@@ -1204,6 +1337,7 @@ const styles = StyleSheet.create({
     padding: 24,
     borderWidth: 1,
     borderColor: colors.line,
+    minHeight: 520,
     ...shadow.card,
   },
   pdfHeaderRow: {
@@ -1577,14 +1711,17 @@ const styles = StyleSheet.create({
   },
   templateChipsRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
+    minHeight: 44,
+    paddingRight: 16,
   },
   templateChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: radius.sm,
     backgroundColor: colors.paperCard,
     borderWidth: 1,
@@ -1602,5 +1739,14 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.ink,
+  },
+  pdfWebContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+    padding: 12,
+    paddingBottom: 24,
+    minHeight: 620,
   },
 });

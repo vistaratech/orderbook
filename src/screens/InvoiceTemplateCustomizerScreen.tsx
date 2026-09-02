@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -38,7 +38,9 @@ import { Order } from '../types/order';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { useLanguage } from '../i18n/LanguageContext';
 import GlassBackButton from '../components/GlassBackButton';
+import DesktopLayout, { DesktopSidebarContext } from '../components/DesktopLayout';
 import { formatCurrency, formatDate } from '../utils/format';
+import { showAppAlert, confirmAction } from '../utils/dialog';
 
 // Mock sample order for real-time live preview
 const SAMPLE_ORDER: Order = {
@@ -92,12 +94,14 @@ export default function InvoiceTemplateCustomizerScreen() {
   const navigation = useNavigation();
   const { t, language } = useLanguage();
   const { width } = useWindowDimensions();
-  const isDesktop = Platform.OS === 'web' && width >= 900;
+  const isDesktop = Platform.OS === 'web' && width >= 768;
+  const hasParentSidebar = useContext(DesktopSidebarContext);
 
   const [config, setConfig] = useState<InvoiceTemplateConfig>(DEFAULT_INVOICE_TEMPLATE_CONFIG);
   const [bizProfile, setBizProfile] = useState<BusinessProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>('presets');
   const [mobileView, setMobileView] = useState<'editor' | 'preview'>('editor');
 
@@ -139,36 +143,35 @@ export default function InvoiceTemplateCustomizerScreen() {
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveSuccess(false);
     try {
       await saveInvoiceTemplateConfig(config);
-      Alert.alert(
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3500);
+      showAppAlert(
         t('common.success', 'Success'),
         'Invoice template & bill customizations saved successfully!'
       );
-    } catch {
-      Alert.alert(t('common.error', 'Error'), 'Could not save invoice template settings.');
+    } catch (err) {
+      console.error('Save failed:', err);
+      showAppAlert(t('common.error', 'Error'), 'Could not save invoice template settings.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleReset = () => {
-    Alert.alert(
-      'Reset to Defaults?',
-      'Are you sure you want to restore original template settings?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: async () => {
-            const def = await resetInvoiceTemplateConfig();
-            setConfig(def);
-            Alert.alert('Reset', 'Template settings restored to default.');
-          },
-        },
-      ]
-    );
+    confirmAction({
+      title: 'Reset to Defaults?',
+      message: 'Are you sure you want to restore original template settings?',
+      confirmText: 'Reset',
+      destructive: true,
+      onConfirm: async () => {
+        const def = await resetInvoiceTemplateConfig();
+        setConfig(def);
+        showAppAlert('Reset', 'Template settings restored to default.');
+      },
+    });
   };
 
   const handleTestPrint = async () => {
@@ -178,37 +181,44 @@ export default function InvoiceTemplateCustomizerScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.screen} edges={['top']}>
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={colors.clayDeep} />
-          <Text style={styles.loadingText}>Loading Template Studio…</Text>
-        </View>
-      </SafeAreaView>
+      <DesktopLayout currentTabName="InvoiceTemplateCustomizer">
+        <SafeAreaView style={styles.screen} edges={['top']}>
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="large" color={colors.clayDeep} />
+            <Text style={styles.loadingText}>Loading Template Studio…</Text>
+          </View>
+        </SafeAreaView>
+      </DesktopLayout>
     );
   }
 
   const sampleHtml = generatePrintableInvoiceHtml(SAMPLE_ORDER, bizProfile || undefined, config);
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* Top App Bar */}
-      <View style={styles.headerBar}>
-        <GlassBackButton label={t('common.back', 'Back')} />
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Bill & Invoice Templates</Text>
-          <Text style={styles.headerSubtitle}>Customize bills, styling & print layout</Text>
+    <DesktopLayout currentTabName="InvoiceTemplateCustomizer">
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        {/* Top App Bar */}
+        <View style={styles.headerBar}>
+          <GlassBackButton
+            label={t('common.back', 'Back')}
+            onPress={hasParentSidebar ? () => (navigation as any).navigate('MainTabs', { screen: 'DashboardTab' }) : undefined}
+          />
+          <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerTitle} numberOfLines={1}>Invoice Studio</Text>
+          <Text style={styles.headerSubtitle} numberOfLines={1}>8 Styles & Print Layout</Text>
         </View>
         <View style={styles.headerActions}>
           <Pressable
             style={({ pressed }) => [styles.testPrintBtn, pressed && { opacity: 0.8 }]}
             onPress={handleTestPrint}
           >
-            <Ionicons name="print-outline" size={16} color={colors.ink} />
-            <Text style={styles.testPrintBtnText}>Test Print</Text>
+            <Ionicons name="print-outline" size={15} color={colors.ink} />
+            <Text style={styles.testPrintBtnText}>Print</Text>
           </Pressable>
           <Pressable
             style={({ pressed }) => [
               styles.saveBtn,
+              saveSuccess && styles.saveBtnSuccess,
               pressed && { opacity: 0.85 },
               saving && { opacity: 0.6 },
             ]}
@@ -217,15 +227,28 @@ export default function InvoiceTemplateCustomizerScreen() {
           >
             {saving ? (
               <ActivityIndicator size="small" color={colors.white} />
+            ) : saveSuccess ? (
+              <>
+                <Ionicons name="checkmark-done" size={16} color={colors.white} />
+                <Text style={styles.saveBtnText}>Saved!</Text>
+              </>
             ) : (
               <>
-                <Ionicons name="checkmark-sharp" size={16} color={colors.white} />
+                <Ionicons name="checkmark-sharp" size={15} color={colors.white} />
                 <Text style={styles.saveBtnText}>{t('common.save', 'Save')}</Text>
               </>
             )}
           </Pressable>
         </View>
       </View>
+
+      {/* Floating Success Banner */}
+      {saveSuccess && (
+        <View style={styles.toastBanner}>
+          <Ionicons name="checkmark-circle" size={17} color="#15803D" />
+          <Text style={styles.toastBannerText}>Template changes saved successfully!</Text>
+        </View>
+      )}
 
       {/* Mobile Mode Switcher (Customize vs Live Preview) */}
       {!isDesktop && (
@@ -275,42 +298,45 @@ export default function InvoiceTemplateCustomizerScreen() {
         {(isDesktop || mobileView === 'editor') && (
           <View style={[styles.controlsPane, isDesktop && { width: '48%' }]}>
             {/* Customizer Section Nav Tabs */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.sectionTabsRow}
-            >
-              {[
-                { id: 'presets', label: 'Styles & Themes', icon: 'color-palette-outline' },
-                { id: 'branding', label: 'Header & Title', icon: 'business-outline' },
-                { id: 'columns', label: 'Table Columns', icon: 'grid-outline' },
-                { id: 'payments', label: 'UPI QR & Bank', icon: 'qr-code-outline' },
-                { id: 'terms', label: 'Terms & Sign', icon: 'document-text-outline' },
-              ].map((tab) => (
-                <Pressable
-                  key={tab.id}
-                  style={[
-                    styles.sectionTab,
-                    activeTab === tab.id && styles.sectionTabActive,
-                  ]}
-                  onPress={() => setActiveTab(tab.id as ActiveTab)}
-                >
-                  <Ionicons
-                    name={tab.icon as any}
-                    size={15}
-                    color={activeTab === tab.id ? colors.clayDeep : colors.inkSoft}
-                  />
-                  <Text
+            <View style={styles.sectionTabsOuter}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.sectionTabsRow}
+                style={{ flexGrow: 0 }}
+              >
+                {[
+                  { id: 'presets', label: 'Styles & Themes', icon: 'color-palette-outline' },
+                  { id: 'branding', label: 'Header & Title', icon: 'business-outline' },
+                  { id: 'columns', label: 'Table Columns', icon: 'grid-outline' },
+                  { id: 'payments', label: 'UPI QR & Bank', icon: 'qr-code-outline' },
+                  { id: 'terms', label: 'Terms & Sign', icon: 'document-text-outline' },
+                ].map((tab) => (
+                  <Pressable
+                    key={tab.id}
                     style={[
-                      styles.sectionTabText,
-                      activeTab === tab.id && styles.sectionTabTextActive,
+                      styles.sectionTab,
+                      activeTab === tab.id && styles.sectionTabActive,
                     ]}
+                    onPress={() => setActiveTab(tab.id as ActiveTab)}
                   >
-                    {tab.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
+                    <Ionicons
+                      name={tab.icon as any}
+                      size={14}
+                      color={activeTab === tab.id ? colors.clayDeep : colors.inkSoft}
+                    />
+                    <Text
+                      style={[
+                        styles.sectionTabText,
+                        activeTab === tab.id && styles.sectionTabTextActive,
+                      ]}
+                    >
+                      {tab.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
 
             <ScrollView
               style={styles.controlsScroll}
@@ -879,16 +905,20 @@ export default function InvoiceTemplateCustomizerScreen() {
             </View>
 
             {Platform.OS === 'web' ? (
-              <iframe
-                title="Invoice Template Live Preview"
-                srcDoc={sampleHtml}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  backgroundColor: '#FFFFFF',
-                }}
-              />
+              <View style={{ flex: 1, width: '100%', height: '100%', minHeight: 520 }}>
+                <iframe
+                  title="Invoice Template Live Preview"
+                  srcDoc={sampleHtml}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    minHeight: '520px',
+                    border: 'none',
+                    backgroundColor: '#FFFFFF',
+                    display: 'block',
+                  }}
+                />
+              </View>
             ) : (
               <ScrollView
                 style={styles.mobilePreviewScroll}
@@ -976,6 +1006,7 @@ export default function InvoiceTemplateCustomizerScreen() {
         )}
       </View>
     </SafeAreaView>
+  </DesktopLayout>
   );
 }
 
@@ -1007,52 +1038,72 @@ const styles = StyleSheet.create({
   },
   headerTitleWrap: {
     flex: 1,
+    minWidth: 0,
   },
   headerTitle: {
     fontFamily: fonts.bodyBold,
-    fontSize: 18,
+    fontSize: 16,
     color: colors.ink,
   },
   headerSubtitle: {
     fontFamily: fonts.body,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.inkSoft,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   testPrintBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     backgroundColor: colors.paperCard,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.line,
   },
   testPrintBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.ink,
   },
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: colors.clayDeep,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radius.sm,
     ...shadow.card,
+  },
+  saveBtnSuccess: {
+    backgroundColor: '#16A34A',
   },
   saveBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.white,
+  },
+  toastBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#DCFCE7',
+    borderBottomWidth: 1,
+    borderBottomColor: '#86EFAC',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  toastBannerText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: '#15803D',
   },
   mobileModeBar: {
     flexDirection: 'row',
@@ -1086,28 +1137,41 @@ const styles = StyleSheet.create({
   studioContainer: {
     flex: 1,
     flexDirection: 'row',
+    height: '100%',
+    minHeight: 0,
+    overflow: 'hidden',
   },
   controlsPane: {
     flex: 1,
+    height: '100%',
+    minHeight: 0,
     borderRightWidth: 1,
     borderRightColor: colors.line,
     backgroundColor: colors.paper,
   },
-  sectionTabsRow: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 8,
+  sectionTabsOuter: {
+    height: 48,
+    maxHeight: 48,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
+    backgroundColor: colors.paperCard,
+    justifyContent: 'center',
+  },
+  sectionTabsRow: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 8,
+    alignItems: 'center',
+    flexDirection: 'row',
   },
   sectionTab: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: colors.paperCard,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
   },
@@ -1304,7 +1368,11 @@ const styles = StyleSheet.create({
   },
   previewPane: {
     flex: 1,
+    height: '100%',
+    minHeight: 0,
     backgroundColor: '#1E293B',
+    display: 'flex',
+    flexDirection: 'column',
   },
   previewHeaderBar: {
     flexDirection: 'row',
@@ -1334,6 +1402,7 @@ const styles = StyleSheet.create({
   },
   mobilePreviewScroll: {
     flex: 1,
+    minHeight: 0,
     backgroundColor: '#0F172A',
   },
   mobilePreviewContent: {
@@ -1343,6 +1412,7 @@ const styles = StyleSheet.create({
   nativeMockInvoiceCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
+    minHeight: 480,
     overflow: 'hidden',
     ...shadow.card,
   },

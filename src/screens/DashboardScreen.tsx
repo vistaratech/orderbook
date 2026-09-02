@@ -9,10 +9,12 @@ import {
   RefreshControl,
   Modal,
   FlatList,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import useCollapsibleHeader from '../hooks/useCollapsibleHeader';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
@@ -65,6 +67,14 @@ export default function DashboardScreen() {
   const [activePipelineStatus, setActivePipelineStatus] = useState<OrderStatus | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [showFinancialDetails, setShowFinancialDetails] = useState(false);
+
+  const {
+    onScroll,
+    scrollEventThrottle,
+    headerAnimatedStyle,
+    onHeaderLayout,
+    headerHeight,
+  } = useCollapsibleHeader({ initialHeight: 72 });
 
   const loadData = useCallback(async (forceSync = false) => {
     try {
@@ -188,14 +198,11 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
-        }
+      {/* ─── Collapsible Top Header Bar ─── */}
+      <Animated.View
+        style={[styles.fixedHeaderContainer, headerAnimatedStyle]}
+        onLayout={onHeaderLayout}
       >
-        {/* ─── Header ─── */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <AppLogo size={40} variant="icon" />
@@ -229,7 +236,17 @@ export default function DashboardScreen() {
             </Pressable>
           </View>
         </View>
+      </Animated.View>
 
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 12 }]}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
+        }
+      >
         {loading ? (
           <View style={styles.loaderWrap}>
             <ActivityIndicator size="large" color={colors.clayDeep} />
@@ -907,9 +924,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.paper,
   },
+  fixedHeaderContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.paper,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    paddingHorizontal: 20,
+    zIndex: 20,
+    ...shadow.card,
+  },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 14,
     paddingBottom: 40,
     width: '100%',
     maxWidth: 1040,
@@ -921,8 +950,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14,
-    marginBottom: 4,
+    paddingVertical: 12,
+    maxWidth: 1040,
+    width: '100%',
+    alignSelf: 'center',
   },
   headerLeft: {
     flexDirection: 'row',

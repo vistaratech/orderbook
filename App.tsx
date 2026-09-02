@@ -220,7 +220,8 @@ export default function App() {
                   headerShadowVisible: false,
                   headerTintColor: colors.clayDeep,
                   contentStyle: { backgroundColor: colors.paper },
-                  animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
+                  animation: 'fade',
+                  animationDuration: 180,
                   gestureEnabled: true,
                   fullScreenGestureEnabled: true,
                   headerLeft: (props) =>

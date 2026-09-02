@@ -9,21 +9,12 @@ import { RootStackParamList } from '../navigation/types';
 import AppLogo from '../components/AppLogo';
 import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
-import useCollapsibleHeader from '../hooks/useCollapsibleHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function MoreScreen() {
   const navigation = useNavigation<Nav>();
   const { t } = useLanguage();
-
-  const {
-    onScroll,
-    scrollEventThrottle,
-    headerAnimatedStyle,
-    onHeaderLayout,
-    headerHeight,
-  } = useCollapsibleHeader({ initialHeight: 70 });
 
   const menuItems = [
     {
@@ -102,11 +93,8 @@ export default function MoreScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* ─── Collapsible Header Bar ─── */}
-      <Animated.View
-        style={[styles.headerWrapper, headerAnimatedStyle]}
-        onLayout={onHeaderLayout}
-      >
+      {/* ─── Static Header Bar ─── */}
+      <View style={styles.headerWrapper}>
         <View style={styles.fixedHeaderContainer}>
           <View style={styles.header}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -118,14 +106,9 @@ export default function MoreScreen() {
             </View>
           </View>
         </View>
-      </Animated.View>
+      </View>
 
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 12 }]}
-        showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={scrollEventThrottle}
-      >
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.menuList}>
           {menuItems.map((item) => (
             <Pressable
@@ -169,25 +152,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
   },
   headerWrapper: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    alignItems: 'center',
     backgroundColor: colors.paper,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
+    width: '100%',
+    alignItems: 'center',
+    zIndex: 10,
   },
   fixedHeaderContainer: {
     width: '100%',
     maxWidth: 760,
     paddingHorizontal: 20,
     alignSelf: 'center',
-    marginHorizontal: 'auto' as any,
   },
   header: {
     paddingVertical: 12,
+    width: '100%',
   },
   content: {
     paddingHorizontal: 20,

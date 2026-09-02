@@ -19,7 +19,6 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import useCollapsibleHeader from '../hooks/useCollapsibleHeader';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
@@ -78,13 +77,6 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
   const [selectedTemplate, setSelectedTemplate] = useState<InvoiceTemplateId>('modern_slate');
   const [templateConfig, setTemplateConfig] = useState<InvoiceTemplateConfig>(DEFAULT_INVOICE_TEMPLATE_CONFIG);
 
-  const {
-    onScroll,
-    scrollEventThrottle,
-    headerAnimatedStyle,
-    onHeaderLayout,
-    headerHeight,
-  } = useCollapsibleHeader({ initialHeight: 200 });
 
   // Fetch logged in business profile, branding & invoice template config
   useEffect(() => {
@@ -313,78 +305,70 @@ Thank you for your business!`;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* ─── Collapsible Top Header & Order Info ─── */}
-      <Animated.View
-        style={[styles.headerWrapper, headerAnimatedStyle]}
-        onLayout={onHeaderLayout}
-      >
-        <View style={styles.fixedHeaderContainer}>
-          {/* Top Header Bar Aligned Directly Above Cards */}
-          <View style={styles.topHeaderRow}>
-            <GlassBackButton label={t('common.back', 'Back')} />
-            <View style={styles.topHeaderTitleWrap}>
-              <Text style={styles.topHeaderTitle}>{t('orders.orderDetailsTitle', 'Order Details')}</Text>
-              <Text style={styles.topHeaderSub}>{order.orderNumber} • {order.customerName}</Text>
-            </View>
-          </View>
-
-          {/* Order Header / Hero Card */}
-          <View style={styles.heroHeaderCard}>
-            <View style={styles.heroTopRow}>
-              <View>
-                <Text style={styles.orderNumber}>{order.orderNumber}</Text>
-                <Text style={styles.heroDate}>Created on {formatDate(order.orderDate)}</Text>
-              </View>
-
-              <View style={[styles.statusChip, { backgroundColor: statusColor[order.status] || colors.clay }]}>
-                <Text style={styles.statusChipText}>{t('status.' + order.status.toLowerCase(), order.status)}</Text>
-              </View>
-            </View>
-
-            {/* Financial Highlights inside Hero */}
-            <View style={styles.heroStatsRow}>
-              <View style={styles.heroStatItem}>
-                <Text style={styles.heroStatLabel}>{t('orders.advancePaid')}</Text>
-                <Text style={[styles.heroStatValue, { color: colors.inflow }]}>
-                  {formatCurrency(order.advance)}
-                </Text>
-              </View>
-
-              <View style={styles.heroStatDivider} />
-
-              <View style={styles.heroStatItem}>
-                <Text style={styles.heroStatLabel}>{t('orders.balanceDue')}</Text>
-                <Text
-                  style={[
-                    styles.heroStatValue,
-                    { color: balance > 0 ? colors.danger : colors.success },
-                  ]}
-                >
-                  {formatCurrency(balance)}
-                </Text>
-              </View>
-
-              <View style={styles.heroStatDivider} />
-
-              <View style={styles.heroStatItem}>
-                <Text style={styles.heroStatLabel}>{t('orders.totalAmount')}</Text>
-                <Text style={styles.heroStatValue}>{formatCurrency(total)}</Text>
-              </View>
-            </View>
+      {/* ─── Static Top Header Bar ─── */}
+      <View style={styles.headerWrapper}>
+        <View style={styles.topHeaderRow}>
+          <GlassBackButton label={t('common.back', 'Back')} />
+          <View style={styles.topHeaderTitleWrap}>
+            <Text style={styles.topHeaderTitle}>{t('orders.orderDetailsTitle', 'Order Details')}</Text>
+            <Text style={styles.topHeaderSub}>{order.orderNumber} • {order.customerName}</Text>
           </View>
         </View>
-      </Animated.View>
+      </View>
 
       <ScrollView
         style={styles.screen}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: headerHeight + 12, paddingBottom: 60 + insets.bottom },
+          { paddingBottom: 60 + insets.bottom },
         ]}
         showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={scrollEventThrottle}
       >
+        {/* Order Header / Hero Card */}
+        <View style={styles.heroHeaderCard}>
+          <View style={styles.heroTopRow}>
+            <View>
+              <Text style={styles.orderNumber}>{order.orderNumber}</Text>
+              <Text style={styles.heroDate}>Created on {formatDate(order.orderDate)}</Text>
+            </View>
+
+            <View style={[styles.statusChip, { backgroundColor: statusColor[order.status] || colors.clay }]}>
+              <Text style={styles.statusChipText}>{t('status.' + order.status.toLowerCase(), order.status)}</Text>
+            </View>
+          </View>
+
+          {/* Financial Highlights inside Hero */}
+          <View style={styles.heroStatsRow}>
+            <View style={styles.heroStatItem}>
+              <Text style={styles.heroStatLabel}>{t('orders.advancePaid')}</Text>
+              <Text style={[styles.heroStatValue, { color: colors.inflow }]}>
+                {formatCurrency(order.advance)}
+              </Text>
+            </View>
+
+            <View style={styles.heroStatDivider} />
+
+            <View style={styles.heroStatItem}>
+              <Text style={styles.heroStatLabel}>{t('orders.balanceDue')}</Text>
+              <Text
+                style={[
+                  styles.heroStatValue,
+                  { color: balance > 0 ? colors.danger : colors.success },
+                ]}
+              >
+                {formatCurrency(balance)}
+              </Text>
+            </View>
+
+            <View style={styles.heroStatDivider} />
+
+            <View style={styles.heroStatItem}>
+              <Text style={styles.heroStatLabel}>{t('orders.totalAmount')}</Text>
+              <Text style={styles.heroStatValue}>{formatCurrency(total)}</Text>
+            </View>
+          </View>
+        </View>
+
         {/* ─── Premium Invoice & Receipt Action Card ─── */}
         <View style={styles.invoiceActionCard}>
           <View style={styles.invoiceActionCardHeader}>
@@ -1056,24 +1040,14 @@ function DetailRow({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
   headerWrapper: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    alignItems: 'center',
     backgroundColor: colors.paper,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-  },
-  fixedHeaderContainer: {
     width: '100%',
-    maxWidth: 900,
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.select({ web: 6, default: 4 }),
-    paddingBottom: 12,
-    alignSelf: 'center',
-    marginHorizontal: 'auto' as any,
+    paddingVertical: Platform.select({ web: 10, default: 8 }),
+    zIndex: 10,
   },
   content: {
     paddingHorizontal: 20,
@@ -1087,7 +1061,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 10,
+    width: '100%',
+    maxWidth: 900,
+    alignSelf: 'center',
   },
   topHeaderTitleWrap: {
     flex: 1,

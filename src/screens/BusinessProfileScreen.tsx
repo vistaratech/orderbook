@@ -14,7 +14,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import useCollapsibleHeader from '../hooks/useCollapsibleHeader';
 
 import * as ImagePicker from 'expo-image-picker';
 
@@ -41,14 +40,6 @@ export default function BusinessProfileScreen() {
   const hasParentSidebar = useContext(DesktopSidebarContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  const {
-    onScroll,
-    scrollEventThrottle,
-    headerAnimatedStyle,
-    onHeaderLayout,
-    headerHeight,
-  } = useCollapsibleHeader({ initialHeight: 65 });
 
   const [businessName, setBusinessName] = useState('');
   const [phone, setPhone] = useState('');
@@ -156,10 +147,7 @@ export default function BusinessProfileScreen() {
     <DesktopLayout currentTabName="BusinessProfile">
       <SafeAreaView style={styles.screen} edges={['top']}>
         {/* Top Header Bar */}
-        <Animated.View
-          style={[styles.headerWrapper, headerAnimatedStyle]}
-          onLayout={onHeaderLayout}
-        >
+        <View style={styles.headerWrapper}>
           <View style={styles.topHeader}>
             <GlassBackButton
               label={t('common.back')}
@@ -177,14 +165,9 @@ export default function BusinessProfileScreen() {
               )}
             </View>
           </View>
-        </Animated.View>
+        </View>
 
-        <ScrollView
-          contentContainerStyle={[styles.content, { paddingTop: headerHeight + 12 }]}
-          showsVerticalScrollIndicator={false}
-          onScroll={onScroll}
-          scrollEventThrottle={scrollEventThrottle}
-        >
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header Banner */}
         <View style={styles.bannerCard}>
           <View style={styles.bannerIconWrap}>
@@ -609,15 +592,12 @@ const styles = StyleSheet.create({
 
   // Custom Header Styles
   headerWrapper: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    alignItems: 'center',
     backgroundColor: colors.paper,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
+    width: '100%',
+    alignItems: 'center',
+    zIndex: 10,
   },
   topHeader: {
     width: '100%',
@@ -628,7 +608,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     alignSelf: 'center',
-    marginHorizontal: 'auto' as any,
   },
   headerLogoWrap: {
     width: 38,

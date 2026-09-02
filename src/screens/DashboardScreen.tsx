@@ -14,7 +14,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import useCollapsibleHeader from '../hooks/useCollapsibleHeader';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
@@ -67,14 +66,6 @@ export default function DashboardScreen() {
   const [activePipelineStatus, setActivePipelineStatus] = useState<OrderStatus | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [showFinancialDetails, setShowFinancialDetails] = useState(false);
-
-  const {
-    onScroll,
-    scrollEventThrottle,
-    headerAnimatedStyle,
-    onHeaderLayout,
-    headerHeight,
-  } = useCollapsibleHeader({ initialHeight: 72 });
 
   const loadData = useCallback(async (forceSync = false) => {
     try {
@@ -198,11 +189,8 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* ─── Collapsible Top Header Bar ─── */}
-      <Animated.View
-        style={[styles.fixedHeaderContainer, headerAnimatedStyle]}
-        onLayout={onHeaderLayout}
-      >
+      {/* ─── Static Top Header Bar ─── */}
+      <View style={styles.fixedHeaderContainer}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <AppLogo size={40} variant="icon" />
@@ -236,13 +224,11 @@ export default function DashboardScreen() {
             </Pressable>
           </View>
         </View>
-      </Animated.View>
+      </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 12 }]}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={scrollEventThrottle}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
         }
@@ -925,17 +911,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
   },
   fixedHeaderContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
     backgroundColor: colors.paper,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     paddingHorizontal: 20,
-    zIndex: 20,
+    width: '100%',
     alignItems: 'center',
-    ...shadow.card,
+    zIndex: 10,
   },
   content: {
     paddingHorizontal: 20,

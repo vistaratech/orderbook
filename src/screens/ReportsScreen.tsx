@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import useCollapsibleHeader from '../hooks/useCollapsibleHeader';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Order, Expense, orderTotal, orderBalance } from '../types/order';
@@ -35,14 +34,6 @@ export default function ReportsScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
-
-  const {
-    onScroll,
-    scrollEventThrottle,
-    headerAnimatedStyle,
-    onHeaderLayout,
-    headerHeight,
-  } = useCollapsibleHeader({ initialHeight: 110 });
 
   const loadData = useCallback(async (forceSync = false) => {
     try {
@@ -237,11 +228,8 @@ Generated from KadaiBook • kadaibook.in`;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* ─── Collapsible Header & Period Selector ─── */}
-      <Animated.View
-        style={[styles.headerWrapper, headerAnimatedStyle]}
-        onLayout={onHeaderLayout}
-      >
+      {/* ─── Static Header & Period Selector ─── */}
+      <View style={styles.headerWrapper}>
         <View style={styles.fixedHeaderContainer}>
           {/* Header */}
           <View style={styles.header}>
@@ -278,13 +266,11 @@ Generated from KadaiBook • kadaibook.in`;
             ))}
           </View>
         </View>
-      </Animated.View>
+      </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 12 }]}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={scrollEventThrottle}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
         }
@@ -475,15 +461,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
   },
   headerWrapper: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    alignItems: 'center',
     backgroundColor: colors.paper,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
+    width: '100%',
+    alignItems: 'center',
+    zIndex: 10,
   },
   fixedHeaderContainer: {
     width: '100%',
@@ -492,7 +475,6 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 12,
     alignSelf: 'center',
-    marginHorizontal: 'auto' as any,
   },
   content: {
     paddingHorizontal: 20,

@@ -192,8 +192,8 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Top Header Bar Aligned Directly Above Card Container */}
+      {/* ─── Static Top Header Bar ─── */}
+      <View style={styles.headerWrapper}>
         <View style={styles.topHeaderRow}>
           <GlassBackButton label="Back" />
           <View style={styles.topHeaderTitleWrap}>
@@ -201,6 +201,9 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
             <Text style={styles.topHeaderSub}>{customer.name}</Text>
           </View>
         </View>
+      </View>
+
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
         {/* Customer Header Profile Card */}
         <View style={styles.profileCard}>
@@ -400,12 +403,23 @@ const styles = StyleSheet.create({
     maxWidth: 900,
     alignSelf: 'center',
   },
+  headerWrapper: {
+    backgroundColor: colors.paper,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: Platform.select({ web: 10, default: 8 }),
+    zIndex: 10,
+  },
   topHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 16,
-    paddingTop: Platform.select({ web: 6, default: 4 }),
+    width: '100%',
+    maxWidth: 900,
+    alignSelf: 'center',
   },
   topHeaderTitleWrap: {
     flex: 1,

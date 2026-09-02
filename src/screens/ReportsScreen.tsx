@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   Share,
-  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -228,43 +227,41 @@ Generated from KadaiBook • kadaibook.in`;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* ─── Static Header & Period Selector ─── */}
-      <View style={styles.headerWrapper}>
-        <View style={styles.fixedHeaderContainer}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerTitleWrap}>
-              <Text style={styles.title}>{t('reports.title')}</Text>
-              <Text style={styles.subtitle}>{t('reports.subtitle')}</Text>
-            </View>
-            <Pressable
-              style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.8 }]}
-              onPress={handleShareSummary}
-            >
-              <Ionicons name="share-outline" size={16} color={colors.clayDeep} />
-              <Text style={styles.shareBtnText}>{t('common.share')}</Text>
-            </Pressable>
+      {/* ─── Fixed Header & Period Selector ─── */}
+      <View style={styles.fixedHeaderContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTitleWrap}>
+            <Text style={styles.title}>{t('reports.title')}</Text>
+            <Text style={styles.subtitle}>{t('reports.subtitle')}</Text>
           </View>
+          <Pressable
+            style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.8 }]}
+            onPress={handleShareSummary}
+          >
+            <Ionicons name="share-outline" size={16} color={colors.clayDeep} />
+            <Text style={styles.shareBtnText}>{t('common.share')}</Text>
+          </Pressable>
+        </View>
 
-          {/* Period Selector Tabs */}
-          <View style={styles.periodTabs}>
-            {[
-              { id: 'this_week', label: t('reports.thisWeek') },
-              { id: 'this_month', label: t('reports.thisMonth') },
-              { id: 'last_30_days', label: t('reports.lastMonth') },
-              { id: 'all_time', label: t('reports.allTime') },
-            ].map((p) => (
-              <Pressable
-                key={p.id}
-                style={[styles.periodTab, period === p.id && styles.periodTabActive]}
-                onPress={() => setPeriod(p.id as Period)}
-              >
-                <Text style={[styles.periodTabText, period === p.id && styles.periodTabTextActive]}>
-                  {p.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+        {/* Period Selector Tabs */}
+        <View style={styles.periodTabs}>
+          {[
+            { id: 'this_week', label: t('reports.thisWeek') },
+            { id: 'this_month', label: t('reports.thisMonth') },
+            { id: 'last_30_days', label: t('reports.lastMonth') },
+            { id: 'all_time', label: t('reports.allTime') },
+          ].map((p) => (
+            <Pressable
+              key={p.id}
+              style={[styles.periodTab, period === p.id && styles.periodTabActive]}
+              onPress={() => setPeriod(p.id as Period)}
+            >
+              <Text style={[styles.periodTabText, period === p.id && styles.periodTabTextActive]}>
+                {p.label}
+              </Text>
+            </Pressable>
+          ))}
         </View>
       </View>
 
@@ -460,20 +457,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.paper,
   },
-  headerWrapper: {
+  fixedHeaderContainer: {
     backgroundColor: colors.paper,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    width: '100%',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  fixedHeaderContainer: {
-    width: '100%',
-    maxWidth: 1040,
     paddingHorizontal: 20,
     paddingTop: 6,
     paddingBottom: 12,
+    zIndex: 10,
+    width: '100%',
+    maxWidth: 1040,
     alignSelf: 'center',
   },
   content: {

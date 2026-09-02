@@ -14,7 +14,6 @@ import {
   StatusBar,
   Image,
   ActivityIndicator,
-  Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -76,7 +75,6 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
   const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<InvoiceTemplateId>('modern_slate');
   const [templateConfig, setTemplateConfig] = useState<InvoiceTemplateConfig>(DEFAULT_INVOICE_TEMPLATE_CONFIG);
-
 
   // Fetch logged in business profile, branding & invoice template config
   useEffect(() => {
@@ -305,8 +303,9 @@ Thank you for your business!`;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* ─── Static Top Header Bar ─── */}
-      <View style={styles.headerWrapper}>
+      {/* ─── Static Top Header & Order Info ─── */}
+      <View style={styles.fixedHeaderContainer}>
+        {/* Top Header Bar Aligned Directly Above Cards */}
         <View style={styles.topHeaderRow}>
           <GlassBackButton label={t('common.back', 'Back')} />
           <View style={styles.topHeaderTitleWrap}>
@@ -314,16 +313,7 @@ Thank you for your business!`;
             <Text style={styles.topHeaderSub}>{order.orderNumber} • {order.customerName}</Text>
           </View>
         </View>
-      </View>
 
-      <ScrollView
-        style={styles.screen}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: 60 + insets.bottom },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
         {/* Order Header / Hero Card */}
         <View style={styles.heroHeaderCard}>
           <View style={styles.heroTopRow}>
@@ -368,7 +358,13 @@ Thank you for your business!`;
             </View>
           </View>
         </View>
+      </View>
 
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={[styles.content, { paddingBottom: 60 + insets.bottom }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* ─── Premium Invoice & Receipt Action Card ─── */}
         <View style={styles.invoiceActionCard}>
           <View style={styles.invoiceActionCardHeader}>
@@ -1039,15 +1035,17 @@ function DetailRow({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
-  headerWrapper: {
+  fixedHeaderContainer: {
     backgroundColor: colors.paper,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    width: '100%',
-    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: Platform.select({ web: 10, default: 8 }),
+    paddingTop: Platform.select({ web: 6, default: 4 }),
+    paddingBottom: 12,
     zIndex: 10,
+    width: '100%',
+    maxWidth: 900,
+    alignSelf: 'center',
   },
   content: {
     paddingHorizontal: 20,
@@ -1061,9 +1059,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    width: '100%',
-    maxWidth: 900,
-    alignSelf: 'center',
+    marginBottom: 10,
   },
   topHeaderTitleWrap: {
     flex: 1,

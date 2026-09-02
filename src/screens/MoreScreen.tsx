@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Animated } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -93,16 +93,14 @@ export default function MoreScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* ─── Static Header Bar ─── */}
-      <View style={styles.headerWrapper}>
-        <View style={styles.fixedHeaderContainer}>
-          <View style={styles.header}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <AppLogo size={40} variant="icon" />
-              <View>
-                <Text style={styles.title}>{t('more.title')}</Text>
-                <Text style={styles.subtitle}>{t('more.subtitle')}</Text>
-              </View>
+      {/* ─── Fixed Header Bar ─── */}
+      <View style={styles.fixedHeaderContainer}>
+        <View style={styles.header}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <AppLogo size={40} variant="icon" />
+            <View>
+              <Text style={styles.title}>{t('more.title')}</Text>
+              <Text style={styles.subtitle}>{t('more.subtitle')}</Text>
             </View>
           </View>
         </View>
@@ -151,23 +149,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.paper,
   },
-  headerWrapper: {
+  fixedHeaderContainer: {
     backgroundColor: colors.paper,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    width: '100%',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  fixedHeaderContainer: {
-    width: '100%',
-    maxWidth: 760,
     paddingHorizontal: 20,
+    zIndex: 10,
+    maxWidth: 760,
+    width: '100%',
     alignSelf: 'center',
   },
   header: {
     paddingVertical: 12,
-    width: '100%',
   },
   content: {
     paddingHorizontal: 20,

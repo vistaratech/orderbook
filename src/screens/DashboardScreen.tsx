@@ -9,7 +9,6 @@ import {
   RefreshControl,
   Modal,
   FlatList,
-  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -189,7 +188,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* ─── Static Top Header Bar ─── */}
+      {/* ─── Fixed Top Header Bar ─── */}
       <View style={styles.fixedHeaderContainer}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -915,8 +914,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     paddingHorizontal: 20,
-    width: '100%',
-    alignItems: 'center',
     zIndex: 10,
   },
   content: {

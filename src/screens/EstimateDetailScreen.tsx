@@ -166,8 +166,8 @@ ${estimate.customerNote ? `\nNote: ${estimate.customerNote}` : ''}`;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* ─── Static Top Header Bar ─── */}
-      <View style={styles.headerWrapper}>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        {/* Top Header Bar Aligned Directly Above Card Container */}
         <View style={styles.topHeaderRow}>
           <GlassBackButton label={t('common.back', 'Back')} />
           <View style={styles.topHeaderTitleWrap}>
@@ -175,9 +175,6 @@ ${estimate.customerNote ? `\nNote: ${estimate.customerNote}` : ''}`;
             <Text style={styles.topHeaderSub}>{estimate.estimateNumber} • {estimate.customerName}</Text>
           </View>
         </View>
-      </View>
-
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
 
         {/* Header Card */}
         <View style={styles.headerCard}>
@@ -308,23 +305,12 @@ ${estimate.customerNote ? `\nNote: ${estimate.customerNote}` : ''}`;
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
   content: { padding: 20, paddingBottom: 80, width: '100%', maxWidth: 720, alignSelf: 'center' as any },
-  headerWrapper: {
-    backgroundColor: colors.paper,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: Platform.select({ web: 10, default: 8 }),
-    zIndex: 10,
-  },
   topHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    width: '100%',
-    maxWidth: 720,
-    alignSelf: 'center',
+    marginBottom: 16,
+    paddingTop: Platform.select({ web: 6, default: 4 }),
   },
   topHeaderTitleWrap: {
     flex: 1,

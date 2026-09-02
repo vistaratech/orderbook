@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -147,27 +146,25 @@ export default function BusinessProfileScreen() {
     <DesktopLayout currentTabName="BusinessProfile">
       <SafeAreaView style={styles.screen} edges={['top']}>
         {/* Top Header Bar */}
-        <View style={styles.headerWrapper}>
-          <View style={styles.topHeader}>
-            <GlassBackButton
-              label={t('common.back')}
-              onPress={hasParentSidebar ? () => (navigation as any).navigate('MainTabs', { screen: 'DashboardTab' }) : undefined}
-            />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.topHeaderTitle}>{t('profile.title')}</Text>
-              <Text style={styles.topHeaderSub}>{businessName || t('profile.subtitle')}</Text>
-            </View>
-            <View style={styles.headerLogoWrap}>
-              {logoUri ? (
-                <Image source={{ uri: logoUri }} style={styles.headerLogoImage} />
-              ) : (
-                <AppLogo size={36} variant="icon" />
-              )}
-            </View>
+        <View style={styles.topHeader}>
+          <GlassBackButton
+            label={t('common.back')}
+            onPress={hasParentSidebar ? () => (navigation as any).navigate('MainTabs', { screen: 'DashboardTab' }) : undefined}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.topHeaderTitle}>{t('profile.title')}</Text>
+            <Text style={styles.topHeaderSub}>{businessName || t('profile.subtitle')}</Text>
           </View>
+        <View style={styles.headerLogoWrap}>
+          {logoUri ? (
+            <Image source={{ uri: logoUri }} style={styles.headerLogoImage} />
+          ) : (
+            <AppLogo size={36} variant="icon" />
+          )}
         </View>
+      </View>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header Banner */}
         <View style={styles.bannerCard}>
           <View style={styles.bannerIconWrap}>
@@ -591,22 +588,18 @@ const styles = StyleSheet.create({
   },
 
   // Custom Header Styles
-  headerWrapper: {
-    backgroundColor: colors.paper,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    width: '100%',
-    alignItems: 'center',
-    zIndex: 10,
-  },
   topHeader: {
-    width: '100%',
-    maxWidth: 860,
     paddingHorizontal: 20,
     paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    backgroundColor: colors.paper,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    zIndex: 10,
+    maxWidth: 860,
+    width: '100%',
     alignSelf: 'center',
   },
   headerLogoWrap: {

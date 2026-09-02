@@ -934,6 +934,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.line,
     paddingHorizontal: 20,
     zIndex: 20,
+    alignItems: 'center',
     ...shadow.card,
   },
   content: {

@@ -104,15 +104,17 @@ export default function MoreScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       {/* ─── Collapsible Header Bar ─── */}
       <Animated.View
-        style={[styles.fixedHeaderContainer, headerAnimatedStyle]}
+        style={[styles.headerWrapper, headerAnimatedStyle]}
         onLayout={onHeaderLayout}
       >
-        <View style={styles.header}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <AppLogo size={40} variant="icon" />
-            <View>
-              <Text style={styles.title}>{t('more.title')}</Text>
-              <Text style={styles.subtitle}>{t('more.subtitle')}</Text>
+        <View style={styles.fixedHeaderContainer}>
+          <View style={styles.header}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <AppLogo size={40} variant="icon" />
+              <View>
+                <Text style={styles.title}>{t('more.title')}</Text>
+                <Text style={styles.subtitle}>{t('more.subtitle')}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -166,20 +168,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.paper,
   },
-  fixedHeaderContainer: {
+  headerWrapper: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
+    zIndex: 20,
+    alignItems: 'center',
     backgroundColor: colors.paper,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    paddingHorizontal: 20,
-    zIndex: 20,
-    maxWidth: 760,
+  },
+  fixedHeaderContainer: {
     width: '100%',
+    maxWidth: 760,
+    paddingHorizontal: 20,
     alignSelf: 'center',
-    ...shadow.card,
+    marginHorizontal: 'auto' as any,
   },
   header: {
     paddingVertical: 12,

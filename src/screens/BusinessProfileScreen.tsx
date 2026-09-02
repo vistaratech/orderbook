@@ -157,23 +157,25 @@ export default function BusinessProfileScreen() {
       <SafeAreaView style={styles.screen} edges={['top']}>
         {/* Top Header Bar */}
         <Animated.View
-          style={[styles.topHeader, headerAnimatedStyle]}
+          style={[styles.headerWrapper, headerAnimatedStyle]}
           onLayout={onHeaderLayout}
         >
-          <GlassBackButton
-            label={t('common.back')}
-            onPress={hasParentSidebar ? () => (navigation as any).navigate('MainTabs', { screen: 'DashboardTab' }) : undefined}
-          />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.topHeaderTitle}>{t('profile.title')}</Text>
-            <Text style={styles.topHeaderSub}>{businessName || t('profile.subtitle')}</Text>
-          </View>
-          <View style={styles.headerLogoWrap}>
-            {logoUri ? (
-              <Image source={{ uri: logoUri }} style={styles.headerLogoImage} />
-            ) : (
-              <AppLogo size={36} variant="icon" />
-            )}
+          <View style={styles.topHeader}>
+            <GlassBackButton
+              label={t('common.back')}
+              onPress={hasParentSidebar ? () => (navigation as any).navigate('MainTabs', { screen: 'DashboardTab' }) : undefined}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.topHeaderTitle}>{t('profile.title')}</Text>
+              <Text style={styles.topHeaderSub}>{businessName || t('profile.subtitle')}</Text>
+            </View>
+            <View style={styles.headerLogoWrap}>
+              {logoUri ? (
+                <Image source={{ uri: logoUri }} style={styles.headerLogoImage} />
+              ) : (
+                <AppLogo size={36} variant="icon" />
+              )}
+            </View>
           </View>
         </Animated.View>
 
@@ -606,24 +608,27 @@ const styles = StyleSheet.create({
   },
 
   // Custom Header Styles
-  topHeader: {
+  headerWrapper: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
+    zIndex: 20,
+    alignItems: 'center',
+    backgroundColor: colors.paper,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  topHeader: {
+    width: '100%',
+    maxWidth: 860,
     paddingHorizontal: 20,
     paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.paper,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    zIndex: 20,
-    maxWidth: 860,
-    width: '100%',
     alignSelf: 'center',
-    ...shadow.card,
+    marginHorizontal: 'auto' as any,
   },
   headerLogoWrap: {
     width: 38,

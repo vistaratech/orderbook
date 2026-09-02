@@ -239,42 +239,44 @@ Generated from KadaiBook • kadaibook.in`;
     <SafeAreaView style={styles.screen} edges={['top']}>
       {/* ─── Collapsible Header & Period Selector ─── */}
       <Animated.View
-        style={[styles.fixedHeaderContainer, headerAnimatedStyle]}
+        style={[styles.headerWrapper, headerAnimatedStyle]}
         onLayout={onHeaderLayout}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerTitleWrap}>
-            <Text style={styles.title}>{t('reports.title')}</Text>
-            <Text style={styles.subtitle}>{t('reports.subtitle')}</Text>
-          </View>
-          <Pressable
-            style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.8 }]}
-            onPress={handleShareSummary}
-          >
-            <Ionicons name="share-outline" size={16} color={colors.clayDeep} />
-            <Text style={styles.shareBtnText}>{t('common.share')}</Text>
-          </Pressable>
-        </View>
-
-        {/* Period Selector Tabs */}
-        <View style={styles.periodTabs}>
-          {[
-            { id: 'this_week', label: t('reports.thisWeek') },
-            { id: 'this_month', label: t('reports.thisMonth') },
-            { id: 'last_30_days', label: t('reports.lastMonth') },
-            { id: 'all_time', label: t('reports.allTime') },
-          ].map((p) => (
+        <View style={styles.fixedHeaderContainer}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerTitleWrap}>
+              <Text style={styles.title}>{t('reports.title')}</Text>
+              <Text style={styles.subtitle}>{t('reports.subtitle')}</Text>
+            </View>
             <Pressable
-              key={p.id}
-              style={[styles.periodTab, period === p.id && styles.periodTabActive]}
-              onPress={() => setPeriod(p.id as Period)}
+              style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.8 }]}
+              onPress={handleShareSummary}
             >
-              <Text style={[styles.periodTabText, period === p.id && styles.periodTabTextActive]}>
-                {p.label}
-              </Text>
+              <Ionicons name="share-outline" size={16} color={colors.clayDeep} />
+              <Text style={styles.shareBtnText}>{t('common.share')}</Text>
             </Pressable>
-          ))}
+          </View>
+
+          {/* Period Selector Tabs */}
+          <View style={styles.periodTabs}>
+            {[
+              { id: 'this_week', label: t('reports.thisWeek') },
+              { id: 'this_month', label: t('reports.thisMonth') },
+              { id: 'last_30_days', label: t('reports.lastMonth') },
+              { id: 'all_time', label: t('reports.allTime') },
+            ].map((p) => (
+              <Pressable
+                key={p.id}
+                style={[styles.periodTab, period === p.id && styles.periodTabActive]}
+                onPress={() => setPeriod(p.id as Period)}
+              >
+                <Text style={[styles.periodTabText, period === p.id && styles.periodTabTextActive]}>
+                  {p.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
       </Animated.View>
 
@@ -472,22 +474,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.paper,
   },
-  fixedHeaderContainer: {
+  headerWrapper: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
+    zIndex: 20,
+    alignItems: 'center',
     backgroundColor: colors.paper,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
+  },
+  fixedHeaderContainer: {
+    width: '100%',
+    maxWidth: 1040,
     paddingHorizontal: 20,
     paddingTop: 6,
     paddingBottom: 12,
-    zIndex: 20,
-    width: '100%',
-    maxWidth: 1040,
     alignSelf: 'center',
-    ...shadow.card,
+    marginHorizontal: 'auto' as any,
   },
   content: {
     paddingHorizontal: 20,

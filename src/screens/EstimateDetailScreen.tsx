@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   },
   topHeaderTitle: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: 18,
     color: colors.ink,
     lineHeight: 26,
   },

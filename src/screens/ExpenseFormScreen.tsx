@@ -282,14 +282,14 @@ const styles = StyleSheet.create({
   },
   currencySymbol: {
     fontFamily: fonts.display,
-    fontSize: 36,
+    fontSize: 20,
     color: colors.outflow,
     marginRight: 8,
   },
   amountInput: {
     flex: 1,
     fontFamily: fonts.bodyBold,
-    fontSize: 32,
+    fontSize: 20,
     color: colors.ink,
     padding: 0,
   },

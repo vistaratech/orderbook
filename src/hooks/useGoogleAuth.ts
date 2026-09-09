@@ -1,22 +1,26 @@
 /**
- * Google Auth Hook for Expo & Web
+ * Google Auth Hook — Native Implementation
  *
- * - Web: Direct Firebase signInWithPopup (works out of the box in browser)
- * - Mobile (Expo Go): Uses expo-auth-session with Google OAuth
+ * Uses @react-native-google-signin/google-signin which reads SHA-1 fingerprints
+ * directly from google-services.json, fixing the 401 Unauthorized error in
+ * signed production builds.
  *
- * Exposes an `onSuccess` callback pattern so screens can navigate after sign-in.
+ * - Web: Firebase signInWithPopup (unchanged)
+ * - Mobile: GoogleSignin.signIn() native flow
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { GoogleAuthProvider } from 'firebase/auth';
 import { loginWithGoogle, loginWithGoogleCredential } from '../storage/authStorage';
 import { GOOGLE_WEB_CLIENT_ID } from '../config/google';
 
-WebBrowser.maybeCompleteAuthSession();
+// Configure once at module load — safe to call multiple times
+GoogleSignin.configure({
+  webClientId: GOOGLE_WEB_CLIENT_ID,
+  offlineAccess: false,
+});
 
 interface UseGoogleAuthOptions {
   onSuccess?: () => void;
@@ -28,52 +32,11 @@ export function useGoogleAuth(options?: UseGoogleAuthOptions) {
   const onSuccessRef = useRef(options?.onSuccess);
   onSuccessRef.current = options?.onSuccess;
 
-  const redirectUri = makeRedirectUri();
-
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: GOOGLE_WEB_CLIENT_ID,
-    redirectUri,
-  });
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      if (id_token) {
-        handleGoogleIdToken(id_token);
-      } else {
-        setLoading(false);
-        setError('Could not get authentication token from Google.');
-      }
-    } else if (response?.type === 'error') {
-      setLoading(false);
-      setError(response.error?.message || 'Google Sign-In failed.');
-    } else if (response?.type === 'dismiss') {
-      setLoading(false);
-      setError(null);
-    }
-  }, [response]);
-
-  const handleGoogleIdToken = async (idToken: string) => {
-    try {
-      const credential = GoogleAuthProvider.credential(idToken);
-      const result = await loginWithGoogleCredential(credential);
-      setLoading(false);
-      if (result.success) {
-        onSuccessRef.current?.();
-      } else {
-        setError(result.error || 'Firebase sign-in failed.');
-      }
-    } catch (err: any) {
-      setLoading(false);
-      setError(err?.message || 'Failed to sign in with Google.');
-    }
-  };
-
   const signInWithGoogle = useCallback(async () => {
     setError(null);
     setLoading(true);
 
-    // Web: use Firebase native popup directly
+    // Web: use Firebase popup directly
     if (Platform.OS === 'web') {
       try {
         const result = await loginWithGoogle();
@@ -91,24 +54,41 @@ export function useGoogleAuth(options?: UseGoogleAuthOptions) {
       }
     }
 
-    // Mobile (Expo Go): use expo-auth-session
+    // Native Android / iOS: use the native GoogleSignin module
     try {
-      await promptAsync();
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo?.data?.idToken;
+
+      if (!idToken) {
+        setLoading(false);
+        setError('Could not get ID token from Google.');
+        return { success: false };
+      }
+
+      const credential = GoogleAuthProvider.credential(idToken);
+      const result = await loginWithGoogleCredential(credential);
+      setLoading(false);
+      if (result.success) {
+        onSuccessRef.current?.();
+      } else {
+        setError(result.error || 'Firebase sign-in failed.');
+      }
+      return result;
     } catch (err: any) {
       setLoading(false);
-      setError(
-        'Google Sign-In requires a production build for mobile.\n\n' +
-        'Use Email & Password to sign in during development.'
-      );
+      const msg = err?.code === '10'
+        ? 'Google Sign-In configuration error. Check SHA-1 fingerprints in Firebase Console.'
+        : err?.message || 'Google Sign-In failed.';
+      setError(msg);
+      return { success: false };
     }
-
-    return { success: false };
-  }, [promptAsync]);
+  }, []);
 
   return {
     signInWithGoogle,
     loading,
     error,
-    isReady: !!request,
+    isReady: true, // Always ready — native module needs no request object
   };
 }

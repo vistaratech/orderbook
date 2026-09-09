@@ -33,6 +33,7 @@ import { getAuthState, UserAccount } from '../storage/authStorage';
 import { getBusinessProfile, BusinessProfile } from '../storage/businessProfileStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
+import { checkProStatus } from '../storage/subscriptionStorage';
 import { confirmAction } from '../utils/dialog';
 import { formatCurrency, formatDate, formatDateTime, todayIso } from '../utils/format';
 import {
@@ -243,6 +244,9 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
   };
 
   const shareInvoice = async () => {
+    const isProTemplateAllowed = await checkTemplatePro();
+    if (!isProTemplateAllowed) return;
+
     const itemsList = order.items
       .map((it) => `• ${it.name} (${it.qty} × ₹${it.price}) = ${formatCurrency(it.qty * it.price)}`)
       .join('\n');
@@ -268,14 +272,36 @@ Thank you for your business!`;
     if (order.phoneNumber) Linking.openURL(`tel:${order.phoneNumber}`);
   };
 
+  const checkTemplatePro = async () => {
+    if (activeConfig.templateId !== 'modern_slate') {
+      const isPro = await checkProStatus();
+      if (!isPro) {
+        Alert.alert(
+          'Activate Pro to Use',
+          'Your previously saved invoice template is a Pro feature. Please activate Pro to generate this invoice or customize it to use the default free template.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Activate Pro', onPress: () => (navigation as any).navigate('PaywallScreen') }
+          ]
+        );
+        return false;
+      }
+    }
+    return true;
+  };
+
   const whatsappCustomer = async () => {
     if (order) {
+      const isProTemplateAllowed = await checkTemplatePro();
+      if (!isProTemplateAllowed) return;
       await sendWhatsAppInvoice(order, activeBusinessProfile, activeConfig);
     }
   };
 
   const sharePdfCustomer = async () => {
     if (order) {
+      const isProTemplateAllowed = await checkTemplatePro();
+      if (!isProTemplateAllowed) return;
       await sharePdfInvoiceToWhatsApp(order, activeBusinessProfile, activeConfig);
     }
   };
@@ -760,8 +786,12 @@ Thank you for your business!`;
 
               <Pressable
                 style={[styles.pdfModalPrintBtn, { paddingHorizontal: 10 }]}
-                onPress={() => {
-                  if (order) printPdfInvoice(order, activeBusinessProfile, activeConfig);
+                onPress={async () => {
+                  if (order) {
+                    const isProTemplateAllowed = await checkTemplatePro();
+                    if (!isProTemplateAllowed) return;
+                    printPdfInvoice(order, activeBusinessProfile, activeConfig);
+                  }
                 }}
               >
                 <Ionicons name="print-outline" size={15} color={colors.white} />
@@ -1094,7 +1124,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 10,
   },
-  orderNumber: { fontFamily: fonts.display, fontSize: 26, color: colors.clayDeep, lineHeight: 30 },
+  orderNumber: { fontFamily: fonts.display, fontSize: 20, color: colors.clayDeep, lineHeight: 30 },
   heroDate: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft, marginTop: 2 },
   pinnedBadge: {
     flexDirection: 'row',

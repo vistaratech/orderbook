@@ -14,7 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { ProductUnit, PRODUCT_UNITS, GST_RATES, GSTRate } from '../types/order';
-import { getProduct, saveProduct } from '../storage/productStorage';
+import { getProduct, saveProduct, getProducts } from '../storage/productStorage';
+import { checkProStatus } from '../storage/subscriptionStorage';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { getBusinessProfile } from '../storage/businessProfileStorage';
 import { getBusinessPreset } from '../config/businessTypes';
@@ -68,6 +69,27 @@ export default function ProductFormScreen({ navigation, route }: Props) {
         setTaxRate(p.taxRate || 0);
         setBarcode(p.barcode || '');
       });
+    } else {
+      // Check limits
+      (async () => {
+        const isPro = await checkProStatus();
+        if (!isPro) {
+          const products = await getProducts();
+          if (products.length >= 20) {
+            Alert.alert(
+              'Product Limit Reached',
+              'You can only add up to 20 products on the free plan. Please upgrade to Pro to add unlimited products.',
+              [
+                { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
+                { text: 'Upgrade', onPress: () => {
+                  navigation.goBack();
+                  (navigation as any).navigate('PaywallScreen');
+                }}
+              ]
+            );
+          }
+        }
+      })();
     }
   }, [productId]);
 

@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fonts.display,
-    fontSize: 32,
+    fontSize: 20,
     color: colors.ink,
     lineHeight: 36,
     paddingRight: 10,
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   },
   summaryAmount: {
     fontFamily: fonts.display,
-    fontSize: 36,
+    fontSize: 20,
     color: colors.outflow,
     paddingRight: 8,
   },

@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
   },
   topHeaderTitle: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: 18,
     color: colors.ink,
     lineHeight: 26,
   },
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
-  sectionTitle: { fontFamily: fonts.display, fontSize: 22, color: colors.clayDeep },
+  sectionTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.clayDeep },
   row: { flexDirection: 'row', gap: 12 },
   field: { marginBottom: 14 },
   fieldLabel: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.inkSoft, marginBottom: 4 },

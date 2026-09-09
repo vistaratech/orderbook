@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: fonts.display,
-    fontSize: 26,
+    fontSize: 20,
     color: colors.clayDeep,
     lineHeight: 30,
   },

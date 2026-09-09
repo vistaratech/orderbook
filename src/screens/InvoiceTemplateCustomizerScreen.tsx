@@ -29,6 +29,7 @@ import {
   saveInvoiceTemplateConfig,
   resetInvoiceTemplateConfig,
 } from '../storage/invoiceTemplateStorage';
+import { checkProStatus } from '../storage/subscriptionStorage';
 import { getBusinessProfile, BusinessProfile } from '../storage/businessProfileStorage';
 import {
   generatePrintableInvoiceHtml,
@@ -142,6 +143,20 @@ export default function InvoiceTemplateCustomizerScreen() {
   };
 
   const handleSave = async () => {
+    const isPro = await checkProStatus();
+    if (!isPro) {
+      confirmAction({
+        title: 'Pro Feature',
+        message: 'Customizing invoice templates is a Pro feature. Would you like to upgrade?',
+        confirmText: 'Upgrade',
+        cancelText: 'Cancel',
+        onConfirm: () => {
+          (navigation as any).navigate('PaywallScreen');
+        }
+      });
+      return;
+    }
+
     setSaving(true);
     setSaveSuccess(false);
     try {

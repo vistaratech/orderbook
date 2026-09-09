@@ -1,21 +1,51 @@
+# Dependencies
 node_modules/
+
+# Expo / React Native
 .expo/
 dist/
 web-build/
 npm-debug.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-*.orig.*
-.DS_Store
 *.log
+
+# Environment variables
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Firebase
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Android build outputs & local config
+android/.gradle/
+android/app/build/
+android/build/
+android/.idea/
+android/*.iml
+android/app/*.iml
+android/local.properties
+*.apk
+*.aab
+
+# Certificates and keys (Keep secure - do not commit release keystores)
+*.jks
+*.p8
+*.p12
+*.key
+*.keystore
+*.mobileprovision
+ios-signing.*
+
+# macOS / Windows system files
+.DS_Store
+Thumbs.db
+
+# Misc
+*.orig.*
 builder.exe
 builder.json
-ios-signing.*

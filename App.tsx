@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Platform } from 'react-native';
+import { View, ActivityIndicator, Platform, Text, Image } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts, Caveat_600SemiBold, Caveat_700Bold } from '@expo-google-fonts/caveat';
-import {
-  DMSans_400Regular,
-  DMSans_500Medium,
-  DMSans_700Bold,
-} from '@expo-google-fonts/dm-sans';
+import * as SplashScreen from 'expo-splash-screen';
+import { 
+  useFonts,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold
+} from '@expo-google-fonts/plus-jakarta-sans';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootStackParamList } from './src/navigation/types';
@@ -35,6 +40,7 @@ import EstimateListScreen from './src/screens/EstimateListScreen';
 import EstimateFormScreen from './src/screens/EstimateFormScreen';
 import EstimateDetailScreen from './src/screens/EstimateDetailScreen';
 import InvoiceTemplateCustomizerScreen from './src/screens/InvoiceTemplateCustomizerScreen';
+import PaywallScreen from './src/screens/PaywallScreen';
 import GlassBackButton from './src/components/GlassBackButton';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './src/config/firebase';
@@ -47,6 +53,7 @@ import {
   flushPendingWrites,
   notifyDataListeners,
 } from './src/storage/firebaseSync';
+import { initRevenueCat } from './src/storage/subscriptionStorage';
 import { colors, fonts } from './src/theme/theme';
 import { LanguageProvider } from './src/i18n/LanguageContext';
 
@@ -66,16 +73,18 @@ const navTheme = {
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    Caveat_600SemiBold,
-    Caveat_700Bold,
-    DMSans_400Regular,
-    DMSans_500Medium,
-    DMSans_700Bold,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
   });
 
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
 
   useEffect(() => {
+    // Initialize RevenueCat immediately so Google Play Billing connects at startup
+    initRevenueCat().catch(console.warn);
+
     // On web, check if user arrived via a password reset link (e.g. ?mode=resetPassword&oobCode=XYZ)
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       try {
@@ -98,6 +107,9 @@ export default function App() {
       } else {
         if (state.user?.uid) {
           setCurrentUidCache(state.user.uid);
+          // Initialize RevenueCat immediately using cached UID so it's ready
+          // before the user navigates to PaywallScreen (avoids race condition)
+          initRevenueCat(state.user.uid).catch(console.warn);
         }
         setInitialRoute('MainTabs');
       }
@@ -108,6 +120,7 @@ export default function App() {
       if (fbUser) {
         setCurrentUidCache(fbUser.uid);
         setupRealtimeSync(fbUser.uid);
+        await initRevenueCat(fbUser.uid);
         // Flush any writes that happened before auth was ready
         await flushPendingWrites();
         // Pull latest cloud data and notify UI
@@ -126,6 +139,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (fontsLoaded && initialRoute) {
+      SplashScreen.hideAsync().catch(console.warn);
+    }
+  }, [fontsLoaded, initialRoute]);
+
+  useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       document.title = 'KadaiBook — Smart Business & Order Management | kadaibook.in';
 
@@ -139,7 +158,7 @@ export default function App() {
 
       const style = document.createElement('style');
       style.innerHTML = `
-        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
         html, body, #root {
           height: 100%;
@@ -193,14 +212,7 @@ export default function App() {
   }, []);
 
   if (!fontsLoaded || !initialRoute) {
-    return (
-      <SafeAreaProvider style={{ flex: 1, backgroundColor: colors.paper }}>
-        <StatusBar style="dark" />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.paper }}>
-          <ActivityIndicator color={colors.clayDeep} size="large" />
-        </View>
-      </SafeAreaProvider>
-    );
+    return null;
   }
 
   const isWeb = Platform.OS === 'web';
@@ -341,6 +353,11 @@ export default function App() {
                   name="InvoiceTemplateCustomizer"
                   component={InvoiceTemplateCustomizerScreen}
                   options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="PaywallScreen"
+                  component={PaywallScreen}
+                  options={{ headerShown: false, presentation: 'modal' }}
                 />
               </Stack.Navigator>
             </NavigationContainer>

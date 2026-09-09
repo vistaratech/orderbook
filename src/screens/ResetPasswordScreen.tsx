@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: 18,
     color: colors.ink,
   },
   cardSubtitle: {
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   },
   stateTitle: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: 18,
     color: colors.ink,
     marginTop: 8,
     textAlign: 'center',

@@ -50,6 +50,14 @@ export default function MoreScreen() {
       action: () => navigation.navigate('CustomerList'),
     },
     {
+      title: t('subscriptions.title', 'KadaiBook Pro'),
+      subtitle: t('subscriptions.subtitle', 'Manage your subscription & billing'),
+      icon: 'star' as const,
+      color: '#EAB308',
+      bg: '#FEF9C3',
+      action: () => (navigation as any).navigate('PaywallScreen'),
+    },
+    {
       title: t('more.productCatalog'),
       subtitle: t('more.productCatalogSub'),
       icon: 'pricetags' as const,
@@ -172,7 +180,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fonts.display,
-    fontSize: 28,
+    fontSize: 20,
     color: colors.ink,
     lineHeight: 32,
   },

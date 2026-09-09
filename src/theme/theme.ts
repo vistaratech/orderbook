@@ -61,13 +61,26 @@ export const radius = {
 export const spacing = (n: number) => n * 4;
 
 export const fonts = {
-  // Caveat: handwritten marker feel for headings, echoing a notebook cover.
-  display: 'Caveat_700Bold',
-  displayRegular: 'Caveat_600SemiBold',
-  // DM Sans: clean, highly legible for actual order data / numbers.
-  body: 'DMSans_400Regular',
-  bodyMedium: 'DMSans_500Medium',
-  bodyBold: 'DMSans_700Bold',
+  // Plus Jakarta Sans acts as our Gilroy alternative (darker, bolder).
+  display: 'PlusJakartaSans_800ExtraBold',
+  displayRegular: 'PlusJakartaSans_700Bold',
+  body: 'PlusJakartaSans_500Medium',
+  bodyMedium: 'PlusJakartaSans_600SemiBold',
+  bodyBold: 'PlusJakartaSans_700Bold',
+};
+
+/**
+ * Consistent font-size scale — use these everywhere instead of hardcoding px values.
+ * Plus Jakarta Sans at ExtraBold/Bold reads visually larger than Caveat did,
+ * so all heading sizes are deliberately smaller than before.
+ */
+export const typography = {
+  screenHeading: 20, // "Orders", "Dashboard", top-level screen title
+  sectionHeading: 17, // "Recent Orders", "Financial Summary" section headers
+  cardTitle: 15,     // Primary text inside a card / list row
+  body: 14,          // Normal paragraph / description text
+  label: 13,         // Form labels, secondary list info
+  caption: 11,       // Timestamps, counts, metadata
 };
 
 export const shadow = {

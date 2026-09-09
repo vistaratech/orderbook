@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   },
   slideTitle: {
     fontFamily: fonts.display,
-    fontSize: 32,
+    fontSize: 20,
     color: colors.ink,
     textAlign: 'center',
     marginBottom: 10,
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontFamily: fonts.display,
-    fontSize: 28,
+    fontSize: 20,
     color: colors.clayDeep,
   },
   formSubtitle: {

@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { Order, OrderItem, OrderStatus, PaymentStatus, Customer, Product, CustomColumn } from '../types/order';
-import { getOrder, saveOrder, nextOrderNumber } from '../storage/orderStorage';
+import { getOrder, saveOrder, nextOrderNumber, getOrders } from '../storage/orderStorage';
 import { getCustomers, saveCustomer } from '../storage/customerStorage';
 import { getProducts, saveProduct } from '../storage/productStorage';
 import { generateId } from '../utils/id';
@@ -23,6 +23,7 @@ import { formatCurrency, formatDate, todayIso } from '../utils/format';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import StatusTracker from '../components/StatusTracker';
 import { getBusinessProfile } from '../storage/businessProfileStorage';
+import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
 import { getBusinessPreset } from '../config/businessTypes';
 import { useLanguage } from '../i18n/LanguageContext';
 import GlassBackButton from '../components/GlassBackButton';
@@ -106,6 +107,45 @@ export default function OrderFormScreen({ navigation, route }: Props) {
       });
     } else {
       nextOrderNumber().then(setOrderNumber);
+
+      // Check limits
+      (async () => {
+        const isPro = await checkProStatus();
+        if (isPro) return;
+
+        const isBasic = await checkBasicStatus();
+        const orders = await getOrders();
+
+        if (isBasic) {
+          if (orders.length >= 150) {
+            Alert.alert(
+              'Order Limit Reached',
+              'You can only create up to 150 orders on the Basic plan. Please upgrade to Pro to create unlimited orders.',
+              [
+                { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
+                { text: 'Upgrade', onPress: () => {
+                  navigation.goBack();
+                  (navigation as any).navigate('PaywallScreen');
+                }}
+              ]
+            );
+          }
+        } else {
+          if (orders.length >= 50) {
+            Alert.alert(
+              'Order Limit Reached',
+              'You can only create up to 50 orders on the free plan. Please upgrade to Basic or Pro to continue.',
+              [
+                { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
+                { text: 'Upgrade', onPress: () => {
+                  navigation.goBack();
+                  (navigation as any).navigate('PaywallScreen');
+                }}
+              ]
+            );
+          }
+        }
+      })();
     }
   }, [editingId]);
 

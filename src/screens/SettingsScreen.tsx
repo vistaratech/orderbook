@@ -33,6 +33,7 @@ import {
   BusinessProfile,
 } from '../storage/businessProfileStorage';
 import { confirmAction } from '../utils/dialog';
+import { checkProStatus } from '../storage/subscriptionStorage';
 import AppLogo from '../components/AppLogo';
 import GlassBackButton from '../components/GlassBackButton';
 import DesktopLayout from '../components/DesktopLayout';
@@ -56,6 +57,7 @@ export default function SettingsScreen() {
     logoUri: '',
     bankDetails: '',
   });
+  const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [cloudSyncing, setCloudSyncing] = useState(false);
@@ -88,6 +90,9 @@ export default function SettingsScreen() {
         logoUri: b.logoUri || '',
         bankDetails: b.bankDetails || '',
       });
+      
+      const proStatus = await checkProStatus();
+      setIsPro(proStatus);
     } catch {
     } finally {
       setLoading(false);
@@ -171,6 +176,13 @@ export default function SettingsScreen() {
   };
 
   const handleExport = async () => {
+    if (!isPro) {
+      Alert.alert('Pro Feature', 'Exporting data as JSON is a Pro feature. Please upgrade to unlock.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Upgrade', onPress: () => navigation.navigate('PaywallScreen') }
+      ]);
+      return;
+    }
     try {
       const data = await exportAllData();
       await Share.share({
@@ -206,6 +218,13 @@ export default function SettingsScreen() {
   };
 
   const handleCloudBackup = async () => {
+    if (!isPro) {
+      Alert.alert('Pro Feature', 'Cloud Backup is a Pro feature. Please upgrade to unlock.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Upgrade', onPress: () => navigation.navigate('PaywallScreen') }
+      ]);
+      return;
+    }
     setCloudSyncing(true);
     const res = await backupToFirebaseCloud();
     setCloudSyncing(false);
@@ -217,6 +236,13 @@ export default function SettingsScreen() {
   };
 
   const handleCloudRestore = () => {
+    if (!isPro) {
+      Alert.alert('Pro Feature', 'Cloud Restore is a Pro feature. Please upgrade to unlock.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Upgrade', onPress: () => navigation.navigate('PaywallScreen') }
+      ]);
+      return;
+    }
     confirmAction({
       title: 'Restore from Firebase',
       message: 'This will download and restore your saved records from Firebase Cloud. Continue?',
@@ -413,6 +439,49 @@ export default function SettingsScreen() {
               <Text style={styles.logoutBtnText}>{t('settings.logoutBtn')}</Text>
             </Pressable>
           </View>
+
+          {/* ─── Subscription Card ─── */}
+          <Pressable
+            style={({ pressed }) => [
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 16,
+                backgroundColor: isPro ? '#FDFBEB' : colors.paperCard,
+                borderRadius: radius.md,
+                borderWidth: 1.5,
+                borderColor: isPro ? '#EAB30880' : '#EAB30840',
+                marginBottom: 16,
+              },
+              pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
+            ]}
+            onPress={() => navigation.navigate('PaywallScreen')}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  backgroundColor: '#FEF08A',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="star" size={20} color="#CA8A04" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sectionTitle, { fontSize: 14 }]}>
+                  KadaiBook Subscription
+                </Text>
+                <Text style={[styles.sectionSub, isPro && { color: '#CA8A04' }]} numberOfLines={1}>
+                  {isPro ? 'You are on the Pro Plan' : 'Upgrade to Pro for unlimited features'}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#CA8A04" />
+          </Pressable>
 
           {/* ─── Bill & Invoice Templates Card ─── */}
           <Pressable
@@ -824,7 +893,7 @@ const styles = StyleSheet.create({
   },
   topHeaderTitle: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: 18,
     color: colors.ink,
   },
   topHeaderSub: {
@@ -965,7 +1034,7 @@ const styles = StyleSheet.create({
   },
   userAvatarText: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: 18,
     color: colors.white,
   },
   userInfo: {

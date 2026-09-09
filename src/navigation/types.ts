@@ -22,6 +22,7 @@ export type RootStackParamList = {
   EstimateForm: { estimateId?: string } | undefined;
   EstimateDetail: { estimateId: string };
   InvoiceTemplateCustomizer: undefined;
+  PaywallScreen: undefined;
 };
 
 export type MainTabParamList = {

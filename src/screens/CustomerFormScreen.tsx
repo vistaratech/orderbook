@@ -13,7 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { getCustomer, saveCustomer } from '../storage/customerStorage';
+import { getCustomer, saveCustomer, getCustomers } from '../storage/customerStorage';
+import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
 import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import GlassBackButton from '../components/GlassBackButton';
@@ -49,6 +50,45 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
         setAddress(c.address || '');
         setNotes(c.notes || '');
       });
+    } else {
+      // Check limits
+      (async () => {
+        const isPro = await checkProStatus();
+        if (isPro) return;
+
+        const isBasic = await checkBasicStatus();
+        const customers = await getCustomers();
+
+        if (isBasic) {
+          if (customers.length >= 60) {
+            Alert.alert(
+              'Customer Limit Reached',
+              'You can only add up to 60 customers on the Basic plan. Please upgrade to Pro for unlimited customers.',
+              [
+                { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
+                { text: 'Upgrade', onPress: () => {
+                  navigation.goBack();
+                  (navigation as any).navigate('PaywallScreen');
+                }}
+              ]
+            );
+          }
+        } else {
+          if (customers.length >= 20) {
+            Alert.alert(
+              'Customer Limit Reached',
+              'You can only add up to 20 customers on the free plan. Please upgrade to Basic or Pro to continue.',
+              [
+                { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
+                { text: 'Upgrade', onPress: () => {
+                  navigation.goBack();
+                  (navigation as any).navigate('PaywallScreen');
+                }}
+              ]
+            );
+          }
+        }
+      })();
     }
   }, [customerId]);
 

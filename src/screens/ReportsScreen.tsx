@@ -10,7 +10,7 @@ import {
   Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Order, Expense, orderTotal, orderBalance } from '../types/order';
@@ -19,6 +19,7 @@ import { getOrders } from '../storage/orderStorage';
 import { getExpenses } from '../storage/expenseStorage';
 import { getPurchases } from '../storage/purchaseStorage';
 import { addDataListener } from '../storage/firebaseSync';
+import { checkProStatus } from '../storage/subscriptionStorage';
 import { colors, fonts, radius, shadow, categoryColor } from '../theme/theme';
 import { formatCurrency } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -213,7 +214,29 @@ export default function ReportsScreen() {
       .slice(0, 5);
   }, [filteredOrders]);
 
+  const navigation = useNavigation();
+
   const handleShareSummary = async () => {
+    const isPro = await checkProStatus();
+    if (!isPro) {
+      import('react-native').then(({ Alert }) => {
+        Alert.alert(
+          'Pro Feature',
+          'Exporting and sharing reports is a Pro feature. Would you like to upgrade?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Upgrade',
+              onPress: () => {
+                (navigation as any).navigate('PaywallScreen');
+              }
+            }
+          ]
+        );
+      });
+      return;
+    }
+
     const msg = `*BUSINESS FINANCIAL REPORT (${period.replace('_', ' ').toUpperCase()})*
 • Total Sales: ${formatCurrency(totalInflow)} (${filteredOrders.length} orders)
 • Outflow Expenses: ${formatCurrency(totalOutflow)} (${filteredExpenses.length} entries)
@@ -489,7 +512,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fonts.display,
-    fontSize: 26,
+    fontSize: 20,
     color: colors.ink,
     lineHeight: 32,
   },
@@ -607,7 +630,7 @@ const styles = StyleSheet.create({
   },
   netProfitValue: {
     fontFamily: fonts.display,
-    fontSize: 28,
+    fontSize: 20,
     paddingRight: 8,
   },
   subStatsBox: {

@@ -25,6 +25,7 @@ import TourTarget from '../components/tour/TourTarget';
 import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { formatCurrency } from '../utils/format';
+import { checkProStatus } from '../storage/subscriptionStorage';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -36,6 +37,7 @@ export default function OrderListScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isPro, setIsPro] = useState(false);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,8 +58,12 @@ export default function OrderListScreen() {
 
   const loadOrders = useCallback(async (forceSync = false) => {
     try {
-      const data = await getOrders(forceSync);
+      const [data, proStatus] = await Promise.all([
+        getOrders(forceSync),
+        checkProStatus(),
+      ]);
       setOrders(data);
+      setIsPro(proStatus);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -175,6 +181,34 @@ export default function OrderListScreen() {
                 : `${filteredOrders.length} / ${orders.length}`}
             </Text>
           </View>
+          {/* Subscription Status Badge */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.subBadge,
+              isPro ? styles.subBadgePro : styles.subBadgeFree,
+              pressed && { opacity: 0.85 },
+            ]}
+            onPress={() => navigation.navigate('PaywallScreen')}
+          >
+            <Ionicons
+              name={isPro ? 'sparkles' : 'star'}
+              size={13}
+              color={isPro ? '#CA8A04' : '#854D0E'}
+            />
+            <Text
+              style={[
+                styles.subBadgeText,
+                isPro ? styles.subBadgeTextPro : styles.subBadgeTextFree,
+              ]}
+            >
+              {isPro ? 'Pro Active' : 'Upgrade'}
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={12}
+              color={isPro ? '#CA8A04' : '#854D0E'}
+            />
+          </Pressable>
         </View>
 
         {/* Modern Search & Filter Toolbar */}
@@ -447,6 +481,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.inkSoft,
     marginTop: 1,
+  },
+  subBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+  },
+  subBadgePro: {
+    backgroundColor: '#FEF9C3',
+    borderColor: '#FDE047',
+  },
+  subBadgeFree: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FCD34D',
+  },
+  subBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+  },
+  subBadgeTextPro: {
+    color: '#854D0E',
+  },
+  subBadgeTextFree: {
+    color: '#92400E',
   },
   newOrderHeaderBtn: {
     flexDirection: 'row',

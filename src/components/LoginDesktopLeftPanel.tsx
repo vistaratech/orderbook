@@ -183,16 +183,18 @@ export default function LoginDesktopLeftPanel() {
 
       {/* ── TOP SECTION: Crisp Native UI Content ── */}
       <View style={styles.topContentWrap}>
-        {/* 1. Logo Row */}
-        <View style={styles.logoRow}>
-          <AppLogo size={46} variant="icon" />
+        {/* 1. Logo Block (KadaiBook beneath logo) */}
+        <View style={styles.logoBlock}>
+          <View style={styles.logoIconWrap}>
+            <AppLogo size={52} variant="icon" />
+          </View>
           <View style={styles.logoTextWrap}>
             <Text style={styles.logoTitle}>
               <Text style={styles.logoTitleKadai}>Kadai</Text>
               <Text style={styles.logoTitleBook}>Book</Text>
             </Text>
             {/* Cursive Tagline with double underline sketch */}
-            <View style={{ marginTop: -1 }}>
+            <View style={{ marginTop: 2 }}>
               <Svg width={140} height={24} viewBox="0 0 140 24">
                 <SvgText
                   x="2"
@@ -386,23 +388,30 @@ const styles = StyleSheet.create({
 
   // ── Top Native UI Content ──
   topContentWrap: {
-    paddingHorizontal: 40,
-    paddingTop: 36,
+    paddingHorizontal: 36,
+    paddingTop: 28,
     zIndex: 2,
   },
 
-  // Logo
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  // Logo Block
+  logoBlock: {
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  logoIconWrap: {
+    shadowColor: '#A5513E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 3,
   },
   logoTextWrap: {
     justifyContent: 'center',
   },
   logoTitle: {
-    fontSize: 23,
-    lineHeight: 27,
+    fontSize: 26,
+    lineHeight: 31,
+    letterSpacing: -0.3,
   },
   logoTitleKadai: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
@@ -415,7 +424,7 @@ const styles = StyleSheet.create({
 
   // Headline
   heroSection: {
-    marginTop: 26,
+    marginTop: 20,
   },
   heroLine1: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
@@ -448,7 +457,7 @@ const styles = StyleSheet.create({
   featuresGrid: {
     flexDirection: 'row',
     gap: 14,
-    marginTop: 24,
+    marginTop: 18,
   },
   featureCard: {
     width: 82,

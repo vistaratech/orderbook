@@ -28,7 +28,7 @@ import {
   backupToFirebaseCloud,
   restoreFromFirebaseCloud,
 } from '../storage/backupStorage';
-import { getAuthState, logout, setPinCode, deleteAccount, UserAccount } from '../storage/authStorage';
+import { getAuthState, logout, deleteAccount, UserAccount } from '../storage/authStorage';
 import {
   getBusinessProfile,
   saveBusinessProfile,
@@ -51,7 +51,6 @@ export default function SettingsScreen() {
   const { language, setLanguage, t, currentLangOption, availableLanguages } = useLanguage();
   const { startTour } = useTour();
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
-  const [newPin, setNewPin] = useState('');
   const [profile, setProfile] = useState<BusinessProfile>({
     businessName: '',
     phone: '',
@@ -153,16 +152,6 @@ export default function SettingsScreen() {
     } finally {
       setSavingProfile(false);
     }
-  };
-
-  const handleUpdatePin = async () => {
-    if (newPin.trim().length !== 4) {
-      Alert.alert('Invalid PIN', 'PIN must be exactly 4 digits.');
-      return;
-    }
-    await setPinCode(newPin.trim());
-    setNewPin('');
-    Alert.alert('Success', 'Passcode PIN updated successfully!');
   };
 
   const handleLogout = () => {
@@ -443,39 +432,6 @@ export default function SettingsScreen() {
                 </View>
               </View>
             ) : null}
-
-            {/* Quick PIN Security Box */}
-            <View style={styles.pinSecurityCard}>
-              <View style={styles.pinSecurityHeader}>
-                <Ionicons name="shield-checkmark-outline" size={16} color={colors.duskDeep} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.pinSecurityTitle}>{t('settings.securityPinTitle')}</Text>
-                  <Text style={styles.pinSecuritySub}>{t('settings.securityPinSub')}</Text>
-                </View>
-              </View>
-
-              <View style={styles.pinInputRow}>
-                <TextInput
-                  style={styles.pinInput}
-                  value={newPin}
-                  onChangeText={setNewPin}
-                  keyboardType="number-pad"
-                  maxLength={4}
-                  placeholder="••••"
-                  placeholderTextColor={colors.inkSoft}
-                  secureTextEntry
-                />
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.updatePinBtn,
-                    pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-                  ]}
-                  onPress={handleUpdatePin}
-                >
-                  <Text style={styles.updatePinBtnText}>{t('settings.updatePinBtn')}</Text>
-                </Pressable>
-              </View>
-            </View>
 
             {/* Interactive App Tour */}
             <Pressable
@@ -1243,64 +1199,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.inkSoft,
     marginTop: 2,
-  },
-  pinSecurityCard: {
-    backgroundColor: colors.paper,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: 12,
-    marginBottom: 14,
-  },
-  pinSecurityHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  pinSecurityTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 13,
-    color: colors.ink,
-  },
-  pinSecuritySub: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.inkSoft,
-    marginTop: 1,
-  },
-  pinInputRow: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
-  },
-  pinInput: {
-    flex: 1,
-    backgroundColor: colors.paperCard,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radius.sm,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontFamily: fonts.bodyBold,
-    fontSize: 18,
-    letterSpacing: 8,
-    color: colors.ink,
-    textAlign: 'center',
-  },
-  updatePinBtn: {
-    backgroundColor: colors.duskDeep,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    borderRadius: radius.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadow.card,
-  },
-  updatePinBtnText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 13,
-    color: colors.white,
   },
   wizardBtn: {
     flexDirection: 'row',

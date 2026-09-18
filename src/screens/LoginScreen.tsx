@@ -65,7 +65,6 @@ export default function LoginScreen({ navigation, route }: Props) {
   const [phone, setPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
-  const [regPin, setRegPin] = useState('');
   const [registering, setRegistering] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -331,12 +330,6 @@ export default function LoginScreen({ navigation, route }: Props) {
       Alert.alert('Password Required', msg);
       return;
     }
-    if (regPin.trim().length > 0 && regPin.trim().length !== 4) {
-      const msg = 'Quick PIN must be exactly 4 digits.';
-      setErrorMessage(msg);
-      Alert.alert('Invalid PIN', msg);
-      return;
-    }
 
     setRegistering(true);
     try {
@@ -346,7 +339,6 @@ export default function LoginScreen({ navigation, route }: Props) {
         email: regEmail.trim(),
         phone: phone.trim(),
         password: regPassword.trim(),
-        pin: regPin.trim() || undefined,
       });
       navigation.replace('MainTabs');
     } catch (e: any) {
@@ -473,7 +465,7 @@ export default function LoginScreen({ navigation, route }: Props) {
             ]}
           >
             <View style={styles.logoWrapper}>
-              <AppLogo size={56} variant="icon" />
+              <AppLogo size={64} variant="icon" />
             </View>
             <Text style={styles.brandTitle}>
               <Text style={styles.brandTitleKadai}>Kadai</Text>
@@ -946,39 +938,6 @@ export default function LoginScreen({ navigation, route }: Props) {
                       </View>
                     </View>
 
-                    {/* Quick PIN */}
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Quick Store PIN (optional 4 digits)</Text>
-                      <View
-                        style={[
-                          styles.inputBox,
-                          focusedInput === 'regPin' && styles.inputBoxFocused,
-                        ]}
-                      >
-                        <Ionicons
-                          name="keypad-outline"
-                          size={18}
-                          color={focusedInput === 'regPin' ? '#A5513E' : '#7C7467'}
-                          style={styles.inputIcon}
-                        />
-                        <TextInput
-                          style={[styles.textInput, { letterSpacing: 4 }]}
-                          value={regPin}
-                          onFocus={() => setFocusedInput('regPin')}
-                          onBlur={() => setFocusedInput(null)}
-                          onChangeText={(val) => {
-                            setRegPin(val);
-                            if (errorMessage) setErrorMessage(null);
-                          }}
-                          keyboardType="number-pad"
-                          maxLength={4}
-                          secureTextEntry
-                          placeholder="1234"
-                          placeholderTextColor="#9E9689"
-                        />
-                      </View>
-                    </View>
-
                     {/* Create Account Primary Button */}
                     <Animated.View style={{ transform: [{ scale: primaryBtnScale }] }}>
                       <Pressable
@@ -1385,8 +1344,8 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: 6,
-    zIndex: 2,
+    marginBottom: 8,
+    zIndex: 10,
   },
   langDropdownBtn: {
     flexDirection: 'row',
@@ -1413,7 +1372,7 @@ const styles = StyleSheet.create({
   // ── Brand Header (Center) ──
   brandContainer: {
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
     zIndex: 2,
   },
   logoWrapper: {
@@ -1422,12 +1381,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16,
     shadowRadius: 12,
     elevation: 4,
+    marginBottom: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   brandTitle: {
-    fontSize: 27,
-    lineHeight: 33,
-    marginTop: 6,
+    fontSize: 28,
+    lineHeight: 34,
+    marginTop: 4,
     letterSpacing: -0.2,
+    textAlign: 'center',
   },
   brandTitleKadai: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
@@ -1441,7 +1404,7 @@ const styles = StyleSheet.create({
     fontFamily: 'PlusJakartaSans_500Medium',
     fontSize: 12.5,
     color: '#71695E',
-    marginTop: 2,
+    marginTop: 3,
     textAlign: 'center',
   },
 

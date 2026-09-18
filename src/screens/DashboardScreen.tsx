@@ -34,6 +34,7 @@ import { formatCurrency, formatDate } from '../utils/format';
 import AppLogo from '../components/AppLogo';
 import TourTarget from '../components/tour/TourTarget';
 import { useLanguage } from '../i18n/LanguageContext';
+import { checkProStatus } from '../storage/subscriptionStorage';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -61,6 +62,7 @@ export default function DashboardScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
+  const [isPro, setIsPro] = useState(false);
 
   // Pipeline Status Quick-Update Modal State
   const [activePipelineStatus, setActivePipelineStatus] = useState<OrderStatus | null>(null);
@@ -69,14 +71,16 @@ export default function DashboardScreen() {
 
   const loadData = useCallback(async (forceSync = false) => {
     try {
-      const [o, e, lowStock] = await Promise.all([
+      const [o, e, lowStock, proStatus] = await Promise.all([
         getOrders(forceSync),
         getExpenses(forceSync),
         getLowStockProducts(),
+        checkProStatus(),
       ]);
       setOrders(o);
       setExpenses(e);
       setLowStockProducts(lowStock);
+      setIsPro(proStatus);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -209,7 +213,29 @@ export default function DashboardScreen() {
               </Text>
             </View>
           </View>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.subBadge,
+                isPro ? styles.subBadgePro : styles.subBadgeFree,
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={() => navigation.navigate('PaywallScreen')}
+            >
+              <Ionicons
+                name={isPro ? 'sparkles' : 'star'}
+                size={13}
+                color={isPro ? '#CA8A04' : '#854D0E'}
+              />
+              <Text
+                style={[
+                  styles.subBadgeText,
+                  isPro ? styles.subBadgeTextPro : styles.subBadgeTextFree,
+                ]}
+              >
+                {isPro ? 'Pro' : 'Upgrade'}
+              </Text>
+            </Pressable>
             <Pressable
               style={styles.settingsBtn}
               onPress={() => navigation.navigate('History')}
@@ -239,6 +265,46 @@ export default function DashboardScreen() {
           </View>
         ) : (
           <>
+            {/* ─── Subscription Status Banner ─── */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.subscriptionBanner,
+                isPro ? styles.subscriptionBannerPro : styles.subscriptionBannerFree,
+                pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+              ]}
+              onPress={() => navigation.navigate('PaywallScreen')}
+            >
+              <View style={styles.subBannerLeft}>
+                <View style={[styles.subBannerIconWrap, isPro && styles.subBannerIconWrapPro]}>
+                  <Ionicons
+                    name={isPro ? 'sparkles' : 'star'}
+                    size={18}
+                    color={isPro ? '#CA8A04' : '#D97706'}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.subBannerTitle}>
+                    {isPro ? 'KadaiBook Pro Plan Active' : 'KadaiBook Free Plan'}
+                  </Text>
+                  <Text style={styles.subBannerSub} numberOfLines={1}>
+                    {isPro
+                      ? 'All premium business & sync features unlocked'
+                      : 'Upgrade to Pro for unlimited orders, sync & reports'}
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.subBannerAction, isPro && styles.subBannerActionPro]}>
+                <Text style={[styles.subBannerActionText, isPro && styles.subBannerActionTextPro]}>
+                  {isPro ? 'Manage' : 'Upgrade'}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={14}
+                  color={isPro ? '#854D0E' : '#FFFFFF'}
+                />
+              </View>
+            </Pressable>
+
             {/* ─── Hero Financial Card ─── */}
             <View style={styles.heroCard}>
               {/* Top Row: Label + Profit Percentage Pill */}
@@ -969,6 +1035,99 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  subBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+  },
+  subBadgePro: {
+    backgroundColor: '#FEF9C3',
+    borderColor: '#FDE047',
+  },
+  subBadgeFree: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FCD34D',
+  },
+  subBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+  },
+  subBadgeTextPro: {
+    color: '#854D0E',
+  },
+  subBadgeTextFree: {
+    color: '#92400E',
+  },
+  subscriptionBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    marginBottom: 14,
+    gap: 10,
+  },
+  subscriptionBannerPro: {
+    backgroundColor: '#FEFCE8',
+    borderColor: '#FDE047',
+  },
+  subscriptionBannerFree: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FCD34D',
+  },
+  subBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  subBannerIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subBannerIconWrapPro: {
+    backgroundColor: '#FEF08A',
+  },
+  subBannerTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13.5,
+    color: colors.ink,
+  },
+  subBannerSub: {
+    fontFamily: fonts.body,
+    fontSize: 11.5,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
+  subBannerAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.clayDeep,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+  },
+  subBannerActionPro: {
+    backgroundColor: '#FEF08A',
+  },
+  subBannerActionText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: '#FFFFFF',
+  },
+  subBannerActionTextPro: {
+    color: '#854D0E',
   },
   loaderWrap: {
     paddingVertical: 60,

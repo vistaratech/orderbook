@@ -43,7 +43,7 @@ export async function initRevenueCat(uid?: string) {
 
 
 export async function checkProStatus(): Promise<boolean> {
-  if (Platform.OS === 'web' || isExpoGo) return true;
+  if (Platform.OS === 'web' || isExpoGo) return false;
   
   try {
     const configured = isConfiguredState || (await Purchases.isConfigured());
@@ -59,7 +59,7 @@ export async function checkProStatus(): Promise<boolean> {
 }
 
 export async function checkBasicStatus(): Promise<boolean> {
-  if (Platform.OS === 'web' || isExpoGo) return true;
+  if (Platform.OS === 'web' || isExpoGo) return false;
   
   try {
     const configured = isConfiguredState || (await Purchases.isConfigured());

@@ -415,17 +415,6 @@ async function pullCloudDataToLocal(): Promise<void> {
   } catch {}
 }
 
-export async function loginWithPin(pin: string): Promise<boolean> {
-  const storedPin = await AsyncStorage.getItem(AUTH_PIN_KEY);
-  if (!storedPin) {
-    return false;
-  }
-  if (storedPin === pin) {
-    await AsyncStorage.setItem(AUTH_SESSION_KEY, 'true');
-    return true;
-  }
-  return false;
-}
 
 export async function resetPassword(email: string): Promise<boolean> {
   try {
@@ -478,9 +467,6 @@ export async function logout(): Promise<void> {
   notifyDataListeners();
 }
 
-export async function setPinCode(pin: string): Promise<void> {
-  await AsyncStorage.setItem(AUTH_PIN_KEY, pin);
-}
 
 export async function updateUserBusinessName(newBusinessName: string): Promise<void> {
   try {

@@ -143,7 +143,6 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [pin, setPin] = useState('');
   const [saving, setSaving] = useState(false);
   const [selectedBusinessType, setSelectedBusinessType] = useState<BusinessType>('general');
 
@@ -234,10 +233,6 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
       Alert.alert('Password Required', 'Password must be at least 6 characters.');
       return;
     }
-    if (pin.trim().length > 0 && pin.trim().length !== 4) {
-      Alert.alert('Invalid PIN', 'Quick unlock PIN must be exactly 4 digits.');
-      return;
-    }
 
     setSaving(true);
     try {
@@ -247,7 +242,6 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
         phone: phone.trim(),
         email: email.trim(),
         password: password.trim(),
-        pin: pin.trim() || undefined,
       });
 
       // Save business type to profile
@@ -530,20 +524,6 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
                   onChangeText={setPassword}
                   secureTextEntry
                   placeholder="Create password"
-                  placeholderTextColor={colors.inkSoft}
-                />
-              </View>
-
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Quick 4-Digit Unlock PIN (Default: 1234)</Text>
-                <TextInput
-                  style={[styles.input, { letterSpacing: 8, fontSize: 18 }]}
-                  value={pin}
-                  onChangeText={setPin}
-                  keyboardType="number-pad"
-                  maxLength={4}
-                  secureTextEntry
-                  placeholder="1234"
                   placeholderTextColor={colors.inkSoft}
                 />
               </View>

@@ -147,7 +147,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               ]
             );
           } else if (orders.length >= 7) {
-            setUpgradeNudge(`You've used ${orders.length} of 10 free orders. Upgrade to unlock more.`);
+            setUpgradeNudge(`⚠️ Only ${10 - orders.length} free orders left (${orders.length}/10 used)! Upgrade to Pro.`);
           }
         }
       })();

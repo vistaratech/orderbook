@@ -301,36 +301,89 @@ export default function DashboardScreen() {
               <Pressable
                 style={({ pressed }) => [
                   styles.subscriptionBanner,
-                  isPro ? styles.subscriptionBannerPro : styles.subscriptionBannerFree,
+                  isPro
+                    ? styles.subscriptionBannerPro
+                    : orders.length >= 10
+                    ? styles.subscriptionBannerDanger
+                    : orders.length >= 7
+                    ? styles.subscriptionBannerWarning
+                    : styles.subscriptionBannerFree,
                   pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
                 ]}
                 onPress={() => navigation.navigate('PaywallScreen')}
               >
                 <View style={styles.subBannerLeft}>
-                  <View style={[styles.subBannerIconWrap, isPro && styles.subBannerIconWrapPro]}>
+                  <View
+                    style={[
+                      styles.subBannerIconWrap,
+                      isPro
+                        ? styles.subBannerIconWrapPro
+                        : orders.length >= 10
+                        ? styles.subBannerIconWrapDanger
+                        : orders.length >= 7
+                        ? styles.subBannerIconWrapWarning
+                        : null,
+                    ]}
+                  >
                     <Ionicons
-                      name={isPro ? 'sparkles' : 'star'}
+                      name={
+                        isPro
+                          ? 'sparkles'
+                          : orders.length >= 10
+                          ? 'alert-circle'
+                          : orders.length >= 7
+                          ? 'warning'
+                          : 'star'
+                      }
                       size={18}
-                      color={isPro ? '#CA8A04' : '#D97706'}
+                      color={
+                        isPro
+                          ? '#CA8A04'
+                          : orders.length >= 10
+                          ? colors.danger
+                          : orders.length >= 7
+                          ? '#B45309'
+                          : '#D97706'
+                      }
                     />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.subBannerTitle}>
-                      {isPro ? 'KadaiBook Pro Plan Active' : `KadaiBook Free Plan (${orders.length}/10 Orders)`}
+                      {isPro
+                        ? 'KadaiBook Pro Plan Active'
+                        : orders.length >= 10
+                        ? '🚨 Free Order Limit Reached (10/10)'
+                        : orders.length >= 7
+                        ? `⚠️ Free Plan: ${orders.length}/10 Orders Used`
+                        : `KadaiBook Free Plan (${orders.length}/10 Orders)`}
                     </Text>
                     <Text style={styles.subBannerSub} numberOfLines={1}>
                       {isPro
                         ? 'All premium business & sync features unlocked'
                         : orders.length >= 10
-                        ? 'Free order limit reached (10/10)! Upgrade to Pro.'
+                        ? 'Free limit reached! Upgrade to Pro for unlimited orders.'
                         : orders.length >= 7
                         ? `Only ${Math.max(0, 10 - orders.length)} free orders left! Upgrade to Pro.`
                         : 'Upgrade to Pro for unlimited orders, sync & reports'}
                     </Text>
                   </View>
                 </View>
-                <View style={[styles.subBannerAction, isPro && styles.subBannerActionPro]}>
-                  <Text style={[styles.subBannerActionText, isPro && styles.subBannerActionTextPro]}>
+                <View
+                  style={[
+                    styles.subBannerAction,
+                    isPro
+                      ? styles.subBannerActionPro
+                      : orders.length >= 10
+                      ? styles.subBannerActionDanger
+                      : null,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.subBannerActionText,
+                      isPro && styles.subBannerActionTextPro,
+                    ]}
+                  >
                     {isPro ? 'Manage' : 'Upgrade'}
                   </Text>
                   <Ionicons
@@ -1118,6 +1171,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFBEB',
     borderColor: '#FCD34D',
   },
+  subscriptionBannerWarning: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A',
+  },
+  subscriptionBannerDanger: {
+    backgroundColor: '#FCEBE9',
+    borderColor: '#F87171',
+  },
   subBannerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1134,6 +1195,12 @@ const styles = StyleSheet.create({
   },
   subBannerIconWrapPro: {
     backgroundColor: '#FEF08A',
+  },
+  subBannerIconWrapWarning: {
+    backgroundColor: '#FDE68A',
+  },
+  subBannerIconWrapDanger: {
+    backgroundColor: '#FCA5A5',
   },
   subBannerTitle: {
     fontFamily: fonts.bodyBold,
@@ -1157,6 +1224,9 @@ const styles = StyleSheet.create({
   },
   subBannerActionPro: {
     backgroundColor: '#FEF08A',
+  },
+  subBannerActionDanger: {
+    backgroundColor: colors.danger,
   },
   subBannerActionText: {
     fontFamily: fonts.bodyBold,

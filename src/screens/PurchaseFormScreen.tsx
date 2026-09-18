@@ -20,6 +20,7 @@ import { generateId } from '../utils/id';
 import { formatCurrency, todayIso } from '../utils/format';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { useLanguage } from '../i18n/LanguageContext';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 import GlassBackButton from '../components/GlassBackButton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -97,6 +98,15 @@ export default function PurchaseFormScreen({ navigation, route }: Props) {
   };
 
   const handleSave = async () => {
+    if (!editingId) {
+      const allowed = await assertSubscriptionLimit({
+        type: 'order',
+        actionName: 'record supplier purchases',
+        navigation,
+      });
+      if (!allowed) return;
+    }
+
     if (!supplierName.trim()) {
       Alert.alert('Required', 'Please enter supplier name.');
       return;

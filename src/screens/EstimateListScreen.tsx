@@ -25,6 +25,7 @@ import { confirmAction } from '../utils/dialog';
 import { formatCurrency, formatDate } from '../utils/format';
 import DesktopLayout from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -198,6 +199,16 @@ export default function EstimateListScreen() {
 
   const statusFilters: (EstimateStatus | 'All')[] = ['All', 'Draft', 'Sent', 'Accepted', 'Rejected'];
 
+  const handleNewQuote = async () => {
+    const allowed = await assertSubscriptionLimit({
+      type: 'order',
+      actionName: 'create new estimates and quotations',
+      navigation,
+    });
+    if (!allowed) return;
+    navigation.navigate('EstimateForm');
+  };
+
   const content = (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.centerContainer}>
@@ -217,7 +228,7 @@ export default function EstimateListScreen() {
 
           <Pressable
             style={({ pressed }) => [styles.newBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
-            onPress={() => navigation.navigate('EstimateForm')}
+            onPress={handleNewQuote}
           >
             <Ionicons name="add" size={18} color={colors.white} />
             <Text style={styles.newBtnText}>New Quote</Text>

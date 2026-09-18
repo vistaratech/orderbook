@@ -42,6 +42,7 @@ import GlassBackButton from '../components/GlassBackButton';
 import DesktopLayout, { DesktopSidebarContext } from '../components/DesktopLayout';
 import { formatCurrency, formatDate } from '../utils/format';
 import { showAppAlert, confirmAction } from '../utils/dialog';
+import { triggerGlobalSubscriptionModal } from '../context/SubscriptionModalContext';
 
 // Mock sample order for real-time live preview
 const SAMPLE_ORDER: Order = {
@@ -145,14 +146,11 @@ export default function InvoiceTemplateCustomizerScreen() {
   const handleSave = async () => {
     const isPro = await checkProStatus();
     if (!isPro) {
-      confirmAction({
-        title: 'Pro Feature',
-        message: 'Customizing invoice templates is a Pro feature. Would you like to upgrade?',
-        confirmText: 'Upgrade',
-        cancelText: 'Cancel',
-        onConfirm: () => {
-          (navigation as any).navigate('PaywallScreen');
-        }
+      triggerGlobalSubscriptionModal({
+        title: '👑 Pro Invoice Templates',
+        message: 'Customizing bill presets, colors, custom logos, signatures, and UPI QR codes on invoices is a Pro feature.\n\nUpgrade to KadaiBook Pro for complete invoice styling & brand freedom!',
+        actionName: 'save custom bill designs',
+        onUpgrade: () => (navigation as any).navigate('PaywallScreen'),
       });
       return;
     }

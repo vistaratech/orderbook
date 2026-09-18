@@ -23,6 +23,7 @@ import { generateId } from '../utils/id';
 import { formatCurrency, formatDate, todayIso } from '../utils/format';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { useLanguage } from '../i18n/LanguageContext';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 import GlassBackButton from '../components/GlassBackButton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -117,6 +118,15 @@ export default function EstimateFormScreen({ navigation, route }: Props) {
     if (validItems.length === 0) {
       Alert.alert('Required', 'Please add at least one item.');
       return;
+    }
+
+    if (!isEditing) {
+      const allowed = await assertSubscriptionLimit({
+        type: 'order',
+        actionName: 'create and save new estimates',
+        navigation,
+      });
+      if (!allowed) return;
     }
 
     setSaving(true);

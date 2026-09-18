@@ -24,10 +24,13 @@ import { colors, fonts, radius, shadow, categoryColor } from '../theme/theme';
 import { formatCurrency } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 
+import { triggerGlobalSubscriptionModal } from '../context/SubscriptionModalContext';
+
 type Period = 'this_month' | 'last_30_days' | 'this_week' | 'all_time';
 
 export default function ReportsScreen() {
   const { t } = useLanguage();
+  const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<Period>('this_month');
@@ -214,25 +217,14 @@ export default function ReportsScreen() {
       .slice(0, 5);
   }, [filteredOrders]);
 
-  const navigation = useNavigation();
-
   const handleShareSummary = async () => {
     const isPro = await checkProStatus();
     if (!isPro) {
-      import('react-native').then(({ Alert }) => {
-        Alert.alert(
-          'Pro Feature',
-          'Exporting and sharing reports is a Pro feature. Would you like to upgrade?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Upgrade',
-              onPress: () => {
-                (navigation as any).navigate('PaywallScreen');
-              }
-            }
-          ]
-        );
+      triggerGlobalSubscriptionModal({
+        title: '👑 Pro Analytics & Reports',
+        message: 'Exporting, downloading, and sharing detailed financial P&L reports is a Pro feature.\n\nUpgrade to KadaiBook Pro for unlimited financial exports, Excel & PDF statements!',
+        actionName: 'export and share business reports',
+        onUpgrade: () => (navigation as any).navigate('PaywallScreen'),
       });
       return;
     }

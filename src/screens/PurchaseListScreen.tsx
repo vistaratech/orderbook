@@ -25,6 +25,7 @@ import { confirmAction } from '../utils/dialog';
 import { formatCurrency, formatDate } from '../utils/format';
 import DesktopLayout from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -193,6 +194,16 @@ export default function PurchaseListScreen() {
 
   const statusFilters: (PurchaseStatus | 'All')[] = ['All', 'Pending', 'Partial', 'Paid'];
 
+  const handleNewPurchase = async () => {
+    const allowed = await assertSubscriptionLimit({
+      type: 'order',
+      actionName: 'manage supplier purchase orders',
+      navigation,
+    });
+    if (!allowed) return;
+    navigation.navigate('PurchaseForm');
+  };
+
   const content = (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.centerContainer}>
@@ -212,7 +223,7 @@ export default function PurchaseListScreen() {
 
           <Pressable
             style={({ pressed }) => [styles.newBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
-            onPress={() => navigation.navigate('PurchaseForm')}
+            onPress={handleNewPurchase}
           >
             <Ionicons name="add" size={18} color={colors.white} />
             <Text style={styles.newBtnText}>New Purchase</Text>

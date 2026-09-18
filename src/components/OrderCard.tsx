@@ -1,83 +1,100 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Order, orderTotal, orderBalance } from '../types/order';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
-import { formatCurrency, formatDate, formatDateTime } from '../utils/format';
+import { formatCurrency, formatDateTime } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
+import FadeInView from './FadeInView';
 
 interface Props {
   order: Order;
   onPress: () => void;
+  index?: number;
 }
 
-function OrderCardComponent({ order, onPress }: Props) {
+const statusIcons: Record<string, any> = {
+  Placed: 'receipt-outline',
+  Packed: 'cube-outline',
+  Dispatched: 'paper-plane-outline',
+  Delivered: 'checkmark-circle-outline',
+};
+
+function OrderCardComponent({ order, onPress, index = 0 }: Props) {
   const { t } = useLanguage();
   const total = orderTotal(order);
   const balance = orderBalance(order);
   const itemCount = order.items.reduce((sum, i) => sum + i.qty, 0);
 
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.card,
-        pressed && styles.pressed,
-      ]}
-      onPress={onPress}
-    >
-      {/* Top Status Accent Bar */}
-      <View
-        style={[
-          styles.accentDot,
-          { backgroundColor: statusColor[order.status] || colors.clay },
+    <FadeInView delay={Math.min(index * 40, 300)} translateY={12}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.card,
+          pressed && styles.pressed,
         ]}
-      />
+        onPress={onPress}
+      >
+        {/* Top Status Accent Bar */}
+        <View
+          style={[
+            styles.accentDot,
+            { backgroundColor: statusColor[order.status] || colors.clay },
+          ]}
+        />
 
-      <View style={styles.cardInner}>
-        <View style={styles.topRow}>
-          <View style={styles.orderNoRow}>
-            <Text style={styles.orderNumber}>{order.orderNumber}</Text>
+        <View style={styles.cardInner}>
+          <View style={styles.topRow}>
+            <View style={styles.orderNoRow}>
+              <Text style={styles.orderNumber}>{order.orderNumber}</Text>
+            </View>
+
+            <View style={styles.topRightActions}>
+              <View style={[styles.badge, { backgroundColor: statusColor[order.status] || colors.clay }]}>
+                <Ionicons
+                  name={statusIcons[order.status] || 'receipt-outline'}
+                  size={12}
+                  color={colors.white}
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={styles.badgeText}>
+                  {t('status.' + order.status.toLowerCase(), order.status)}
+                </Text>
+              </View>
+            </View>
           </View>
 
-          <View style={styles.topRightActions}>
-            <View style={[styles.badge, { backgroundColor: statusColor[order.status] || colors.clay }]}>
-              <Text style={styles.badgeText}>
-                {t('status.' + order.status.toLowerCase(), order.status)}
+          <View style={styles.middleRow}>
+            <View style={styles.customerInfo}>
+              <Text style={styles.customer}>{order.customerName || t('orders.customerName')}</Text>
+              <Text style={styles.metaText}>
+                {formatDateTime(order.createdAt || order.orderDate)} • {itemCount} {itemCount === 1 ? t('common.item') : t('common.items')}
               </Text>
             </View>
           </View>
-        </View>
 
-        <View style={styles.middleRow}>
-          <View style={styles.customerInfo}>
-            <Text style={styles.customer}>{order.customerName || t('orders.customerName')}</Text>
-            <Text style={styles.metaText}>
-              {formatDateTime(order.createdAt || order.orderDate)} • {itemCount} {itemCount === 1 ? t('common.item') : t('common.items')}
-            </Text>
-          </View>
-        </View>
+          <View style={styles.divider} />
 
-        <View style={styles.divider} />
-
-        <View style={styles.bottomRow}>
-          <View>
-            <Text style={styles.totalLabel}>{t('orders.totalAmount')}</Text>
-            <Text style={styles.total}>{formatCurrency(total)}</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.totalLabel}>{t('orders.paymentStatus')}</Text>
-            <View style={styles.paymentStatusRow}>
-              {balance <= 0 && (
-                <Ionicons name="checkmark-circle" size={13} color={colors.success} style={{ marginRight: 3 }} />
-              )}
-              <Text style={[styles.balance, balance > 0 ? styles.balanceDue : styles.balancePaid]}>
-                {balance > 0 ? `${t('common.due')} ${formatCurrency(balance)}` : t('common.paid')}
-              </Text>
+          <View style={styles.bottomRow}>
+            <View>
+              <Text style={styles.totalLabel}>{t('orders.totalAmount')}</Text>
+              <Text style={styles.total}>{formatCurrency(total)}</Text>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={styles.totalLabel}>{t('orders.paymentStatus')}</Text>
+              <View style={styles.paymentStatusRow}>
+                {balance <= 0 && (
+                  <Ionicons name="checkmark-circle" size={13} color={colors.success} style={{ marginRight: 3 }} />
+                )}
+                <Text style={[styles.balance, balance > 0 ? styles.balanceDue : styles.balancePaid]}>
+                  {balance > 0 ? `${t('common.due')} ${formatCurrency(balance)}` : t('common.paid')}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </FadeInView>
   );
 }
 

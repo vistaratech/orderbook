@@ -534,6 +534,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     position: 'relative',
     width: '100%',
+    ...(Platform.OS === 'web'
+      ? ({
+          transition: 'all 0.16s ease',
+          cursor: 'pointer',
+        } as any)
+      : {}),
   },
   navItemBoxCollapsed: {
     width: 44,
@@ -545,7 +551,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   navItemActive: {
-    backgroundColor: colors.clayLight,
+    backgroundColor: '#F7E7E4',
+    shadowColor: colors.clayDeep,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
   },
   navItemIcon: {
     marginRight: 10,

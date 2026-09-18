@@ -38,6 +38,10 @@ import TourTarget from '../components/tour/TourTarget';
 import { useLanguage } from '../i18n/LanguageContext';
 import { checkProStatus } from '../storage/subscriptionStorage';
 import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
+import FadeInView from '../components/FadeInView';
+import LivePulseBadge from '../components/LivePulseBadge';
+import AnimatedProgressBar from '../components/AnimatedProgressBar';
+import AnimatedCard from '../components/AnimatedCard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -234,6 +238,13 @@ export default function DashboardScreen() {
             </View>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <LivePulseBadge
+              label={isPro ? 'Pro Active' : 'Live Store'}
+              color={isPro ? '#854D0E' : '#15803D'}
+              dotColor={isPro ? '#CA8A04' : '#16A34A'}
+              bgColor={isPro ? '#FEFCE8' : '#DCFCE7'}
+              borderColor={isPro ? '#FDE047' : '#86EFAC'}
+            />
             {Platform.OS !== 'web' && (
               <Pressable
                 style={({ pressed }) => [
@@ -288,20 +299,21 @@ export default function DashboardScreen() {
         ) : (
           <>
             {/* ─── Subscription Status Banner ─── */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.subscriptionBanner,
-                isPro
-                  ? styles.subscriptionBannerPro
-                  : orders.length >= 10
-                  ? styles.subscriptionBannerDanger
-                  : orders.length >= 7
-                  ? styles.subscriptionBannerWarning
-                  : styles.subscriptionBannerFree,
-                pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
-              ]}
-              onPress={() => navigation.navigate('PaywallScreen')}
-            >
+            <FadeInView delay={40} translateY={8}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.subscriptionBanner,
+                  isPro
+                    ? styles.subscriptionBannerPro
+                    : orders.length >= 10
+                    ? styles.subscriptionBannerDanger
+                    : orders.length >= 7
+                    ? styles.subscriptionBannerWarning
+                    : styles.subscriptionBannerFree,
+                  pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+                ]}
+                onPress={() => navigation.navigate('PaywallScreen')}
+              >
                 <View style={styles.subBannerLeft}>
                   <View
                     style={[
@@ -383,71 +395,72 @@ export default function DashboardScreen() {
                   />
                 </View>
               </Pressable>
+            </FadeInView>
 
             {/* ─── Hero Financial Card ─── */}
-            <View style={styles.heroCard}>
-              {/* Top Row: Label + Profit Percentage Pill */}
-              <View style={styles.heroTopRow}>
-                <Text style={styles.heroLabel}>{t('dashboard.netBusinessBalance', 'Net Business Balance')}</Text>
-                <View
-                  style={[
-                    styles.profitPill,
-                    {
-                      backgroundColor: netProfit >= 0 ? '#E8F5E9' : '#FFEBEE',
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name={netProfit >= 0 ? 'trending-up' : 'trending-down'}
-                    size={13}
-                    color={netProfit >= 0 ? colors.inflow : colors.outflow}
-                  />
-                  <Text
-                    style={[
-                      styles.profitPillText,
-                      { color: netProfit >= 0 ? colors.inflow : colors.outflow },
-                    ]}
-                  >
-                    {netProfit >= 0 ? `${t('dashboard.profit', 'Profit')} (${profitMargin}%)` : `${t('dashboard.deficit', 'Deficit')} (${profitMargin}%)`}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Main Balance Display */}
-              <View style={styles.heroAmountRow}>
-                <Text
-                  style={[
-                    styles.heroAmount,
-                    { color: netProfit >= 0 ? colors.inflow : colors.outflow },
-                  ]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                >
-                  {formatCurrency(netProfit)}
-                </Text>
-                <View style={styles.liquidBadge}>
-                  <Ionicons name="cash-outline" size={12} color={colors.clayDeep} />
-                  <Text style={styles.liquidBadgeText}>
-                    {t('dashboard.liquidCashLabel', 'Liquid Cash')}: {formatCurrency(liquidCash)}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Cash Collection Progress Bar */}
-              <View style={styles.collectionProgressWrap}>
-                <View style={styles.collectionProgressLabelRow}>
-                  <Text style={styles.collectionProgressTitle}>{t('dashboard.collectionHealth', 'Collection Health')}</Text>
-                  <Text style={styles.collectionProgressPct}>{collectionRate}% {t('dashboard.collectedPct', 'Collected')}</Text>
-                </View>
-                <View style={styles.collectionProgressBarBg}>
+            <FadeInView delay={90} translateY={12}>
+              <View style={styles.heroCard}>
+                {/* Top Row: Label + Profit Percentage Pill */}
+                <View style={styles.heroTopRow}>
+                  <Text style={styles.heroLabel}>{t('dashboard.netBusinessBalance', 'Net Business Balance')}</Text>
                   <View
                     style={[
-                      styles.collectionProgressBarFill,
-                      { width: `${Math.min(100, Math.max(0, collectionRate))}%` },
+                      styles.profitPill,
+                      {
+                        backgroundColor: netProfit >= 0 ? '#E8F5E9' : '#FFEBEE',
+                      },
                     ]}
+                  >
+                    <Ionicons
+                      name={netProfit >= 0 ? 'trending-up' : 'trending-down'}
+                      size={13}
+                      color={netProfit >= 0 ? colors.inflow : colors.outflow}
+                    />
+                    <Text
+                      style={[
+                        styles.profitPillText,
+                        { color: netProfit >= 0 ? colors.inflow : colors.outflow },
+                      ]}
+                    >
+                      {netProfit >= 0 ? `${t('dashboard.profit', 'Profit')} (${profitMargin}%)` : `${t('dashboard.deficit', 'Deficit')} (${profitMargin}%)`}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Main Balance Display */}
+                <View style={styles.heroAmountRow}>
+                  <Text
+                    style={[
+                      styles.heroAmount,
+                      { color: netProfit >= 0 ? colors.inflow : colors.outflow },
+                    ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {formatCurrency(netProfit)}
+                  </Text>
+                  <View style={styles.liquidBadge}>
+                    <Ionicons name="cash-outline" size={12} color={colors.clayDeep} />
+                    <Text style={styles.liquidBadgeText}>
+                      {t('dashboard.liquidCashLabel', 'Liquid Cash')}: {formatCurrency(liquidCash)}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Cash Collection Progress Bar */}
+                <View style={styles.collectionProgressWrap}>
+                  <View style={styles.collectionProgressLabelRow}>
+                    <Text style={styles.collectionProgressTitle}>{t('dashboard.collectionHealth', 'Collection Health')}</Text>
+                    <Text style={styles.collectionProgressPct}>{collectionRate}% {t('dashboard.collectedPct', 'Collected')}</Text>
+                  </View>
+                  <AnimatedProgressBar
+                    progress={collectionRate / 100}
+                    color={colors.inflow}
+                    trackColor="#EDE8DE"
+                    height={8}
+                    style={{ marginTop: 6 }}
                   />
                 </View>
-              </View>
 
               {/* 4 Metric Tiles */}
               <TourTarget targetKey="dashboard-metrics">
@@ -569,195 +582,204 @@ export default function DashboardScreen() {
                 </View>
               )}
             </View>
+          </FadeInView>
 
             {/* ─── Quick Action Buttons ─── */}
-            <View style={styles.actionsRow}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.actionBtn,
-                  styles.actionBtnPrimary,
-                  pressed && styles.actionBtnPressed,
-                ]}
-                onPress={handleNewOrder}
-              >
-                <View style={styles.actionBtnIcon}>
-                  <Ionicons name="cart" size={20} color={colors.white} />
-                </View>
-                <Text style={styles.actionBtnText}>{t('dashboard.newOrder')}</Text>
-              </Pressable>
+            <FadeInView delay={140} translateY={12}>
+              <View style={styles.actionsRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.actionBtn,
+                    styles.actionBtnPrimary,
+                    pressed && styles.actionBtnPressed,
+                  ]}
+                  onPress={handleNewOrder}
+                >
+                  <View style={styles.actionBtnIcon}>
+                    <Ionicons name="cart" size={20} color={colors.white} />
+                  </View>
+                  <Text style={styles.actionBtnText}>{t('dashboard.newOrder')}</Text>
+                </Pressable>
 
-              <Pressable
-                style={({ pressed }) => [
-                  styles.actionBtn,
-                  styles.actionBtnSecondary,
-                  pressed && styles.actionBtnPressed,
-                ]}
-                onPress={() => navigation.navigate('ExpenseForm', undefined)}
-              >
-                <View style={[styles.actionBtnIcon, { backgroundColor: colors.dusk }]}>
-                  <Ionicons name="wallet" size={20} color={colors.white} />
-                </View>
-                <Text style={[styles.actionBtnText, { color: colors.duskDeep }]}>
-                  {t('dashboard.recordExpense')}
-                </Text>
-              </Pressable>
-            </View>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.actionBtn,
+                    styles.actionBtnSecondary,
+                    pressed && styles.actionBtnPressed,
+                  ]}
+                  onPress={() => navigation.navigate('ExpenseForm', undefined)}
+                >
+                  <View style={[styles.actionBtnIcon, { backgroundColor: colors.dusk }]}>
+                    <Ionicons name="wallet" size={20} color={colors.white} />
+                  </View>
+                  <Text style={[styles.actionBtnText, { color: colors.duskDeep }]}>
+                    {t('dashboard.recordExpense')}
+                  </Text>
+                </Pressable>
+              </View>
+            </FadeInView>
 
             {/* ─── Low Stock Alert Banner ─── */}
             {lowStockProducts.length > 0 && (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.lowStockBanner,
-                  pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
-                ]}
-                onPress={() => navigation.navigate('ProductList')}
-              >
-                <View style={styles.lowStockBannerLeft}>
-                  <View style={styles.lowStockIconWrap}>
-                    <Ionicons name="warning-outline" size={20} color="#B45309" />
+              <FadeInView delay={180} translateY={12}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.lowStockBanner,
+                    pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
+                  ]}
+                  onPress={() => navigation.navigate('ProductList')}
+                >
+                  <View style={styles.lowStockBannerLeft}>
+                    <View style={styles.lowStockIconWrap}>
+                      <Ionicons name="warning-outline" size={20} color="#B45309" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.lowStockBannerTitle}>
+                        {lowStockProducts.length} Product{lowStockProducts.length > 1 ? 's' : ''} Low on Stock!
+                      </Text>
+                      <Text style={styles.lowStockBannerSubtitle} numberOfLines={1}>
+                        {lowStockProducts.map((p) => `${p.name} (${p.stockQty ?? 0})`).join(', ')}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.lowStockBannerTitle}>
-                      {lowStockProducts.length} Product{lowStockProducts.length > 1 ? 's' : ''} Low on Stock!
-                    </Text>
-                    <Text style={styles.lowStockBannerSubtitle} numberOfLines={1}>
-                      {lowStockProducts.map((p) => `${p.name} (${p.stockQty ?? 0})`).join(', ')}
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="#B45309" />
-              </Pressable>
+                  <Ionicons name="chevron-forward" size={18} color="#B45309" />
+                </Pressable>
+              </FadeInView>
             )}
 
             {/* ─── Order Pipeline ─── */}
-            <TourTarget targetKey="dashboard-pipeline">
-              <View style={styles.sectionCard}>
-                <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionTitle}>{t('dashboard.pipelineTitle')}</Text>
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.pipelineManageBadge,
-                      pressed && { opacity: 0.75 },
-                    ]}
-                    onPress={() => setActivePipelineStatus('Placed')}
-                  >
-                    <Ionicons name="options-outline" size={13} color={colors.clayDeep} />
-                    <Text style={styles.pipelineManageText}>{t('dashboard.pipelineTapToManage')}</Text>
-                  </Pressable>
+            <FadeInView delay={220} translateY={12}>
+              <TourTarget targetKey="dashboard-pipeline">
+                <View style={styles.sectionCard}>
+                  <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.sectionTitle}>{t('dashboard.pipelineTitle')}</Text>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.pipelineManageBadge,
+                        pressed && { opacity: 0.75 },
+                      ]}
+                      onPress={() => setActivePipelineStatus('Placed')}
+                    >
+                      <Ionicons name="options-outline" size={13} color={colors.clayDeep} />
+                      <Text style={styles.pipelineManageText}>{t('dashboard.pipelineTapToManage')}</Text>
+                    </Pressable>
+                  </View>
+                  <View style={styles.pipelineRow}>
+                    {ORDER_STATUS_STEPS.map((st, idx) => {
+                      const cnt = statusCounts[st] || 0;
+                      const color = statusColor[st] || colors.clay;
+                      const isLast = idx === ORDER_STATUS_STEPS.length - 1;
+                      return (
+                        <React.Fragment key={st}>
+                          <Pressable
+                            style={({ pressed }) => [
+                              styles.pipelineItem,
+                              pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] },
+                            ]}
+                            onPress={() => setActivePipelineStatus(st)}
+                          >
+                            <View style={[styles.pipelineCircle, { backgroundColor: cnt > 0 ? color : colors.line }]}>
+                              <Ionicons
+                                name={statusIcons[st] as any}
+                                size={18}
+                                color={cnt > 0 ? colors.white : colors.inkSoft}
+                              />
+                            </View>
+                            <Text style={[styles.pipelineCount, cnt > 0 && { color }]}>{cnt}</Text>
+                            <Text style={styles.pipelineName} numberOfLines={1}>
+                              {t('status.' + st.toLowerCase()) || st}
+                            </Text>
+                          </Pressable>
+                          {!isLast && (
+                            <View style={styles.pipelineConnector}>
+                              <View style={styles.pipelineConnectorLine} />
+                              <Ionicons name="chevron-forward" size={10} color={colors.line} />
+                            </View>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </View>
                 </View>
-                <View style={styles.pipelineRow}>
-                  {ORDER_STATUS_STEPS.map((st, idx) => {
-                    const cnt = statusCounts[st] || 0;
-                    const color = statusColor[st] || colors.clay;
-                    const isLast = idx === ORDER_STATUS_STEPS.length - 1;
-                    return (
-                      <React.Fragment key={st}>
-                        <Pressable
-                          style={({ pressed }) => [
-                            styles.pipelineItem,
-                            pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] },
-                          ]}
-                          onPress={() => setActivePipelineStatus(st)}
-                        >
-                          <View style={[styles.pipelineCircle, { backgroundColor: cnt > 0 ? color : colors.line }]}>
-                            <Ionicons
-                              name={statusIcons[st] as any}
-                              size={18}
-                              color={cnt > 0 ? colors.white : colors.inkSoft}
-                            />
-                          </View>
-                          <Text style={[styles.pipelineCount, cnt > 0 && { color }]}>{cnt}</Text>
-                          <Text style={styles.pipelineName} numberOfLines={1}>
-                            {t('status.' + st.toLowerCase()) || st}
-                          </Text>
-                        </Pressable>
-                        {!isLast && (
-                          <View style={styles.pipelineConnector}>
-                            <View style={styles.pipelineConnectorLine} />
-                            <Ionicons name="chevron-forward" size={10} color={colors.line} />
-                          </View>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                </View>
-              </View>
-            </TourTarget>
+              </TourTarget>
+            </FadeInView>
 
             {/* ─── Recent Orders ─── */}
-            <View style={styles.sectionCard}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>{t('dashboard.recentOrders')}</Text>
-                <Pressable
-                  style={styles.viewAllBtn}
-                  onPress={() => navigation.navigate('OrderList')}
-                >
-                  <Text style={styles.viewAllText}>{t('common.all')} ({orders.length})</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.duskDeep} />
-                </Pressable>
-              </View>
-
-              {recentOrders.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="document-text-outline" size={40} color={colors.line} />
-                  <Text style={styles.emptyTitle}>{t('dashboard.noOrdersYet')}</Text>
+            <FadeInView delay={260} translateY={12}>
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>{t('dashboard.recentOrders')}</Text>
+                  <Pressable
+                    style={styles.viewAllBtn}
+                    onPress={() => navigation.navigate('OrderList')}
+                  >
+                    <Text style={styles.viewAllText}>{t('common.all')} ({orders.length})</Text>
+                    <Ionicons name="chevron-forward" size={14} color={colors.duskDeep} />
+                  </Pressable>
                 </View>
-              ) : (
-                recentOrders.map((o: Order, idx: number) => {
-                  const bal = orderBalance(o);
-                  const isLast = idx === recentOrders.length - 1;
-                  return (
-                    <Pressable
-                      key={o.id}
-                      style={({ pressed }) => [
-                        styles.orderRow,
-                        !isLast && styles.orderRowBorder,
-                        pressed && { backgroundColor: '#F9F5EC' },
-                      ]}
-                      onPress={() => navigation.navigate('OrderDetail', { orderId: o.id })}
-                    >
-                      {/* Status indicator dot */}
-                      <View
-                        style={[
-                          styles.orderStatusDot,
-                          { backgroundColor: statusColor[o.status] || colors.clay },
+
+                {recentOrders.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="document-text-outline" size={40} color={colors.line} />
+                    <Text style={styles.emptyTitle}>{t('dashboard.noOrdersYet')}</Text>
+                  </View>
+                ) : (
+                  recentOrders.map((o: Order, idx: number) => {
+                    const bal = orderBalance(o);
+                    const isLast = idx === recentOrders.length - 1;
+                    return (
+                      <Pressable
+                        key={o.id}
+                        style={({ pressed }) => [
+                          styles.orderRow,
+                          !isLast && styles.orderRowBorder,
+                          pressed && { backgroundColor: '#F9F5EC' },
                         ]}
-                      />
-                      <View style={styles.orderInfo}>
-                        <View style={styles.orderTopLine}>
-                          <Text style={styles.orderNo}>{o.orderNumber}</Text>
-                          <Text style={styles.orderAmount}>{formatCurrency(orderTotal(o))}</Text>
-                        </View>
-                        <View style={styles.orderBottomLine}>
-                          <Text style={styles.orderCustomer} numberOfLines={1}>
-                            {o.customerName || 'Customer'}
-                          </Text>
-                          <View style={styles.orderMeta}>
-                            <View
-                              style={[
-                                styles.statusChip,
-                                { backgroundColor: statusColor[o.status] || colors.clay },
-                              ]}
-                            >
-                              <Text style={styles.statusChipText}>{t('status.' + o.status.toLowerCase()) || o.status}</Text>
-                            </View>
-                            {bal > 0 ? (
-                              <Text style={styles.dueBadge}>₹{bal.toLocaleString('en-IN')} {t('common.due') || 'due'}</Text>
-                            ) : (
-                              <View style={styles.paidBadgeInline}>
-                                <Ionicons name="checkmark-circle" size={12} color={colors.success} />
-                                <Text style={styles.paidBadge}>{t('common.paid') || 'Paid'}</Text>
-                              </View>
-                            )}
+                        onPress={() => navigation.navigate('OrderDetail', { orderId: o.id })}
+                      >
+                        {/* Status indicator dot */}
+                        <View
+                          style={[
+                            styles.orderStatusDot,
+                            { backgroundColor: statusColor[o.status] || colors.clay },
+                          ]}
+                        />
+                        <View style={styles.orderInfo}>
+                          <View style={styles.orderTopLine}>
+                            <Text style={styles.orderNo}>{o.orderNumber}</Text>
+                            <Text style={styles.orderAmount}>{formatCurrency(orderTotal(o))}</Text>
                           </View>
+                          <View style={styles.orderBottomLine}>
+                            <Text style={styles.orderCustomer} numberOfLines={1}>
+                              {o.customerName || 'Customer'}
+                            </Text>
+                            <View style={styles.orderMeta}>
+                              <View
+                                style={[
+                                  styles.statusChip,
+                                  { backgroundColor: statusColor[o.status] || colors.clay },
+                                ]}
+                              >
+                                <Text style={styles.statusChipText}>{t('status.' + o.status.toLowerCase()) || o.status}</Text>
+                              </View>
+                              {bal > 0 ? (
+                                <Text style={styles.dueBadge}>₹{bal.toLocaleString('en-IN')} {t('common.due') || 'due'}</Text>
+                              ) : (
+                                <View style={styles.paidBadgeInline}>
+                                  <Ionicons name="checkmark-circle" size={12} color={colors.success} />
+                                  <Text style={styles.paidBadge}>{t('common.paid') || 'Paid'}</Text>
+                                </View>
+                              )}
+                            </View>
+                          </View>
+                          <Text style={styles.orderDate}>{formatDate(o.orderDate)}</Text>
                         </View>
-                        <Text style={styles.orderDate}>{formatDate(o.orderDate)}</Text>
-                      </View>
-                    </Pressable>
-                  );
-                })
-              )}
-            </View>
+                      </Pressable>
+                    );
+                  })
+                )}
+              </View>
+            </FadeInView>
 
             {/* ─── Quick Tools Grid ─── */}
             <View style={styles.toolsGrid}>

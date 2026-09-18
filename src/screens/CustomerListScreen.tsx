@@ -28,6 +28,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 
 import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
 import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
+import FadeInView from '../components/FadeInView';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -44,6 +45,7 @@ interface CustomerCardItemProps {
   onCall: (phone?: string) => void;
   onWhatsApp: (phone?: string) => void;
   t: (key: string, fallback?: string) => string;
+  index?: number;
 }
 
 const CustomerCardItem = React.memo(function CustomerCardItem({
@@ -53,15 +55,17 @@ const CustomerCardItem = React.memo(function CustomerCardItem({
   onCall,
   onWhatsApp,
   t,
+  index = 0,
 }: CustomerCardItemProps) {
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.customerCard,
-        pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-      ]}
-      onPress={onPress}
-    >
+    <FadeInView delay={Math.min(index * 35, 300)} translateY={10}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.customerCard,
+          pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+        ]}
+        onPress={onPress}
+      >
       <View style={styles.cardHeader}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
@@ -137,6 +141,7 @@ const CustomerCardItem = React.memo(function CustomerCardItem({
         ) : null}
       </View>
     </Pressable>
+  </FadeInView>
   );
 });
 
@@ -353,7 +358,7 @@ export default function CustomerListScreen() {
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
             }
-            renderItem={({ item }) => {
+            renderItem={({ item, index }) => {
               const stats = customerStats[item.name.toLowerCase().trim()] || {
                 orderCount: 0,
                 totalSpend: 0,
@@ -363,6 +368,7 @@ export default function CustomerListScreen() {
                 <CustomerCardItem
                   item={item}
                   stats={stats}
+                  index={index}
                   onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}
                   onCall={handleCall}
                   onWhatsApp={handleWhatsApp}

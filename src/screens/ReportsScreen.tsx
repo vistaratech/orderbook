@@ -23,6 +23,8 @@ import { checkProStatus } from '../storage/subscriptionStorage';
 import { colors, fonts, radius, shadow, categoryColor } from '../theme/theme';
 import { formatCurrency } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
+import FadeInView from '../components/FadeInView';
+import AnimatedProgressBar from '../components/AnimatedProgressBar';
 
 import { triggerGlobalSubscriptionModal } from '../context/SubscriptionModalContext';
 
@@ -292,173 +294,180 @@ Generated from KadaiBook • kadaibook.in`;
         ) : (
           <>
             {/* P&L Statement Card */}
-            <View style={styles.card}>
-              <View style={styles.cardHeaderRow}>
-                <Ionicons name="pie-chart-outline" size={18} color={colors.clayDeep} />
-                <Text style={styles.cardTitle}>{t('reports.profitLoss')}</Text>
-              </View>
-
-              <View style={styles.pnlRow}>
-                <View style={styles.pnlLabelRow}>
-                  <Ionicons name="arrow-down-circle" size={18} color={colors.inflow} />
-                  <Text style={styles.pnlLabel} numberOfLines={1}>{t('reports.totalRevenue')}</Text>
+            <FadeInView delay={60} translateY={12}>
+              <View style={styles.card}>
+                <View style={styles.cardHeaderRow}>
+                  <Ionicons name="pie-chart-outline" size={18} color={colors.clayDeep} />
+                  <Text style={styles.cardTitle}>{t('reports.profitLoss')}</Text>
                 </View>
-                <Text style={[styles.pnlValue, { color: colors.inflow }]}>
-                  +{formatCurrency(totalInflow)}
-                </Text>
-              </View>
 
-              {totalPurchases > 0 ? (
-                <>
-                  <View style={styles.pnlRow}>
-                    <View style={styles.pnlLabelRow}>
-                      <Ionicons name="cart-outline" size={18} color="#C97A1E" />
-                      <Text style={styles.pnlLabel} numberOfLines={1}>Stock Purchases (COGS)</Text>
-                    </View>
-                    <Text style={[styles.pnlValue, { color: '#C97A1E' }]}>
-                      -{formatCurrency(totalPurchases)}
-                    </Text>
+                <View style={styles.pnlRow}>
+                  <View style={styles.pnlLabelRow}>
+                    <Ionicons name="arrow-down-circle" size={18} color={colors.inflow} />
+                    <Text style={styles.pnlLabel} numberOfLines={1}>{t('reports.totalRevenue')}</Text>
                   </View>
-
-                  <View style={styles.pnlRow}>
-                    <View style={styles.pnlLabelRow}>
-                      <Ionicons name="trending-up-outline" size={18} color={colors.clayDeep} />
-                      <Text style={[styles.pnlLabel, { fontFamily: fonts.bodyBold }]} numberOfLines={1}>Gross Profit</Text>
-                    </View>
-                    <Text style={[styles.pnlValue, { color: grossProfit >= 0 ? colors.inflow : colors.outflow, fontFamily: fonts.bodyBold }]}>
-                      {formatCurrency(grossProfit)}
-                    </Text>
-                  </View>
-                </>
-              ) : null}
-
-              <View style={styles.pnlRow}>
-                <View style={styles.pnlLabelRow}>
-                  <Ionicons name="arrow-up-circle" size={18} color={colors.outflow} />
-                  <Text style={styles.pnlLabel} numberOfLines={1}>{t('reports.totalOutflow')}</Text>
-                </View>
-                <Text style={[styles.pnlValue, { color: colors.outflow }]}>
-                  -{formatCurrency(totalOutflow)}
-                </Text>
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.pnlRow}>
-                <View>
-                  <Text style={styles.netProfitLabel}>{t('dashboard.netProfit')}</Text>
-                  <Text style={styles.marginText}>{t('reports.netMargin')}: {profitMargin}%</Text>
-                </View>
-                <Text
-                  style={[
-                    styles.netProfitValue,
-                    { color: netProfit >= 0 ? colors.inflow : colors.outflow },
-                  ]}
-                >
-                  {formatCurrency(netProfit)}
-                </Text>
-              </View>
-
-              {/* Inflow Sub-breakdown */}
-              <View style={styles.subStatsBox}>
-                <Pressable
-                  style={styles.subStatItem}
-                  onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Paid' })}
-                >
-                  <Text style={styles.subStatLabel}>{t('dashboard.collected')}</Text>
-                  <Text style={styles.subStatValue}>{formatCurrency(totalCollected)}</Text>
-                </Pressable>
-                <View style={styles.subStatDivider} />
-                <Pressable
-                  style={styles.subStatItem}
-                  onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Pending' })}
-                >
-                  <Text style={styles.subStatLabel}>{t('dashboard.pendingDues')}</Text>
-                  <Text style={[styles.subStatValue, { color: colors.pending }]}>
-                    {formatCurrency(totalPending)}
+                  <Text style={[styles.pnlValue, { color: colors.inflow }]}>
+                    +{formatCurrency(totalInflow)}
                   </Text>
-                </Pressable>
+                </View>
+
+                {totalPurchases > 0 ? (
+                  <>
+                    <View style={styles.pnlRow}>
+                      <View style={styles.pnlLabelRow}>
+                        <Ionicons name="cart-outline" size={18} color="#C97A1E" />
+                        <Text style={styles.pnlLabel} numberOfLines={1}>Stock Purchases (COGS)</Text>
+                      </View>
+                      <Text style={[styles.pnlValue, { color: '#C97A1E' }]}>
+                        -{formatCurrency(totalPurchases)}
+                      </Text>
+                    </View>
+
+                    <View style={styles.pnlRow}>
+                      <View style={styles.pnlLabelRow}>
+                        <Ionicons name="trending-up-outline" size={18} color={colors.clayDeep} />
+                        <Text style={[styles.pnlLabel, { fontFamily: fonts.bodyBold }]} numberOfLines={1}>Gross Profit</Text>
+                      </View>
+                      <Text style={[styles.pnlValue, { color: grossProfit >= 0 ? colors.inflow : colors.outflow, fontFamily: fonts.bodyBold }]}>
+                        {formatCurrency(grossProfit)}
+                      </Text>
+                    </View>
+                  </>
+                ) : null}
+
+                <View style={styles.pnlRow}>
+                  <View style={styles.pnlLabelRow}>
+                    <Ionicons name="arrow-up-circle" size={18} color={colors.outflow} />
+                    <Text style={styles.pnlLabel} numberOfLines={1}>{t('reports.totalOutflow')}</Text>
+                  </View>
+                  <Text style={[styles.pnlValue, { color: colors.outflow }]}>
+                    -{formatCurrency(totalOutflow)}
+                  </Text>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.pnlRow}>
+                  <View>
+                    <Text style={styles.netProfitLabel}>{t('dashboard.netProfit')}</Text>
+                    <Text style={styles.marginText}>{t('reports.netMargin')}: {profitMargin}%</Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.netProfitValue,
+                      { color: netProfit >= 0 ? colors.inflow : colors.outflow },
+                    ]}
+                  >
+                    {formatCurrency(netProfit)}
+                  </Text>
+                </View>
+
+                {/* Inflow Sub-breakdown */}
+                <View style={styles.subStatsBox}>
+                  <Pressable
+                    style={styles.subStatItem}
+                    onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Paid' })}
+                  >
+                    <Text style={styles.subStatLabel}>{t('dashboard.collected')}</Text>
+                    <Text style={styles.subStatValue}>{formatCurrency(totalCollected)}</Text>
+                  </Pressable>
+                  <View style={styles.subStatDivider} />
+                  <Pressable
+                    style={styles.subStatItem}
+                    onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Pending' })}
+                  >
+                    <Text style={styles.subStatLabel}>{t('dashboard.pendingDues')}</Text>
+                    <Text style={[styles.subStatValue, { color: colors.pending }]}>
+                      {formatCurrency(totalPending)}
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
-            </View>
+            </FadeInView>
 
             {/* Expense Breakdown Category Bars */}
             {expenseByCategory.length > 0 && (
-              <View style={styles.card}>
-                <View style={styles.cardHeaderRow}>
-                  <Ionicons name="wallet-outline" size={18} color={colors.outflow} />
-                  <Text style={styles.cardTitle}>{t('reports.expenseBreakdown')}</Text>
-                </View>
-                {expenseByCategory.map((item) => {
-                  const barColor = categoryColor[item.category as any] || colors.clayDeep;
-                  return (
-                    <View key={item.category} style={styles.categoryBarRow}>
-                      <View style={styles.categoryBarHeader}>
-                        <View style={styles.catLabelWrap}>
-                          <View style={[styles.catColorDot, { backgroundColor: barColor }]} />
-                          <Text style={styles.catName}>{item.category}</Text>
+              <FadeInView delay={120} translateY={12}>
+                <View style={styles.card}>
+                  <View style={styles.cardHeaderRow}>
+                    <Ionicons name="wallet-outline" size={18} color={colors.outflow} />
+                    <Text style={styles.cardTitle}>{t('reports.expenseBreakdown')}</Text>
+                  </View>
+                  {expenseByCategory.map((item) => {
+                    const barColor = categoryColor[item.category as any] || colors.clayDeep;
+                    return (
+                      <View key={item.category} style={styles.categoryBarRow}>
+                        <View style={styles.categoryBarHeader}>
+                          <View style={styles.catLabelWrap}>
+                            <View style={[styles.catColorDot, { backgroundColor: barColor }]} />
+                            <Text style={styles.catName}>{item.category}</Text>
+                          </View>
+                          <Text style={styles.catAmount}>{formatCurrency(item.amount)} ({item.pct.toFixed(0)}%)</Text>
                         </View>
-                        <Text style={styles.catAmount}>{formatCurrency(item.amount)} ({item.pct.toFixed(0)}%)</Text>
-                      </View>
-                      <View style={styles.barTrack}>
-                        <View
-                          style={[
-                            styles.barFill,
-                            { width: `${Math.min(100, item.pct)}%`, backgroundColor: barColor },
-                          ]}
+                        <AnimatedProgressBar
+                          progress={item.pct / 100}
+                          color={barColor}
+                          trackColor="#EBE7DE"
+                          height={6}
+                          style={{ marginTop: 6 }}
                         />
                       </View>
-                    </View>
-                  );
-                })}
-              </View>
+                    );
+                  })}
+                </View>
+              </FadeInView>
             )}
 
             {/* Top Customers */}
             {topCustomers.length > 0 && (
-              <View style={styles.card}>
-                <View style={styles.cardHeaderRow}>
-                  <Ionicons name="people-outline" size={18} color={colors.clayDeep} />
-                  <Text style={styles.cardTitle}>{t('reports.topCustomers')}</Text>
-                </View>
-                {topCustomers.map((c, idx) => (
-                  <View key={c.name} style={styles.rankRow}>
-                    <View style={styles.rankBadge}>
-                      <Text style={styles.rankBadgeText}>#{idx + 1}</Text>
-                    </View>
-                    <View style={styles.rankInfo}>
-                      <Text style={styles.rankName}>{c.name}</Text>
-                      <Text style={styles.rankMeta}>
-                        {c.count} {c.count === 1 ? t('reports.orderCount') : t('reports.ordersCount')}
-                      </Text>
-                    </View>
-                    <Text style={styles.rankAmount}>{formatCurrency(c.total)}</Text>
+              <FadeInView delay={180} translateY={12}>
+                <View style={styles.card}>
+                  <View style={styles.cardHeaderRow}>
+                    <Ionicons name="people-outline" size={18} color={colors.clayDeep} />
+                    <Text style={styles.cardTitle}>{t('reports.topCustomers')}</Text>
                   </View>
-                ))}
-              </View>
+                  {topCustomers.map((c, idx) => (
+                    <View key={c.name} style={styles.rankRow}>
+                      <View style={styles.rankBadge}>
+                        <Text style={styles.rankBadgeText}>#{idx + 1}</Text>
+                      </View>
+                      <View style={styles.rankInfo}>
+                        <Text style={styles.rankName}>{c.name}</Text>
+                        <Text style={styles.rankMeta}>
+                          {c.count} {c.count === 1 ? t('reports.orderCount') : t('reports.ordersCount')}
+                        </Text>
+                      </View>
+                      <Text style={styles.rankAmount}>{formatCurrency(c.total)}</Text>
+                    </View>
+                  ))}
+                </View>
+              </FadeInView>
             )}
 
             {/* Best Selling Items */}
             {topItems.length > 0 && (
-              <View style={styles.card}>
-                <View style={styles.cardHeaderRow}>
-                  <Ionicons name="ribbon-outline" size={18} color={colors.duskDeep} />
-                  <Text style={styles.cardTitle}>{t('reports.topProducts')}</Text>
-                </View>
-                {topItems.map((it, idx) => (
-                  <View key={it.name} style={styles.rankRow}>
-                    <View style={[styles.rankBadge, { backgroundColor: colors.duskLight }]}>
-                      <Text style={[styles.rankBadgeText, { color: colors.duskDeep }]}>
-                        #{idx + 1}
-                      </Text>
-                    </View>
-                    <View style={styles.rankInfo}>
-                      <Text style={styles.rankName}>{it.name}</Text>
-                      <Text style={styles.rankMeta}>{it.qty} {t('reports.unitsSold')}</Text>
-                    </View>
-                    <Text style={styles.rankAmount}>{formatCurrency(it.revenue)}</Text>
+              <FadeInView delay={240} translateY={12}>
+                <View style={styles.card}>
+                  <View style={styles.cardHeaderRow}>
+                    <Ionicons name="ribbon-outline" size={18} color={colors.duskDeep} />
+                    <Text style={styles.cardTitle}>{t('reports.topProducts')}</Text>
                   </View>
-                ))}
-              </View>
+                  {topItems.map((it, idx) => (
+                    <View key={it.name} style={styles.rankRow}>
+                      <View style={[styles.rankBadge, { backgroundColor: colors.duskLight }]}>
+                        <Text style={[styles.rankBadgeText, { color: colors.duskDeep }]}>
+                          #{idx + 1}
+                        </Text>
+                      </View>
+                      <View style={styles.rankInfo}>
+                        <Text style={styles.rankName}>{it.name}</Text>
+                        <Text style={styles.rankMeta}>{it.qty} {t('reports.unitsSold')}</Text>
+                      </View>
+                      <Text style={styles.rankAmount}>{formatCurrency(it.revenue)}</Text>
+                    </View>
+                  ))}
+                </View>
+              </FadeInView>
             )}
           </>
         )}

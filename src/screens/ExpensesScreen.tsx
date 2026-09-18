@@ -24,6 +24,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow, categoryColor } from '../theme/theme';
 import { confirmAction } from '../utils/dialog';
 import { formatCurrency, formatDate } from '../utils/format';
+import FadeInView from '../components/FadeInView';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -32,12 +33,14 @@ interface ExpenseItemProps {
   onEdit: (id: string) => void;
   onDelete: (id: string, desc: string) => void;
   t: (key: string, fallback?: string) => string;
+  index?: number;
 }
 
-const ExpenseCardItem = React.memo(function ExpenseCardItem({ item, onEdit, onDelete, t }: ExpenseItemProps) {
+const ExpenseCardItem = React.memo(function ExpenseCardItem({ item, onEdit, onDelete, t, index = 0 }: ExpenseItemProps) {
   const color = categoryColor[item.category] || colors.duskDeep;
   return (
-    <View style={styles.expenseCard}>
+    <FadeInView delay={Math.min(index * 35, 300)} translateY={10}>
+      <View style={styles.expenseCard}>
       <View style={[styles.categoryIndicator, { backgroundColor: color }]} />
       <View style={styles.expenseBody}>
         <View style={styles.expenseTopRow}>
@@ -78,6 +81,7 @@ const ExpenseCardItem = React.memo(function ExpenseCardItem({ item, onEdit, onDe
         </View>
       </View>
     </View>
+  </FadeInView>
   );
 });
 
@@ -256,9 +260,10 @@ export default function ExpensesScreen() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
           }
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <ExpenseCardItem
               item={item}
+              index={index}
               onEdit={handleEdit}
               onDelete={handleDelete}
               t={t}

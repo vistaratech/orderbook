@@ -478,9 +478,10 @@ export default function OrderListScreen() {
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
             }
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <OrderCard
                 order={item}
+                index={index}
                 onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
               />
             )}

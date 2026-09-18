@@ -234,26 +234,57 @@ export default function App() {
         ::-webkit-scrollbar-thumb:hover {
           background: #B96659;
         }
+        /* Micro-animations and Rich Aesthetics */
+        @keyframes pulse-radar {
+          0% { transform: scale(1); opacity: 0.8; }
+          70% { transform: scale(2.2); opacity: 0; }
+          100% { transform: scale(2.2); opacity: 0; }
+        }
+
+        @keyframes float-subtle {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-4px); }
+        }
+
+        @keyframes glow-pulse {
+          0%, 100% { box-shadow: 0 0 15px rgba(202, 138, 4, 0.25); }
+          50% { box-shadow: 0 0 25px rgba(202, 138, 4, 0.45); }
+        }
+
+        @keyframes shimmer-sweep {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+
+        /* Card Hover Lift & Micro-Transitions */
         [role="button"], button {
           cursor: pointer !important;
+          transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease, opacity 0.15s ease !important;
         }
+
+        [role="button"]:hover {
+          transform: translateY(-1.5px);
+        }
+
+        [role="button"]:active {
+          transform: scale(0.97) translateY(0);
+          opacity: 0.82;
+        }
+
         /* Fix: Remove browser focus outline on TextInputs */
         input, textarea {
           outline: none !important;
           -webkit-appearance: none;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
         input:focus, textarea:focus {
           outline: none !important;
-          box-shadow: none !important;
+          box-shadow: 0 0 0 3px rgba(185, 102, 89, 0.15) !important;
         }
-        /* Fix: Add hover effects for interactive cards and buttons */
-        [role="button"]:hover {
-          opacity: 0.85;
-          transition: opacity 0.15s ease;
-        }
-        [role="button"]:active {
-          opacity: 0.7;
-          transition: opacity 0.05s ease;
+
+        /* Smooth scroll behavior */
+        * {
+          scroll-behavior: smooth;
         }
       `;
       document.head.appendChild(style);

@@ -26,6 +26,7 @@ import DesktopLayout from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
 import { checkProStatus } from '../storage/subscriptionStorage';
 import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
+import FadeInView from '../components/FadeInView';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -33,12 +34,14 @@ interface ProductCardItemProps {
   item: Product;
   onEdit: (id: string) => void;
   onDelete: (id: string, name: string) => void;
+  index?: number;
 }
 
 const ProductCardItem = React.memo(function ProductCardItem({
   item,
   onEdit,
   onDelete,
+  index = 0,
 }: ProductCardItemProps) {
   const isOutOfStock = item.stockQty !== undefined && item.stockQty <= 0;
   const isLowStock =
@@ -48,7 +51,8 @@ const ProductCardItem = React.memo(function ProductCardItem({
     item.stockQty <= item.lowStockThreshold;
 
   return (
-    <View style={styles.productCard}>
+    <FadeInView delay={Math.min(index * 35, 300)} translateY={10}>
+      <View style={styles.productCard}>
       <View style={styles.productIconWrap}>
         <Ionicons name="cube-outline" size={22} color={colors.duskDeep} />
       </View>
@@ -116,6 +120,7 @@ const ProductCardItem = React.memo(function ProductCardItem({
         </View>
       </View>
     </View>
+  </FadeInView>
   );
 });
 
@@ -373,9 +378,10 @@ export default function ProductListScreen() {
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
             }
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <ProductCardItem
                 item={item}
+                index={index}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
               />

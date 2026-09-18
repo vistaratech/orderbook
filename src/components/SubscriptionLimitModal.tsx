@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,12 @@ import {
   Pressable,
   StyleSheet,
   Platform,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { navigate } from '../navigation/navigationRef';
+import AnimatedProgressBar from './AnimatedProgressBar';
 
 export interface SubscriptionLimitModalProps {
   visible: boolean;
@@ -36,6 +38,29 @@ export default function SubscriptionLimitModal({
   actionName,
   onUpgrade,
 }: SubscriptionLimitModalProps) {
+  const scaleAnim = useRef(new Animated.Value(0.88)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      scaleAnim.setValue(0.88);
+      opacityAnim.setValue(0);
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 6,
+          tension: 60,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ]).start();
+    }
+  }, [visible, scaleAnim, opacityAnim]);
+
   if (!visible) return null;
 
   const handleUpgradePress = () => {
@@ -63,17 +88,27 @@ export default function SubscriptionLimitModal({
     return `You have reached your ${planName} plan limit (${currentCount !== undefined ? currentCount : limit}/${limit} ${type}s). Upgrade to Pro for unlimited business growth!`;
   };
 
+  const quotaProgress = currentCount !== undefined ? Math.min(1, currentCount / limit) : 1;
+
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="none"
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={onClose} />
 
-        <View style={styles.card}>
+        <Animated.View
+          style={[
+            styles.card,
+            {
+              opacity: opacityAnim,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        >
           {/* Close X Button */}
           <Pressable
             style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
@@ -102,6 +137,18 @@ export default function SubscriptionLimitModal({
               </View>
             )}
           </View>
+
+          {/* Quota Progress Bar */}
+          {currentCount !== undefined && (
+            <View style={{ width: '100%', paddingHorizontal: 16, marginBottom: 12 }}>
+              <AnimatedProgressBar
+                progress={quotaProgress}
+                color={quotaProgress >= 1 ? '#EF4444' : '#F59E0B'}
+                trackColor="#F3F4F6"
+                height={6}
+              />
+            </View>
+          )}
 
           {/* Title & Description */}
           <Text style={styles.title}>{getHeading()}</Text>
@@ -169,7 +216,7 @@ export default function SubscriptionLimitModal({
               <Text style={styles.cancelBtnText}>Maybe Later</Text>
             </Pressable>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );

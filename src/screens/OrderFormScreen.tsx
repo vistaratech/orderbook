@@ -134,10 +134,10 @@ export default function OrderFormScreen({ navigation, route }: Props) {
             setUpgradeNudge(`You've used ${orders.length} of 150 orders on Basic. Upgrade to Pro for unlimited orders.`);
           }
         } else {
-          if (orders.length >= 50) {
+          if (orders.length >= 10) {
             Alert.alert(
               'Order Limit Reached',
-              'You can only create up to 50 orders on the free plan. Please upgrade to Basic or Pro to continue.',
+              'You can only create up to 10 orders on the free plan. Please upgrade to Basic or Pro to continue.',
               [
                 { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
                 { text: 'Upgrade', onPress: () => {
@@ -146,8 +146,8 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                 }}
               ]
             );
-          } else if (orders.length >= 35) {
-            setUpgradeNudge(`You've used ${orders.length} of 50 free orders. Upgrade to unlock more.`);
+          } else if (orders.length >= 7) {
+            setUpgradeNudge(`You've used ${orders.length} of 10 free orders. Upgrade to unlock more.`);
           }
         }
       })();

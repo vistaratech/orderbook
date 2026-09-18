@@ -77,10 +77,10 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
             setUpgradeNudge(`You've added ${customers.length} of 60 customers on Basic. Upgrade to Pro for unlimited.`);
           }
         } else {
-          if (customers.length >= 20) {
+          if (customers.length >= 10) {
             Alert.alert(
               'Customer Limit Reached',
-              'You can only add up to 20 customers on the free plan. Please upgrade to Basic or Pro to continue.',
+              'You can only add up to 10 customers on the free plan. Please upgrade to Basic or Pro to continue.',
               [
                 { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
                 { text: 'Upgrade', onPress: () => {
@@ -89,8 +89,8 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
                 }}
               ]
             );
-          } else if (customers.length >= 14) {
-            setUpgradeNudge(`You've added ${customers.length} of 20 free customers. Upgrade to unlock more.`);
+          } else if (customers.length >= 7) {
+            setUpgradeNudge(`You've added ${customers.length} of 10 free customers. Upgrade to unlock more.`);
           }
         }
       })();

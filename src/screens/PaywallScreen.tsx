@@ -223,11 +223,11 @@ export default function PaywallScreen() {
               <View style={styles.planFeatureList}>
                 <View style={styles.planFeatureItem}>
                   <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
-                  <Text style={styles.planFeatureText}>50 Orders / month</Text>
+                  <Text style={styles.planFeatureText}>10 Orders / month</Text>
                 </View>
                 <View style={styles.planFeatureItem}>
                   <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
-                  <Text style={styles.planFeatureText}>20 Customers limit</Text>
+                  <Text style={styles.planFeatureText}>10 Customers limit</Text>
                 </View>
                 <View style={styles.planFeatureItem}>
                   <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
@@ -384,8 +384,8 @@ export default function PaywallScreen() {
 
             {/* Feature Rows */}
             {[
-              { name: 'Monthly Orders Limit', free: '50', basic: '150', pro: 'Unlimited', icon: 'receipt-outline' },
-              { name: 'Customer Contacts Limit', free: '20', basic: '60', pro: 'Unlimited', icon: 'people-outline' },
+              { name: 'Monthly Orders Limit', free: '10', basic: '150', pro: 'Unlimited', icon: 'receipt-outline' },
+              { name: 'Customer Contacts Limit', free: '10', basic: '60', pro: 'Unlimited', icon: 'people-outline' },
               { name: 'Invoice Templates', free: '1 Default', basic: '1 Default', pro: 'All Premium', icon: 'document-text-outline' },
               { name: 'Custom Logo & Branding', free: '—', basic: '—', pro: '✓', icon: 'color-palette-outline' },
               { name: 'PDF & Excel Export', free: '—', basic: '—', pro: '✓', icon: 'download-outline' },

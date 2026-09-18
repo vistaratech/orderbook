@@ -86,11 +86,12 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
     borderRadius: radius.pill,
     borderWidth: 1,
-    gap: 6,
+    gap: 5,
+    flexShrink: 0,
   },
   dotContainer: {
     width: 8,
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    letterSpacing: 0.2,
+    fontSize: 10.5,
+    letterSpacing: 0.1,
   },
 });

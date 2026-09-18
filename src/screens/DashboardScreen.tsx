@@ -221,15 +221,17 @@ export default function DashboardScreen() {
       <View style={styles.fixedHeaderContainer}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <AppLogo size={40} variant="icon" />
+            <AppLogo size={36} variant="icon" />
             <View style={styles.headerTextBlock}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Text style={styles.greeting}>{getGreeting(t)}</Text>
-                <Ionicons name="sparkles" size={14} color={colors.clayDeep} />
+              <View style={styles.greetingRow}>
+                <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">
+                  {getGreeting(t)}
+                </Text>
+                <Ionicons name="sparkles" size={13} color={colors.clayDeep} />
               </View>
-              <Text style={styles.headerDate}>
+              <Text style={styles.headerDate} numberOfLines={1} ellipsizeMode="tail">
                 {new Date().toLocaleDateString(language === 'ta' ? 'ta-IN' : language === 'hi' ? 'hi-IN' : 'en-IN', {
-                  weekday: 'long',
+                  weekday: 'short',
                   day: 'numeric',
                   month: 'short',
                   year: 'numeric',
@@ -237,7 +239,7 @@ export default function DashboardScreen() {
               </Text>
             </View>
           </View>
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <View style={styles.headerRight}>
             <LivePulseBadge
               label={isPro ? 'Pro Active' : 'Live Store'}
               color={isPro ? '#854D0E' : '#15803D'}
@@ -245,41 +247,25 @@ export default function DashboardScreen() {
               bgColor={isPro ? '#FEFCE8' : '#DCFCE7'}
               borderColor={isPro ? '#FDE047' : '#86EFAC'}
             />
-            {Platform.OS !== 'web' && (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.subBadge,
-                  isPro ? styles.subBadgePro : styles.subBadgeFree,
-                  pressed && { opacity: 0.8 },
-                ]}
-                onPress={() => navigation.navigate('PaywallScreen')}
-              >
-                <Ionicons
-                  name={isPro ? 'sparkles' : 'star'}
-                  size={13}
-                  color={isPro ? '#CA8A04' : '#854D0E'}
-                />
-                <Text
-                  style={[
-                    styles.subBadgeText,
-                    isPro ? styles.subBadgeTextPro : styles.subBadgeTextFree,
-                  ]}
-                >
-                  {isPro ? 'Pro' : 'Upgrade'}
-                </Text>
-              </Pressable>
-            )}
             <Pressable
-              style={styles.settingsBtn}
+              style={({ pressed }) => [
+                styles.settingsBtn,
+                pressed && { opacity: 0.75, transform: [{ scale: 0.95 }] },
+              ]}
               onPress={() => navigation.navigate('History')}
+              hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
             >
-              <Ionicons name="time-outline" size={22} color={colors.inkSoft} />
+              <Ionicons name="time-outline" size={19} color={colors.inkSoft} />
             </Pressable>
             <Pressable
-              style={styles.settingsBtn}
+              style={({ pressed }) => [
+                styles.settingsBtn,
+                pressed && { opacity: 0.75, transform: [{ scale: 0.95 }] },
+              ]}
               onPress={() => navigation.navigate('Settings')}
+              hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
             >
-              <Ionicons name="settings-outline" size={22} color={colors.inkSoft} />
+              <Ionicons name="settings-outline" size={19} color={colors.inkSoft} />
             </Pressable>
           </View>
         </View>
@@ -1085,11 +1071,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    paddingHorizontal: 20,
+    paddingHorizontal: 14,
     zIndex: 10,
   },
   content: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 40,
     width: '100%',
@@ -1102,35 +1088,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 10,
     maxWidth: 1040,
     width: '100%',
     alignSelf: 'center',
   },
   headerLeft: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
+    marginRight: 6,
+    minWidth: 0,
   },
   headerTextBlock: {
-    gap: 1,
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
   },
   greeting: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: 18,
     color: colors.ink,
-    paddingRight: 6,
-    lineHeight: 32,
+    lineHeight: 24,
+    flexShrink: 1,
   },
   headerDate: {
     fontFamily: fonts.body,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.inkSoft,
+    lineHeight: 15,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
   },
   settingsBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.paperCard,
     borderWidth: 1,
     borderColor: colors.line,

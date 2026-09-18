@@ -182,33 +182,35 @@ export default function OrderListScreen() {
             </Text>
           </View>
           {/* Subscription Status Badge */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.subBadge,
-              isPro ? styles.subBadgePro : styles.subBadgeFree,
-              pressed && { opacity: 0.85 },
-            ]}
-            onPress={() => navigation.navigate('PaywallScreen')}
-          >
-            <Ionicons
-              name={isPro ? 'sparkles' : 'star'}
-              size={13}
-              color={isPro ? '#CA8A04' : '#854D0E'}
-            />
-            <Text
-              style={[
-                styles.subBadgeText,
-                isPro ? styles.subBadgeTextPro : styles.subBadgeTextFree,
+          {Platform.OS !== 'web' && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.subBadge,
+                isPro ? styles.subBadgePro : styles.subBadgeFree,
+                pressed && { opacity: 0.85 },
               ]}
+              onPress={() => navigation.navigate('PaywallScreen')}
             >
-              {isPro ? 'Pro Active' : 'Upgrade'}
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={12}
-              color={isPro ? '#CA8A04' : '#854D0E'}
-            />
-          </Pressable>
+              <Ionicons
+                name={isPro ? 'sparkles' : 'star'}
+                size={13}
+                color={isPro ? '#CA8A04' : '#854D0E'}
+              />
+              <Text
+                style={[
+                  styles.subBadgeText,
+                  isPro ? styles.subBadgeTextPro : styles.subBadgeTextFree,
+                ]}
+              >
+                {isPro ? 'Pro Active' : 'Upgrade'}
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={12}
+                color={isPro ? '#CA8A04' : '#854D0E'}
+              />
+            </Pressable>
+          )}
         </View>
 
         {/* Modern Search & Filter Toolbar */}

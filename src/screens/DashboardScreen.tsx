@@ -9,6 +9,8 @@ import {
   RefreshControl,
   Modal,
   FlatList,
+  Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -214,28 +216,30 @@ export default function DashboardScreen() {
             </View>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.subBadge,
-                isPro ? styles.subBadgePro : styles.subBadgeFree,
-                pressed && { opacity: 0.8 },
-              ]}
-              onPress={() => navigation.navigate('PaywallScreen')}
-            >
-              <Ionicons
-                name={isPro ? 'sparkles' : 'star'}
-                size={13}
-                color={isPro ? '#CA8A04' : '#854D0E'}
-              />
-              <Text
-                style={[
-                  styles.subBadgeText,
-                  isPro ? styles.subBadgeTextPro : styles.subBadgeTextFree,
+            {Platform.OS !== 'web' && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.subBadge,
+                  isPro ? styles.subBadgePro : styles.subBadgeFree,
+                  pressed && { opacity: 0.8 },
                 ]}
+                onPress={() => navigation.navigate('PaywallScreen')}
               >
-                {isPro ? 'Pro' : 'Upgrade'}
-              </Text>
-            </Pressable>
+                <Ionicons
+                  name={isPro ? 'sparkles' : 'star'}
+                  size={13}
+                  color={isPro ? '#CA8A04' : '#854D0E'}
+                />
+                <Text
+                  style={[
+                    styles.subBadgeText,
+                    isPro ? styles.subBadgeTextPro : styles.subBadgeTextFree,
+                  ]}
+                >
+                  {isPro ? 'Pro' : 'Upgrade'}
+                </Text>
+              </Pressable>
+            )}
             <Pressable
               style={styles.settingsBtn}
               onPress={() => navigation.navigate('History')}
@@ -266,44 +270,73 @@ export default function DashboardScreen() {
         ) : (
           <>
             {/* ─── Subscription Status Banner ─── */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.subscriptionBanner,
-                isPro ? styles.subscriptionBannerPro : styles.subscriptionBannerFree,
-                pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
-              ]}
-              onPress={() => navigation.navigate('PaywallScreen')}
-            >
-              <View style={styles.subBannerLeft}>
-                <View style={[styles.subBannerIconWrap, isPro && styles.subBannerIconWrapPro]}>
+            {Platform.OS === 'web' ? (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.subscriptionBanner,
+                  styles.subscriptionBannerFree,
+                  pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+                ]}
+                onPress={() => navigation.navigate('PaywallScreen')}
+              >
+                <View style={styles.subBannerLeft}>
+                  <View style={styles.subBannerIconWrap}>
+                    <Ionicons name="phone-portrait-outline" size={18} color="#D97706" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.subBannerTitle}>
+                      Download the App to Upgrade
+                    </Text>
+                    <Text style={styles.subBannerSub} numberOfLines={1}>
+                      Get KadaiBook on Play Store or App Store to unlock Pro
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.subBannerAction}>
+                  <Text style={styles.subBannerActionText}>Get App</Text>
+                  <Ionicons name="chevron-forward" size={14} color="#FFFFFF" />
+                </View>
+              </Pressable>
+            ) : (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.subscriptionBanner,
+                  isPro ? styles.subscriptionBannerPro : styles.subscriptionBannerFree,
+                  pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+                ]}
+                onPress={() => navigation.navigate('PaywallScreen')}
+              >
+                <View style={styles.subBannerLeft}>
+                  <View style={[styles.subBannerIconWrap, isPro && styles.subBannerIconWrapPro]}>
+                    <Ionicons
+                      name={isPro ? 'sparkles' : 'star'}
+                      size={18}
+                      color={isPro ? '#CA8A04' : '#D97706'}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.subBannerTitle}>
+                      {isPro ? 'KadaiBook Pro Plan Active' : 'KadaiBook Free Plan'}
+                    </Text>
+                    <Text style={styles.subBannerSub} numberOfLines={1}>
+                      {isPro
+                        ? 'All premium business & sync features unlocked'
+                        : 'Upgrade to Pro for unlimited orders, sync & reports'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={[styles.subBannerAction, isPro && styles.subBannerActionPro]}>
+                  <Text style={[styles.subBannerActionText, isPro && styles.subBannerActionTextPro]}>
+                    {isPro ? 'Manage' : 'Upgrade'}
+                  </Text>
                   <Ionicons
-                    name={isPro ? 'sparkles' : 'star'}
-                    size={18}
-                    color={isPro ? '#CA8A04' : '#D97706'}
+                    name="chevron-forward"
+                    size={14}
+                    color={isPro ? '#854D0E' : '#FFFFFF'}
                   />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.subBannerTitle}>
-                    {isPro ? 'KadaiBook Pro Plan Active' : 'KadaiBook Free Plan'}
-                  </Text>
-                  <Text style={styles.subBannerSub} numberOfLines={1}>
-                    {isPro
-                      ? 'All premium business & sync features unlocked'
-                      : 'Upgrade to Pro for unlimited orders, sync & reports'}
-                  </Text>
-                </View>
-              </View>
-              <View style={[styles.subBannerAction, isPro && styles.subBannerActionPro]}>
-                <Text style={[styles.subBannerActionText, isPro && styles.subBannerActionTextPro]}>
-                  {isPro ? 'Manage' : 'Upgrade'}
-                </Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={14}
-                  color={isPro ? '#854D0E' : '#FFFFFF'}
-                />
-              </View>
-            </Pressable>
+              </Pressable>
+            )}
 
             {/* ─── Hero Financial Card ─── */}
             <View style={styles.heroCard}>

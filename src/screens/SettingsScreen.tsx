@@ -12,6 +12,7 @@ import {
   Linking,
   Modal,
   Image,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -473,47 +474,91 @@ export default function SettingsScreen() {
           </View>
 
           {/* ─── Subscription Card ─── */}
-          <Pressable
-            style={({ pressed }) => [
-              {
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: 16,
-                backgroundColor: isPro ? '#FDFBEB' : colors.paperCard,
-                borderRadius: radius.md,
-                borderWidth: 1.5,
-                borderColor: isPro ? '#EAB30880' : '#EAB30840',
-                marginBottom: 16,
-              },
-              pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
-            ]}
-            onPress={() => navigation.navigate('PaywallScreen')}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  backgroundColor: '#FEF08A',
+          {Platform.OS === 'web' ? (
+            <Pressable
+              style={({ pressed }) => [
+                {
+                  flexDirection: 'row',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons name="star" size={20} color="#CA8A04" />
+                  justifyContent: 'space-between',
+                  padding: 16,
+                  backgroundColor: colors.paperCard,
+                  borderRadius: radius.md,
+                  borderWidth: 1.5,
+                  borderColor: '#EAB30840',
+                  marginBottom: 16,
+                },
+                pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
+              ]}
+              onPress={() => navigation.navigate('PaywallScreen')}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    backgroundColor: '#F1E8D9',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="phone-portrait-outline" size={20} color="#CA8A04" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.sectionTitle, { fontSize: 14 }]}>
+                    Download the App to Upgrade
+                  </Text>
+                  <Text style={styles.sectionSub} numberOfLines={1}>
+                    Get KadaiBook on Play Store or App Store
+                  </Text>
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.sectionTitle, { fontSize: 14 }]}>
-                  KadaiBook Subscription
-                </Text>
-                <Text style={[styles.sectionSub, isPro && { color: '#CA8A04' }]} numberOfLines={1}>
-                  {isPro ? 'You are on the Pro Plan' : 'Upgrade to Pro for unlimited features'}
-                </Text>
+              <Ionicons name="chevron-forward" size={18} color="#CA8A04" />
+            </Pressable>
+          ) : (
+            <Pressable
+              style={({ pressed }) => [
+                {
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 16,
+                  backgroundColor: isPro ? '#FDFBEB' : colors.paperCard,
+                  borderRadius: radius.md,
+                  borderWidth: 1.5,
+                  borderColor: isPro ? '#EAB30880' : '#EAB30840',
+                  marginBottom: 16,
+                },
+                pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
+              ]}
+              onPress={() => navigation.navigate('PaywallScreen')}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    backgroundColor: '#FEF08A',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="star" size={20} color="#CA8A04" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.sectionTitle, { fontSize: 14 }]}>
+                    KadaiBook Subscription
+                  </Text>
+                  <Text style={[styles.sectionSub, isPro && { color: '#CA8A04' }]} numberOfLines={1}>
+                    {isPro ? 'You are on the Pro Plan' : 'Upgrade to Pro for unlimited features'}
+                  </Text>
+                </View>
               </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#CA8A04" />
-          </Pressable>
+              <Ionicons name="chevron-forward" size={18} color="#CA8A04" />
+            </Pressable>
+          )}
 
           {/* ─── Bill & Invoice Templates Card ─── */}
           <Pressable

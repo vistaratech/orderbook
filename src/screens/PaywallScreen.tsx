@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Pressable, ScrollView, Alert, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import GlassBackButton from '../components/GlassBackButton';
 import { colors, fonts, radius } from '../theme/theme';
 import { getAvailablePackages, purchaseProPackage, checkProStatus, checkBasicStatus, restorePurchases } from '../storage/subscriptionStorage';
+
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=in.kadaibook.app';
+const APP_STORE_URL = 'https://apps.apple.com/app/kadaibook/id6743072498';
 
 export default function PaywallScreen() {
   const navigation = useNavigation();
@@ -108,7 +111,51 @@ export default function PaywallScreen() {
           </View>
         </View>
 
-        {isPro ? (
+        {Platform.OS === 'web' ? (
+          /* ── Web: Download App CTA ── */
+          <View style={styles.webUpgradeCard}>
+            <View style={styles.webUpgradeIconRow}>
+              <Ionicons name="phone-portrait-outline" size={36} color={colors.clayDeep} />
+            </View>
+            <Text style={styles.webUpgradeTitle}>
+              Download the App to Upgrade
+            </Text>
+            <Text style={styles.webUpgradeSub}>
+              In-app subscriptions are available exclusively on our mobile app.
+              Download KadaiBook from the Play Store or App Store to unlock Pro features.
+            </Text>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.storeBtn,
+                styles.storeBtnGoogle,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+              ]}
+              onPress={() => Linking.openURL(PLAY_STORE_URL)}
+            >
+              <Ionicons name="logo-google-playstore" size={22} color="#FFFFFF" />
+              <View>
+                <Text style={styles.storeBtnLabel}>GET IT ON</Text>
+                <Text style={styles.storeBtnTitle}>Google Play</Text>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.storeBtn,
+                styles.storeBtnApple,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+              ]}
+              onPress={() => Linking.openURL(APP_STORE_URL)}
+            >
+              <Ionicons name="logo-apple" size={24} color="#FFFFFF" />
+              <View>
+                <Text style={styles.storeBtnLabel}>Download on the</Text>
+                <Text style={styles.storeBtnTitle}>App Store</Text>
+              </View>
+            </Pressable>
+          </View>
+        ) : isPro ? (
           <View style={styles.activeContainer}>
             <Text style={styles.activeText}>You are currently on the Pro plan! Enjoy all premium features.</Text>
           </View>
@@ -158,15 +205,17 @@ export default function PaywallScreen() {
           </View>
         )}
 
-        <Pressable
-          style={{ marginTop: 24, marginBottom: 16, alignSelf: 'center', padding: 8 }}
-          onPress={handleRestore}
-          disabled={purchasing}
-        >
-          <Text style={{ color: colors.clayDeep, fontFamily: fonts.bodyBold, fontSize: 14 }}>
-            Restore Purchases
-          </Text>
-        </Pressable>
+        {Platform.OS !== 'web' && (
+          <Pressable
+            style={{ marginTop: 24, marginBottom: 16, alignSelf: 'center', padding: 8 }}
+            onPress={handleRestore}
+            disabled={purchasing}
+          >
+            <Text style={{ color: colors.clayDeep, fontFamily: fonts.bodyBold, fontSize: 14 }}>
+              Restore Purchases
+            </Text>
+          </Pressable>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -292,5 +341,69 @@ const styles = StyleSheet.create({
     color: colors.ink,
     lineHeight: 20,
     paddingHorizontal: 4,
+  },
+  /* ── Web: Download App Styles ── */
+  webUpgradeCard: {
+    backgroundColor: colors.paperCard,
+    borderRadius: radius.md,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
+  },
+  webUpgradeIconRow: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: '#F1E8D9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  webUpgradeTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 20,
+    color: colors.ink,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  webUpgradeSub: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.inkSoft,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+    maxWidth: 400,
+  },
+  storeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    width: '100%',
+    maxWidth: 280,
+    marginBottom: 12,
+  },
+  storeBtnGoogle: {
+    backgroundColor: '#1A73E8',
+  },
+  storeBtnApple: {
+    backgroundColor: '#000000',
+  },
+  storeBtnLabel: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.8)',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  storeBtnTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 17,
+    color: '#FFFFFF',
   },
 });

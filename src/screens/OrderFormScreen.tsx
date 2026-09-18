@@ -255,6 +255,48 @@ export default function OrderFormScreen({ navigation, route }: Props) {
 
     setSaving(true);
 
+    // Verify limit before saving a new order
+    if (!isEditing) {
+      try {
+        const isPro = await checkProStatus();
+        if (!isPro) {
+          const isBasic = await checkBasicStatus();
+          const currentOrders = await getOrders();
+          if (isBasic && currentOrders.length >= 150) {
+            setSaving(false);
+            Alert.alert(
+              'Order Limit Reached',
+              'You have reached the limit of 150 orders on Basic. Please upgrade to Pro for unlimited orders.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Upgrade to Pro',
+                  onPress: () => (navigation as any).navigate('PaywallScreen'),
+                },
+              ]
+            );
+            return;
+          } else if (!isBasic && currentOrders.length >= 10) {
+            setSaving(false);
+            Alert.alert(
+              'Order Limit Reached',
+              'You have used all 10 free orders on the Free plan. Upgrade to Pro for unlimited orders!',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Upgrade to Pro',
+                  onPress: () => (navigation as any).navigate('PaywallScreen'),
+                },
+              ]
+            );
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to verify subscription on save', e);
+      }
+    }
+
     // Auto-save customer if new or updated
     try {
       const existing = allCustomers.find(

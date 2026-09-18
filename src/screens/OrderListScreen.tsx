@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ScrollView,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
@@ -25,7 +26,7 @@ import TourTarget from '../components/tour/TourTarget';
 import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { formatCurrency } from '../utils/format';
-import { checkProStatus } from '../storage/subscriptionStorage';
+import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -38,6 +39,7 @@ export default function OrderListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isPro, setIsPro] = useState(false);
+  const [isBasic, setIsBasic] = useState(false);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,12 +60,14 @@ export default function OrderListScreen() {
 
   const loadOrders = useCallback(async (forceSync = false) => {
     try {
-      const [data, proStatus] = await Promise.all([
+      const [data, proStatus, basicStatus] = await Promise.all([
         getOrders(forceSync),
         checkProStatus(),
+        checkBasicStatus(),
       ]);
       setOrders(data);
       setIsPro(proStatus);
+      setIsBasic(basicStatus);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -168,50 +172,116 @@ export default function OrderListScreen() {
   const hasActiveFilters =
     statusFilter !== 'All' || paymentFilter !== 'All' || sortBy !== 'newest';
 
+  const handleNewOrder = () => {
+    if (!isPro) {
+      if (isBasic && orders.length >= 150) {
+        Alert.alert(
+          'Order Limit Reached',
+          'You have reached 150 orders on the Basic plan. Upgrade to Pro for unlimited orders!',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Upgrade to Pro', onPress: () => navigation.navigate('PaywallScreen') },
+          ]
+        );
+        return;
+      } else if (!isBasic && orders.length >= 10) {
+        Alert.alert(
+          'Order Limit Reached',
+          'You have used all 10 free orders on the Free plan. Upgrade to Pro for unlimited orders!',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Upgrade to Pro', onPress: () => navigation.navigate('PaywallScreen') },
+          ]
+        );
+        return;
+      }
+    }
+    navigation.navigate('OrderForm', undefined);
+  };
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.centerContainer}>
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>{t('orders.title')}</Text>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={styles.title}>{t('orders.title')}</Text>
+              {Platform.OS !== 'web' && (
+                <View
+                  style={[
+                    styles.subBadge,
+                    isPro ? styles.subBadgePro : styles.subBadgeFree,
+                  ]}
+                >
+                  <Ionicons
+                    name={isPro ? 'sparkles' : 'star-outline'}
+                    size={11}
+                    color={isPro ? '#854D0E' : '#B45309'}
+                  />
+                  <Text
+                    style={[
+                      styles.subBadgeText,
+                      isPro ? styles.subBadgeTextPro : styles.subBadgeTextFree,
+                    ]}
+                  >
+                    {isPro ? 'Pro' : isBasic ? 'Basic' : 'Free'}
+                  </Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.subtitle}>
               {loading
                 ? t('common.loading')
                 : `${filteredOrders.length} / ${orders.length}`}
             </Text>
           </View>
-          {/* Subscription Status Badge */}
-          {Platform.OS !== 'web' && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.subBadge,
-                isPro ? styles.subBadgePro : styles.subBadgeFree,
-                pressed && { opacity: 0.85 },
-              ]}
-              onPress={() => navigation.navigate('PaywallScreen')}
-            >
-              <Ionicons
-                name={isPro ? 'sparkles' : 'star'}
-                size={13}
-                color={isPro ? '#CA8A04' : '#854D0E'}
-              />
-              <Text
-                style={[
-                  styles.subBadgeText,
-                  isPro ? styles.subBadgeTextPro : styles.subBadgeTextFree,
-                ]}
-              >
-                {isPro ? 'Pro Active' : 'Upgrade'}
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={12}
-                color={isPro ? '#CA8A04' : '#854D0E'}
-              />
-            </Pressable>
-          )}
         </View>
+
+        {/* Quota Reminder Banner for Free / Basic users */}
+        {!isPro && Platform.OS !== 'web' && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.quotaBanner,
+              orders.length >= (isBasic ? 150 : 10)
+                ? styles.quotaBannerDanger
+                : orders.length >= (isBasic ? 120 : 7)
+                ? styles.quotaBannerWarning
+                : styles.quotaBannerDefault,
+              pressed && { opacity: 0.9 },
+            ]}
+            onPress={() => navigation.navigate('PaywallScreen')}
+          >
+            <View style={styles.quotaBannerLeft}>
+              <Ionicons
+                name={
+                  orders.length >= (isBasic ? 150 : 10)
+                    ? 'alert-circle'
+                    : orders.length >= (isBasic ? 120 : 7)
+                    ? 'flash'
+                    : 'information-circle'
+                }
+                size={17}
+                color={
+                  orders.length >= (isBasic ? 150 : 10)
+                    ? colors.danger
+                    : orders.length >= (isBasic ? 120 : 7)
+                    ? '#B45309'
+                    : colors.clayDeep
+                }
+              />
+              <Text style={styles.quotaBannerText} numberOfLines={1}>
+                {orders.length >= (isBasic ? 150 : 10)
+                  ? `Free limit reached (${orders.length}/${isBasic ? 150 : 10} orders). Upgrade to Pro!`
+                  : `${orders.length} of ${isBasic ? 150 : 10} free orders used (${Math.max(0, (isBasic ? 150 : 10) - orders.length)} left)`}
+              </Text>
+            </View>
+            <View style={styles.quotaBannerBtn}>
+              <Text style={styles.quotaBannerBtnText}>Upgrade</Text>
+              <Ionicons name="chevron-forward" size={12} color="#FFFFFF" />
+            </View>
+          </Pressable>
+        )}
 
         {/* Modern Search & Filter Toolbar */}
         <TourTarget targetKey="orders-search-filter">
@@ -442,7 +512,7 @@ export default function OrderListScreen() {
         {/* Floating Action Button */}
         <Pressable
           style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-          onPress={() => navigation.navigate('OrderForm', undefined)}
+          onPress={handleNewOrder}
         >
           <Ionicons name="cart" size={24} color={colors.white} />
           <Text style={styles.fabText}>{t('orders.newOrderBtn')}</Text>
@@ -768,6 +838,57 @@ const styles = StyleSheet.create({
   quickChipTextActive: {
     color: colors.white,
     fontFamily: fonts.bodyBold,
+  },
+
+  /* ── Quota Reminder Banner ── */
+  quotaBanner: {
+    marginHorizontal: 20,
+    marginBottom: 8,
+    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+  },
+  quotaBannerDefault: {
+    backgroundColor: '#FBF7EE',
+    borderColor: colors.line,
+  },
+  quotaBannerWarning: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A',
+  },
+  quotaBannerDanger: {
+    backgroundColor: '#FCEBE9',
+    borderColor: '#F87171',
+  },
+  quotaBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  quotaBannerText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.ink,
+    flex: 1,
+  },
+  quotaBannerBtn: {
+    backgroundColor: colors.clayDeep,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+  },
+  quotaBannerBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: '#FFFFFF',
   },
 });
 

@@ -103,6 +103,45 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
       return;
     }
 
+    if (!isEditing) {
+      try {
+        const isPro = await checkProStatus();
+        if (!isPro) {
+          const isBasic = await checkBasicStatus();
+          const currentCustomers = await getCustomers();
+          if (isBasic && currentCustomers.length >= 60) {
+            Alert.alert(
+              'Customer Limit Reached',
+              'You can only add up to 60 customers on the Basic plan. Please upgrade to Pro for unlimited customers.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Upgrade to Pro',
+                  onPress: () => (navigation as any).navigate('PaywallScreen'),
+                },
+              ]
+            );
+            return;
+          } else if (!isBasic && currentCustomers.length >= 10) {
+            Alert.alert(
+              'Customer Limit Reached',
+              'You have added 10 customers on the Free plan. Upgrade to Pro for unlimited customers!',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Upgrade to Pro',
+                  onPress: () => (navigation as any).navigate('PaywallScreen'),
+                },
+              ]
+            );
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to check customer limits on save', e);
+      }
+    }
+
     setSaving(true);
     await saveCustomer({
       id: customerId,

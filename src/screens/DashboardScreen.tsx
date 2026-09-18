@@ -316,11 +316,15 @@ export default function DashboardScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.subBannerTitle}>
-                      {isPro ? 'KadaiBook Pro Plan Active' : 'KadaiBook Free Plan'}
+                      {isPro ? 'KadaiBook Pro Plan Active' : `KadaiBook Free Plan (${orders.length}/10 Orders)`}
                     </Text>
                     <Text style={styles.subBannerSub} numberOfLines={1}>
                       {isPro
                         ? 'All premium business & sync features unlocked'
+                        : orders.length >= 10
+                        ? 'Free order limit reached (10/10)! Upgrade to Pro.'
+                        : orders.length >= 7
+                        ? `Only ${Math.max(0, 10 - orders.length)} free orders left! Upgrade to Pro.`
                         : 'Upgrade to Pro for unlimited orders, sync & reports'}
                     </Text>
                   </View>

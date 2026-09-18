@@ -104,6 +104,31 @@ export default function ProductFormScreen({ navigation, route }: Props) {
       return;
     }
 
+    if (!isEditing) {
+      try {
+        const isPro = await checkProStatus();
+        if (!isPro) {
+          const prods = await getProducts();
+          if (prods.length >= 20) {
+            Alert.alert(
+              'Product Limit Reached',
+              'You can only add up to 20 products on the free plan. Please upgrade to Pro to add unlimited products.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Upgrade to Pro',
+                  onPress: () => (navigation as any).navigate('PaywallScreen'),
+                },
+              ]
+            );
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to check product limit on save', e);
+      }
+    }
+
     setSaving(true);
     await saveProduct({
       id: productId,

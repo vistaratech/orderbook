@@ -207,28 +207,28 @@ export default function OrderListScreen() {
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={styles.title}>{t('orders.title')}</Text>
-              {Platform.OS !== 'web' && (
-                <View
+              <View
+                style={[
+                  styles.subBadge,
+                  isPro ? styles.subBadgePro : styles.subBadgeFree,
+                ]}
+              >
+                <Ionicons
+                  name={isPro ? 'sparkles' : 'star-outline'}
+                  size={11}
+                  color={isPro ? '#854D0E' : '#B45309'}
+                />
+                <Text
                   style={[
-                    styles.subBadge,
-                    isPro ? styles.subBadgePro : styles.subBadgeFree,
+                    styles.subBadgeText,
+                    isPro
+                      ? styles.subBadgeTextPro
+                      : styles.subBadgeTextFree,
                   ]}
                 >
-                  <Ionicons
-                    name={isPro ? 'sparkles' : 'star-outline'}
-                    size={11}
-                    color={isPro ? '#854D0E' : '#B45309'}
-                  />
-                  <Text
-                    style={[
-                      styles.subBadgeText,
-                      isPro ? styles.subBadgeTextPro : styles.subBadgeTextFree,
-                    ]}
-                  >
-                    {isPro ? 'Pro' : isBasic ? 'Basic' : 'Free'}
-                  </Text>
-                </View>
-              )}
+                  {isPro ? 'Pro' : isBasic ? 'Basic' : 'Free'}
+                </Text>
+              </View>
             </View>
             <Text style={styles.subtitle}>
               {loading
@@ -239,7 +239,7 @@ export default function OrderListScreen() {
         </View>
 
         {/* Quota Reminder Banner for Free / Basic users */}
-        {!isPro && Platform.OS !== 'web' && (
+        {!isPro && (
           <Pressable
             style={({ pressed }) => [
               styles.quotaBanner,
@@ -258,7 +258,7 @@ export default function OrderListScreen() {
                   orders.length >= (isBasic ? 150 : 10)
                     ? 'alert-circle'
                     : orders.length >= (isBasic ? 120 : 7)
-                    ? 'flash'
+                    ? 'warning'
                     : 'information-circle'
                 }
                 size={17}
@@ -272,8 +272,10 @@ export default function OrderListScreen() {
               />
               <Text style={styles.quotaBannerText} numberOfLines={1}>
                 {orders.length >= (isBasic ? 150 : 10)
-                  ? `Free limit reached (${orders.length}/${isBasic ? 150 : 10} orders). Upgrade to Pro!`
-                  : `${orders.length} of ${isBasic ? 150 : 10} free orders used (${Math.max(0, (isBasic ? 150 : 10) - orders.length)} left)`}
+                  ? `🚨 Free limit reached (${orders.length}/${isBasic ? 150 : 10} orders). Upgrade to Pro!`
+                  : orders.length >= (isBasic ? 120 : 7)
+                  ? `⚠️ Only ${Math.max(0, (isBasic ? 150 : 10) - orders.length)} free orders left (${orders.length}/${isBasic ? 150 : 10} used). Upgrade to Pro!`
+                  : `📦 Free Plan: ${orders.length} of ${isBasic ? 150 : 10} free orders used (${Math.max(0, (isBasic ? 150 : 10) - orders.length)} left)`}
               </Text>
             </View>
             <View style={styles.quotaBannerBtn}>

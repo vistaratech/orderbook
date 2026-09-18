@@ -270,48 +270,20 @@ export default function DashboardScreen() {
         ) : (
           <>
             {/* ─── Subscription Status Banner ─── */}
-            {Platform.OS === 'web' ? (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.subscriptionBanner,
-                  styles.subscriptionBannerFree,
-                  pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
-                ]}
-                onPress={() => navigation.navigate('PaywallScreen')}
-              >
-                <View style={styles.subBannerLeft}>
-                  <View style={styles.subBannerIconWrap}>
-                    <Ionicons name="phone-portrait-outline" size={18} color="#D97706" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.subBannerTitle}>
-                      Download the App to Upgrade
-                    </Text>
-                    <Text style={styles.subBannerSub} numberOfLines={1}>
-                      Get KadaiBook on Play Store or App Store to unlock Pro
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.subBannerAction}>
-                  <Text style={styles.subBannerActionText}>Get App</Text>
-                  <Ionicons name="chevron-forward" size={14} color="#FFFFFF" />
-                </View>
-              </Pressable>
-            ) : (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.subscriptionBanner,
-                  isPro
-                    ? styles.subscriptionBannerPro
-                    : orders.length >= 10
-                    ? styles.subscriptionBannerDanger
-                    : orders.length >= 7
-                    ? styles.subscriptionBannerWarning
-                    : styles.subscriptionBannerFree,
-                  pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
-                ]}
-                onPress={() => navigation.navigate('PaywallScreen')}
-              >
+            <Pressable
+              style={({ pressed }) => [
+                styles.subscriptionBanner,
+                isPro
+                  ? styles.subscriptionBannerPro
+                  : orders.length >= 10
+                  ? styles.subscriptionBannerDanger
+                  : orders.length >= 7
+                  ? styles.subscriptionBannerWarning
+                  : styles.subscriptionBannerFree,
+                pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+              ]}
+              onPress={() => navigation.navigate('PaywallScreen')}
+            >
                 <View style={styles.subBannerLeft}>
                   <View
                     style={[
@@ -393,7 +365,6 @@ export default function DashboardScreen() {
                   />
                 </View>
               </Pressable>
-            )}
 
             {/* ─── Hero Financial Card ─── */}
             <View style={styles.heroCard}>

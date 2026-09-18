@@ -418,7 +418,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           </View>
 
           {/* ── Upgrade Nudge Banner ── */}
-          {upgradeNudge && Platform.OS !== 'web' && (
+          {upgradeNudge && (
             <Pressable
               style={{
                 flexDirection: 'row',

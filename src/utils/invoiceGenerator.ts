@@ -335,12 +335,7 @@ function generateStandardInvoiceHtml(
   const total = orderTotal(order);
   const balance = orderBalance(order);
   const businessName = business?.businessName || business?.name || DEFAULT_BUSINESS_NAME;
-  const customCols = order.customColumns || [];
   const isPaid = balance <= 0;
-
-  const hasGst =
-    cfg.showGSTRate && order.items.some((i) => (i.taxRate || 0) > 0 || !!i.hsnCode);
-  const isInterState = order.isInterState || false;
 
   let totalTaxAmount = 0;
   let subtotalAmount = 0;
@@ -359,7 +354,6 @@ function generateStandardInvoiceHtml(
   totalTaxAmount = Math.round(totalTaxAmount * 100) / 100;
   const cgstAmount = Math.round((totalTaxAmount / 2) * 100) / 100;
   const sgstAmount = Math.round((totalTaxAmount / 2) * 100) / 100;
-  const igstAmount = totalTaxAmount;
 
   // UPI dynamic payment link & QR
   const upiId = cfg.upiId || business?.upiId;
@@ -368,7 +362,7 @@ function generateStandardInvoiceHtml(
       ? `upi://pay?pa=${upiId}&pn=${encodeURIComponent(
           businessName
         )}&am=${balance}&cu=INR&tn=Order_${order.orderNumber}`
-      : '';
+      : (cfg.showUpiQr && upiId ? `upi://pay?pa=${upiId}&pn=${encodeURIComponent(businessName)}` : '');
   const upiQrUrl = upiPayUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(
         upiPayUrl
@@ -377,64 +371,52 @@ function generateStandardInvoiceHtml(
 
   const itemRowsHtml = order.items
     .map((item, idx) => {
-      const unitStr =
-        cfg.showUnit && item.unit
-          ? ` <span style="font-size:11px; color:#64748B;">${item.unit}</span>`
-          : '';
       const sNoCell = cfg.showItemSerialNo
-        ? `<td style="padding: 10px 12px; border-bottom: 1px solid #E2E8F0; text-align: center; font-size: 12px; color: #64748B;">${
+        ? `<td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #64748B;">${
             idx + 1
           }</td>`
         : '';
-      const hsnCell =
-        cfg.showHsn && hasGst
-          ? `<td style="padding: 10px 12px; border-bottom: 1px solid #E2E8F0; text-align: center; font-size: 12px; color: #64748B;">${
-              item.hsnCode || '-'
-            }</td>`
-          : '';
-      const gstCell =
-        cfg.showGSTRate && hasGst
-          ? `<td style="padding: 10px 12px; border-bottom: 1px solid #E2E8F0; text-align: center; font-size: 12px; color: #64748B;">${
-              item.taxRate ? `${item.taxRate}%` : '-'
-            }</td>`
-          : '';
-      const discCell =
-        cfg.showDiscount && totalDiscountAmount > 0
-          ? `<td style="padding: 10px 12px; border-bottom: 1px solid #E2E8F0; text-align: right; font-size: 12px; color: #EF4444;">${
-              item.discount ? `-${formatCurrency(item.discount)}` : '-'
-            }</td>`
-          : '';
+      const hsnCell = cfg.showHsn
+        ? `<td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #64748B;">${
+            item.hsnCode || '-'
+          }</td>`
+        : '';
+      const unitCell = cfg.showUnit
+        ? `<td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #64748B;">${
+            item.unit || '-'
+          }</td>`
+        : '';
       const rateCell = cfg.showRate
-        ? `<td style="padding: 10px 12px; border-bottom: 1px solid #E2E8F0; text-align: right; font-size: 13px; color: #475569;">${formatCurrency(
+        ? `<td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: right; font-size: 11.5px; color: #334155;">${formatCurrency(
             item.price
           )}</td>`
         : '';
-      const customTds = customCols
-        .map((c) => {
-          const val =
-            item.customValues?.[c.id] ||
-            (c.name.toLowerCase() === 'unit' && item.unit ? item.unit : '-');
-          return `<td style="padding: 10px 12px; border-bottom: 1px solid #E2E8F0; text-align: center; font-size: 12px; color: #475569;">${
-            val || '-'
-          }</td>`;
-        })
-        .join('');
+      const gstCell = cfg.showGSTRate
+        ? `<td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #475569;">${
+            item.taxRate ? `${item.taxRate}%` : '0%'
+          }</td>`
+        : '';
+      const discCell = cfg.showDiscount
+        ? `<td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: right; font-size: 11px; color: #16A34A;">${
+            item.discount ? `-${formatCurrency(item.discount)}` : '-'
+          }</td>`
+        : '';
 
       return `
-    <tr style="background-color: ${idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};">
+    <tr style="background-color: ${idx % 2 === 1 ? '#F8FAFC' : '#FFFFFF'};">
       ${sNoCell}
-      <td style="padding: 10px 12px; border-bottom: 1px solid #E2E8F0; font-weight: 600; font-size: 13px; color: #1E293B;">${
+      <td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; font-weight: 600; font-size: 12px; color: #0F172A;">${
         item.name || 'Item'
       }</td>
       ${hsnCell}
-      <td style="padding: 10px 12px; border-bottom: 1px solid #E2E8F0; text-align: center; font-weight: 600; font-size: 13px; color: #334155;">${
+      <td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 12px; color: #334155;">${
         item.qty
-      }${unitStr}</td>
-      ${customTds}
+      }</td>
+      ${unitCell}
       ${rateCell}
-      ${discCell}
       ${gstCell}
-      <td style="padding: 10px 12px; border-bottom: 1px solid #E2E8F0; text-align: right; font-weight: 700; font-size: 13px; color: #0F172A;">${formatCurrency(
+      ${discCell}
+      <td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: right; font-weight: 700; font-size: 12px; color: #0F172A;">${formatCurrency(
         item.qty * item.price - (item.discount || 0)
       )}</td>
     </tr>`;
@@ -443,18 +425,7 @@ function generateStandardInvoiceHtml(
 
   const logoHtml =
     cfg.showLogo && business?.logoUri
-      ? `<img src="${business.logoUri}" class="brand-logo" alt="Logo" style="width: ${
-          cfg.logoSize === 'large' ? '76px' : cfg.logoSize === 'small' ? '44px' : '60px'
-        }; height: ${
-          cfg.logoSize === 'large' ? '76px' : cfg.logoSize === 'small' ? '44px' : '60px'
-        }; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3);" />`
-      : cfg.showLogo
-      ? `<div class="brand-logo-default" style="width: 52px; height: 52px; border-radius: 10px; background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${cfg.headerTextColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-          </svg>
-         </div>`
+      ? `<img src="${business.logoUri}" alt="Store Logo" style="width: 58px; height: 58px; object-fit: contain; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); background: #FFFFFF; flex-shrink: 0;" />`
       : '';
 
   const bankText = cfg.bankDetailsCustom || business?.bankDetails;
@@ -464,11 +435,11 @@ function generateStandardInvoiceHtml(
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${cfg.invoiceTitle} - ${order.orderNumber}</title>
+  <title>${cfg.invoiceTitle || 'TAX INVOICE'} - ${order.orderNumber}</title>
   <style>
     @page {
       size: ${cfg.paperSize === 'a5' ? 'A5 portrait' : 'A4 portrait'};
-      margin: ${cfg.compactMode ? '6mm' : '10mm'};
+      margin: ${cfg.compactMode ? '5mm' : '8mm'};
     }
     @media print {
       html, body {
@@ -478,7 +449,7 @@ function generateStandardInvoiceHtml(
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
-      .invoice-card {
+      .invoice-sheet {
         box-shadow: none !important;
         border: none !important;
         max-width: 100% !important;
@@ -496,65 +467,74 @@ function generateStandardInvoiceHtml(
           ? '"Courier New", Courier, monospace'
           : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
       };
-      background-color: #F8FAFC;
-      color: #1E293B;
+      background-color: #EEF2F6;
+      color: #0F172A;
       margin: 0;
-      padding: ${cfg.compactMode ? '12px' : '20px'};
+      padding: ${cfg.compactMode ? '10px' : '18px'};
+      display: flex;
+      justify-content: center;
     }
-    .invoice-card {
-      max-width: 740px;
-      margin: 0 auto;
+    .invoice-sheet {
+      width: 100%;
+      max-width: 720px;
       background: #FFFFFF;
-      border-radius: 12px;
+      border-radius: 10px;
       overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-      border: 1px solid ${cfg.cardBorderColor || '#E2E8F0'};
-      position: relative;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+      border: 1.5px solid ${cfg.cardBorderColor || '#CBD5E1'};
     }
-    .watermark {
-      position: absolute;
-      top: 45%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(-30deg);
-      font-size: 80px;
-      font-weight: 900;
-      color: rgba(15, 23, 42, 0.04);
-      pointer-events: none;
-      text-transform: uppercase;
-      letter-spacing: 6px;
-      user-select: none;
-    }
-    .header-banner {
-      background: ${cfg.headerBgColor};
-      color: ${cfg.headerTextColor};
-      padding: ${cfg.compactMode ? '16px 20px' : '22px 28px'};
+    .sheet-header {
+      background: ${cfg.headerBgColor || '#F8FAFC'};
+      padding: 16px 20px;
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      border-bottom: 3px solid ${cfg.accentColor};
+      align-items: flex-start;
+      border-bottom: 2px solid ${cfg.primaryColor};
+      gap: 12px;
     }
-    .brand-wrap {
+    .brand-section {
       display: flex;
-      align-items: center;
-      gap: 14px;
+      align-items: flex-start;
+      gap: 12px;
+      flex: 1.6;
     }
-    .brand-title {
-      font-size: 20px;
+    .store-name {
+      font-size: 18px;
       font-weight: 800;
-      color: ${cfg.headerTextColor};
+      color: ${cfg.headerTextColor || cfg.primaryColor};
       margin: 0 0 2px 0;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
-    .brand-tagline {
+    .tagline {
       font-size: 11px;
-      color: ${cfg.templateId === 'classic' ? '#64748B' : 'rgba(255, 255, 255, 0.85)'};
-      margin: 0;
+      color: #64748B;
+      margin: 0 0 4px 0;
+    }
+    .address-line {
+      font-size: 10.5px;
+      color: #334155;
+      margin: 0 0 3px 0;
+      line-height: 1.35;
+    }
+    .contacts-row {
+      font-size: 10.5px;
+      color: #334155;
+      margin: 2px 0 0 0;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .gstin-tag {
+      font-weight: 700;
+      color: ${cfg.primaryColor};
     }
     .header-right {
-      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      min-width: 140px;
     }
-    .doc-type-badge {
+    .title-badge {
       display: inline-block;
       padding: 4px 10px;
       border-radius: 4px;
@@ -562,326 +542,361 @@ function generateStandardInvoiceHtml(
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      background-color: ${isPaid ? '#10B981' : cfg.accentColor};
+      background-color: ${cfg.primaryColor};
       color: #FFFFFF;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
+      text-align: center;
     }
-    .bill-meta {
-      font-size: 11px;
-      color: ${cfg.templateId === 'classic' ? '#64748B' : 'rgba(255, 255, 255, 0.9)'};
-      margin: 2px 0;
+    .meta-text {
+      font-size: 10.5px;
+      color: #1E293B;
+      margin: 1px 0;
+      text-align: right;
     }
-    .content-body {
-      padding: ${cfg.compactMode ? '16px 20px' : '22px 28px'};
-    }
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    .info-card {
+    .buyer-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 16px;
       background: #F8FAFC;
-      border: 1px solid #E2E8F0;
-      padding: 12px 14px;
-      border-radius: 8px;
+      border-bottom: 1px solid #E2E8F0;
     }
-    .info-card h4 {
-      margin: 0 0 6px 0;
-      font-size: 10px;
+    .buyer-heading {
+      font-size: 9.5px;
       color: #64748B;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
-    .info-card p {
-      margin: 0;
-      font-size: 13px;
+    .buyer-name {
+      font-size: 12.5px;
       font-weight: 700;
       color: #0F172A;
+      margin-top: 1px;
     }
-    .info-sub {
-      font-size: 11px !important;
-      color: #475569 !important;
-      font-weight: 400 !important;
-      margin-top: 3px !important;
+    .buyer-phone {
+      font-size: 10px;
+      color: #64748B;
     }
-    .gstin-badge {
+    .status-badge {
       display: inline-block;
-      background: #E2E8F0;
-      color: #1E293B;
-      padding: 2px 6px;
-      border-radius: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
       font-size: 10px;
       font-weight: 700;
-      margin-top: 4px;
+      background-color: ${isPaid ? '#DCFCE7' : '#FEF3C7'};
+      color: ${isPaid ? '#15803D' : '#B45309'};
+    }
+    .table-container {
+      padding: 12px 14px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 20px;
     }
     th {
       background: ${cfg.primaryColor};
-      color: ${cfg.headerTextColor};
-      font-size: 11px;
+      color: #FFFFFF;
+      font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 8px 12px;
+      letter-spacing: 0.4px;
+      padding: 7px 10px;
+      border: none;
     }
-    .summary-section {
+    th:first-child {
+      border-top-left-radius: 4px;
+      border-bottom-left-radius: 4px;
+    }
+    th:last-child {
+      border-top-right-radius: 4px;
+      border-bottom-right-radius: 4px;
+    }
+    .totals-section {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 20px;
+      padding: 12px 16px;
+      border-top: 1px solid #E2E8F0;
+      background: #FAFAFA;
       gap: 16px;
     }
-    .notes-box {
+    .words-and-notes {
+      flex: 1;
+    }
+    .section-small-title {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #64748B;
+      text-transform: uppercase;
+    }
+    .words-value {
+      font-size: 10px;
+      font-style: italic;
+      color: #1E293B;
+      margin-top: 2px;
+    }
+    .notes-value {
+      font-size: 10px;
+      color: #334155;
+      margin-top: 2px;
+    }
+    .totals-card {
+      width: 220px;
+    }
+    .calc-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      color: #1E293B;
+      margin-bottom: 4px;
+    }
+    .calc-row.total {
+      border-top: 1.5px solid #CBD5E1;
+      padding-top: 5px;
+      margin-top: 4px;
+      font-weight: 800;
+      font-size: 12px;
+    }
+    .calc-row.balance {
+      background: ${isPaid ? '#F0FDF4' : '#FEF2F2'};
+      border: 1px solid ${isPaid ? '#BBF7D0' : '#FECACA'};
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-weight: 800;
+      font-size: 11px;
+      color: ${isPaid ? '#15803D' : '#DC2626'};
+      margin-top: 5px;
+    }
+    .payment-container {
+      padding: 10px 16px;
+      border-top: 1px solid #E2E8F0;
+      background: #FFFFFF;
+    }
+    .payment-inner-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+    .qr-card-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      padding: 6px 10px;
+      border-radius: 6px;
+      min-width: 110px;
+    }
+    .bank-card-box {
       flex: 1;
       background: #F8FAFC;
       border: 1px solid #E2E8F0;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 11px;
-      color: #334155;
-    }
-    .notes-box h5 {
-      margin: 0 0 4px 0;
-      font-size: 10px;
-      color: #64748B;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .summary-box {
-      width: 270px;
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
-      padding: 14px;
-      border-radius: 8px;
-    }
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-      font-size: 12px;
-      color: #475569;
-    }
-    .summary-row.total {
-      border-top: 2px solid #CBD5E1;
-      padding-top: 8px;
-      font-weight: 800;
-      font-size: 15px;
-      color: #0F172A;
-    }
-    .summary-row.balance {
-      background: ${isPaid ? '#F0FDF4' : '#FEF2F2'};
-      border: 1px solid ${isPaid ? '#BBF7D0' : '#FECACA'};
-      padding: 8px 10px;
+      padding: 6px 10px;
       border-radius: 6px;
-      font-weight: 800;
-      font-size: 13px;
-      color: ${isPaid ? '#166534' : '#991B1B'};
-      margin-top: 8px;
-      margin-bottom: 0;
-    }
-    .bank-card {
-      background: #F8FAFC;
-      border: 1px solid #CBD5E1;
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-    }
-    .bank-card h5 {
-      margin: 0 0 4px 0;
-      font-size: 10px;
-      color: #64748B;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .bank-card p {
-      margin: 0;
-      font-size: 12px;
+      font-size: 9.5px;
       color: #1E293B;
       white-space: pre-line;
-      line-height: 1.4;
+      line-height: 1.35;
     }
-    .signatory-row {
+    .footer-terms-section {
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
-      margin-top: 24px;
-      padding-top: 16px;
+      padding: 12px 16px;
       border-top: 1px solid #E2E8F0;
+      background: #FFFFFF;
+      gap: 14px;
     }
-    .terms-text {
-      font-size: 10px;
-      color: #64748B;
-      max-width: 400px;
-      line-height: 1.4;
+    .terms-box {
+      flex: 1.4;
+      font-size: 9px;
+      color: #475569;
+      line-height: 1.35;
       white-space: pre-line;
     }
-    .signatory-box {
-      text-align: center;
-      width: 190px;
-    }
-    .signatory-line {
-      border-bottom: 1px solid #94A3B8;
-      margin-bottom: 4px;
-      height: 36px;
-    }
-    .signatory-title {
+    .greeting-line {
       font-size: 10px;
       font-weight: 700;
-      color: #334155;
-      text-transform: uppercase;
+      color: ${cfg.primaryColor};
+      margin-top: 6px;
     }
-    .footer-bar {
+    .signatory-box {
+      width: 140px;
       text-align: center;
-      margin-top: 16px;
-      padding-top: 10px;
-      font-size: 10px;
-      color: #94A3B8;
-      border-top: 1px dashed #E2E8F0;
+    }
+    .signatory-line {
+      width: 100%;
+      height: 1px;
+      background: #94A3B8;
+      margin-bottom: 4px;
+    }
+    .signatory-store {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #0F172A;
+    }
+    .signatory-title {
+      font-size: 8.5px;
+      color: #64748B;
     }
   </style>
 </head>
 <body>
-  <div class="invoice-card">
-    ${cfg.showWatermark ? `<div class="watermark">${cfg.watermarkText || (isPaid ? 'PAID' : 'ORIGINAL')}</div>` : ''}
-    
-    <div class="header-banner">
-      <div class="brand-wrap">
+  <div class="invoice-sheet">
+    <!-- 1. Header Banner -->
+    <div class="sheet-header">
+      <div class="brand-section">
         ${logoHtml}
         <div>
-          <h1 class="brand-title">${businessName}</h1>
-          ${cfg.showTagline && business?.tagline ? `<p class="brand-tagline">${business.tagline}</p>` : ''}
+          <h1 class="store-name">${businessName}</h1>
+          ${cfg.showTagline && business?.tagline ? `<p class="tagline">${business.tagline}</p>` : ''}
+          ${cfg.showBusinessAddress && business?.address ? `<p class="address-line">${business.address}</p>` : ''}
+          <div class="contacts-row">
+            ${cfg.showBusinessPhone && business?.phone ? `<span>Ph: ${business.phone}</span>` : ''}
+            ${cfg.showGstin && business?.gstin ? `<span class="gstin-tag">GSTIN: ${business.gstin}</span>` : ''}
+          </div>
         </div>
       </div>
       <div class="header-right">
-        <div class="doc-type-badge">${cfg.invoiceTitle.toUpperCase()}</div>
-        <p class="bill-meta"><b>Invoice No:</b> ${order.orderNumber}</p>
-        <p class="bill-meta"><b>Date:</b> ${formatDate(order.orderDate)}</p>
+        <div class="title-badge">${(cfg.invoiceTitle || 'TAX INVOICE').toUpperCase()}</div>
+        <div class="meta-text"><b>Bill #:</b> ${order.orderNumber}</div>
+        <div class="meta-text"><b>Date:</b> ${formatDate(order.orderDate)}</div>
+        <div class="meta-text"><b>Place:</b> Tamil Nadu (33)</div>
       </div>
     </div>
 
-    <div class="content-body">
-      <div class="info-grid">
-        <div class="info-card">
-          <h4>Seller Details</h4>
-          <p>${businessName}</p>
-          ${cfg.showBusinessAddress && business?.address ? `<p class="info-sub">Address: ${business.address}</p>` : ''}
-          ${cfg.showBusinessPhone && business?.phone ? `<p class="info-sub">Phone: ${business.phone}</p>` : ''}
-          ${cfg.showBusinessEmail && business?.email ? `<p class="info-sub">Email: ${business.email}</p>` : ''}
-          ${cfg.showGstin && business?.gstin ? `<div class="gstin-badge">GSTIN: ${business.gstin}</div>` : ''}
-        </div>
-        <div class="info-card">
-          <h4>Billed To (Customer)</h4>
-          <p>${order.customerName || 'Walk-in Customer'}</p>
-          ${cfg.showCustomerPhone ? `<p class="info-sub">${order.phoneNumber ? `Phone: ${order.phoneNumber}` : 'No phone recorded'}</p>` : ''}
-          <p class="info-sub" style="margin-top:6px !important;"><b>Order No:</b> ${order.orderNumber}</p>
-          <p class="info-sub"><b>Status:</b> ${order.status}</p>
-        </div>
+    <!-- 2. Buyer Strip -->
+    <div class="buyer-strip">
+      <div>
+        <div class="buyer-heading">BUYER / CUSTOMER DETAILS:</div>
+        <div class="buyer-name">${order.customerName || 'Walk-in Customer'}</div>
+        ${cfg.showCustomerPhone && order.phoneNumber ? `<div class="buyer-phone">Mobile: ${order.phoneNumber}</div>` : ''}
       </div>
+      <div>
+        <div class="status-badge">${isPaid ? 'PAID IN FULL' : 'Partially Paid'}</div>
+      </div>
+    </div>
 
+    <!-- 3. Items Table -->
+    <div class="table-container">
       <table>
         <thead>
           <tr>
-            ${cfg.showItemSerialNo ? '<th style="text-align: center; width: 36px;">#</th>' : ''}
+            ${cfg.showItemSerialNo ? '<th style="text-align: center; width: 30px;">#</th>' : ''}
             <th style="text-align: left;">Item Description</th>
-            ${cfg.showHsn && hasGst ? '<th style="text-align: center; width: 64px;">HSN</th>' : ''}
-            <th style="text-align: center; width: 64px;">Qty</th>
-            ${customCols.map((c) => `<th style="text-align: center; width: 70px;">${c.name}</th>`).join('')}
-            ${cfg.showRate ? '<th style="text-align: right; width: 80px;">Rate (₹)</th>' : ''}
-            ${cfg.showDiscount && totalDiscountAmount > 0 ? '<th style="text-align: right; width: 70px;">Disc (₹)</th>' : ''}
-            ${cfg.showGSTRate && hasGst ? '<th style="text-align: center; width: 56px;">GST</th>' : ''}
-            <th style="text-align: right; width: 90px;">Amount (₹)</th>
+            ${cfg.showHsn ? '<th style="text-align: center; width: 50px;">HSN</th>' : ''}
+            <th style="text-align: center; width: 40px;">Qty</th>
+            ${cfg.showUnit ? '<th style="text-align: center; width: 40px;">Unit</th>' : ''}
+            ${cfg.showRate ? '<th style="text-align: right; width: 65px;">Rate</th>' : ''}
+            ${cfg.showGSTRate ? '<th style="text-align: center; width: 45px;">GST</th>' : ''}
+            ${cfg.showDiscount ? '<th style="text-align: right; width: 50px;">Disc</th>' : ''}
+            <th style="text-align: right; width: 75px;">Total</th>
           </tr>
         </thead>
         <tbody>
           ${itemRowsHtml}
         </tbody>
       </table>
+    </div>
 
-      <div class="summary-section">
-        <div class="notes-box">
-          <h5>${cfg.notesHeading || 'Special Instructions / Notes'}</h5>
-          <p style="margin:0;">${order.customerNote || cfg.defaultNotes || 'Thank you for your business. Please retain this invoice for your records.'}</p>
-        </div>
-
-        <div class="summary-box">
-          <div class="summary-row">
-            <span>Subtotal</span>
-            <span>${formatCurrency(subtotalAmount)}</span>
-          </div>
-          ${
-            totalDiscountAmount > 0
-              ? `<div class="summary-row" style="color: #EF4444;">
-                  <span>Discount</span>
-                  <span>-${formatCurrency(totalDiscountAmount)}</span>
-                </div>`
-              : ''
-          }
-          ${
-            hasGst && totalTaxAmount > 0
-              ? `
-          <div class="summary-row">
-            <span>Taxable Value</span>
-            <span>${formatCurrency(subtotalAmount - totalDiscountAmount)}</span>
-          </div>
-          ${
-            isInterState
-              ? `<div class="summary-row"><span>IGST</span><span>+${formatCurrency(igstAmount)}</span></div>`
-              : `<div class="summary-row"><span>CGST</span><span>+${formatCurrency(cgstAmount)}</span></div>
-                 <div class="summary-row"><span>SGST</span><span>+${formatCurrency(sgstAmount)}</span></div>`
-          }
-          `
-              : ''
-          }
-          <div class="summary-row">
-            <span>Advance Paid</span>
-            <span style="color: #10B981; font-weight: 600;">${formatCurrency(order.advance)}</span>
-          </div>
-          <div class="summary-row total">
-            <span>Grand Total</span>
-            <span>${formatCurrency(total)}</span>
-          </div>
-          <div class="summary-row balance">
-            <span>Balance Due</span>
-            <span>${isPaid ? 'PAID IN FULL (₹0)' : formatCurrency(balance)}</span>
-          </div>
-        </div>
-      </div>
-
-      ${
-        cfg.showBankDetails && (upiQrUrl || bankText || upiId)
-          ? `<div class="bank-card" style="display: flex; justify-content: space-between; align-items: center; gap: 16px;">
-              <div style="flex: 1;">
-                <h5>Payment & Bank Details</h5>
-                ${upiId ? `<p style="font-weight: 700; color: #0F172A; margin-bottom: 2px;">UPI ID: ${upiId}</p>` : ''}
-                ${bankText ? `<p>${bankText}</p>` : ''}
-                ${upiPayUrl ? `<p style="font-size: 10px; color: #475569; margin-top: 4px;">Scan QR to pay directly via GPay / PhonePe / Paytm / BHIM</p>` : ''}
-              </div>
-              ${upiQrUrl ? `<div style="text-align: center;"><img src="${upiQrUrl}" alt="UPI QR Code" style="width: 90px; height: 90px; border-radius: 6px; border: 1px solid #CBD5E1;" /><p style="font-size: 9px; color: #64748B; margin: 2px 0 0 0; font-weight: 700;">SCAN TO PAY</p></div>` : ''}
-            </div>`
-          : ''
-      }
-
-      <div class="signatory-row">
-        <div class="terms-text">
-          ${cfg.showTerms ? `<p style="margin:0 0 2px 0; font-weight:700; color:#334155;">${cfg.termsHeading || 'Terms & Conditions'}:</p><p style="margin:0;">${cfg.termsAndConditions || 'E.&O.E. Computer generated invoice.'}</p>` : ''}
-        </div>
+    <!-- 4. Totals & Notes Section -->
+    <div class="totals-section">
+      <div class="words-and-notes">
+        <div class="section-small-title">Amount in Words:</div>
+        <div class="words-value">Rupees ${Math.round(total)} Only</div>
         ${
-          cfg.showSignatory
-            ? `<div class="signatory-box">
-                <div class="signatory-line"></div>
-                <div class="signatory-title">${cfg.signatoryBusinessName || `For ${businessName}`}</div>
-                <div style="font-size: 9px; color: #64748B;">(${cfg.signatoryTitle || 'Authorized Signatory'})</div>
-              </div>`
+          cfg.showNotes && (order.customerNote || cfg.defaultNotes)
+            ? `<div style="margin-top: 8px;">
+                <div class="section-small-title">${cfg.notesHeading || 'Customer Note / Instructions'}:</div>
+                <div class="notes-value">${order.customerNote || cfg.defaultNotes}</div>
+               </div>`
             : ''
         }
       </div>
 
-      ${cfg.footerMessage ? `<div class="footer-bar">${cfg.footerMessage}</div>` : ''}
+      <div class="totals-card">
+        <div class="calc-row">
+          <span>Subtotal:</span>
+          <b>${formatCurrency(subtotalAmount)}</b>
+        </div>
+        ${
+          totalDiscountAmount > 0 || cfg.showDiscount
+            ? `<div class="calc-row" style="color: #16A34A;">
+                <span>Discount:</span>
+                <b>-${formatCurrency(totalDiscountAmount)}</b>
+               </div>`
+            : ''
+        }
+        ${
+          cfg.showGSTRate && totalTaxAmount > 0
+            ? `<div class="calc-row"><span>CGST (2.5%):</span><b>+${formatCurrency(cgstAmount)}</b></div>
+               <div class="calc-row"><span>SGST (2.5%):</span><b>+${formatCurrency(sgstAmount)}</b></div>`
+            : ''
+        }
+        <div class="calc-row total">
+          <span>Grand Total:</span>
+          <span>${formatCurrency(total)}</span>
+        </div>
+        <div class="calc-row" style="color: #16A34A;">
+          <span>Advance Paid:</span>
+          <b>${formatCurrency(order.advance)}</b>
+        </div>
+        <div class="calc-row balance">
+          <span>Balance Due:</span>
+          <span>${isPaid ? 'PAID IN FULL (₹0)' : formatCurrency(balance)}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Payment & QR Section -->
+    ${
+      (cfg.showUpiQr && (upiQrUrl || upiId)) || (cfg.showBankDetails && bankText)
+        ? `<div class="payment-container">
+            <div class="section-small-title" style="margin-bottom: 3px;">Payment & Bank Transfer Details</div>
+            <div class="payment-inner-row">
+              ${
+                cfg.showUpiQr && (upiQrUrl || upiId)
+                  ? `<div class="qr-card-box">
+                      ${upiQrUrl ? `<img src="${upiQrUrl}" alt="QR" style="width: 50px; height: 50px; border-radius: 4px;" />` : ''}
+                      <div style="font-size: 8.5px; font-weight: 700; color: #0F172A; margin-top: 2px;">Scan with UPI</div>
+                      ${upiId ? `<div style="font-size: 8px; color: ${cfg.primaryColor}; font-weight: 600;">${upiId}</div>` : ''}
+                    </div>`
+                  : ''
+              }
+              ${
+                cfg.showBankDetails && bankText
+                  ? `<div class="bank-card-box">
+                      <div style="font-weight: 700; margin-bottom: 2px; color: #0F172A;">🏦 Bank Account Information:</div>
+                      ${bankText}
+                    </div>`
+                  : ''
+              }
+            </div>
+           </div>`
+        : ''
+    }
+
+    <!-- 6. Footer Terms & Signature -->
+    <div class="footer-terms-section">
+      <div class="terms-box">
+        ${
+          cfg.showTerms && cfg.termsAndConditions
+            ? `<div><b>${cfg.termsHeading || 'Terms & Conditions'}:</b>\n${cfg.termsAndConditions}</div>`
+            : ''
+        }
+        ${cfg.footerMessage ? `<div class="greeting-line">${cfg.footerMessage}</div>` : ''}
+      </div>
+
+      ${
+        cfg.showSignatory
+          ? `<div class="signatory-box">
+              <div class="signatory-line"></div>
+              <div class="signatory-store">For ${businessName}</div>
+              <div class="signatory-title">${cfg.signatoryTitle || 'Authorized Signatory'}</div>
+            </div>`
+          : ''
+      }
     </div>
   </div>
 </body>
@@ -1227,9 +1242,12 @@ function generateGstTaxInvoiceHtml(
 </head>
 <body>
   <div class="gst-container">
-    <div class="gst-header">
-      <div class="gst-title">TAX INVOICE</div>
-      <div style="font-size: 10px; margin-top: 2px;">(Issued under Section 31 of Central Goods and Services Tax Act, 2017)</div>
+    <div class="gst-header" style="display: flex; align-items: center; justify-content: center; gap: 12px; position: relative; padding: 12px;">
+      ${cfg.showLogo && business?.logoUri ? `<img src="${business.logoUri}" alt="Logo" style="width: 48px; height: 48px; object-fit: contain; position: absolute; left: 12px; top: 8px;" />` : ''}
+      <div>
+        <div class="gst-title">${cfg.invoiceTitle || 'TAX INVOICE'}</div>
+        <div style="font-size: 10px; margin-top: 2px;">(Issued under Section 31 of Central Goods and Services Tax Act, 2017)</div>
+      </div>
     </div>
 
     <div class="grid-2">

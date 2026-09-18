@@ -9,10 +9,12 @@ import {
   ActivityIndicator,
   Platform,
   useWindowDimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 
 import {
   InvoiceTemplateConfig,
@@ -132,6 +134,7 @@ export default function InvoiceTemplateCustomizerScreen() {
           tagline: bp.tagline || prev.tagline,
           upiId: bp.upiId || prev.upiId,
           bankDetails: bp.bankDetails || prev.bankDetails,
+          logoUri: bp.logoUri || prev.logoUri,
         }));
       }
     } catch (err) {
@@ -139,6 +142,46 @@ export default function InvoiceTemplateCustomizerScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePickLogo = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        showAppAlert(
+          'Permission Needed',
+          'Please allow photo library access to select a store logo image.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        let uri = asset.uri;
+        if (asset.base64) {
+          const mime = asset.mimeType || 'image/png';
+          uri = `data:${mime};base64,${asset.base64}`;
+        }
+        setBizProfile((prev) => ({ ...prev, logoUri: uri }));
+        setConfig((prev) => ({ ...prev, showLogo: true }));
+      }
+    } catch (err) {
+      console.error('Error picking logo:', err);
+      showAppAlert('Error', 'Could not open photo library.');
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setBizProfile((prev) => ({ ...prev, logoUri: undefined }));
+    setConfig((prev) => ({ ...prev, showLogo: false }));
   };
 
   const handleApplyPreset = (presetId: InvoiceTemplateId) => {
@@ -264,7 +307,7 @@ export default function InvoiceTemplateCustomizerScreen() {
               </View>
             </View>
             <Text style={styles.headerSubtitle} numberOfLines={1}>
-              Edit text, toggle columns, and customize your invoice directly on the bill canvas below
+              Edit text, upload logo, toggle columns, and customize your invoice directly on the bill canvas below
             </Text>
           </View>
 
@@ -405,107 +448,162 @@ export default function InvoiceTemplateCustomizerScreen() {
                   },
                 ]}
               >
-                {/* Store Name, Tagline, Address, Phone, GSTIN */}
-                <View style={{ flex: 1.5, paddingRight: 10 }}>
-                  <View style={styles.fieldWrap}>
-                    <Text style={styles.fieldGuideTag}>Shop / Business Name (Click to edit)</Text>
-                    <TextInput
-                      style={[styles.inlineStoreNameInput, { color: config.headerTextColor || config.primaryColor }]}
-                      value={bizProfile.businessName}
-                      onChangeText={(v) => setBizProfile((p) => ({ ...p, businessName: v }))}
-                      placeholder="Your Store Name"
-                      placeholderTextColor="rgba(0,0,0,0.3)"
-                    />
-                  </View>
+                {/* Store Brand Section: Logo + Name, Tagline, Address, Phone, GSTIN */}
+                <View style={styles.brandSectionWrap}>
+                  {/* Store Logo Uploader / Preview */}
+                  {config.showLogo && (
+                    <View style={styles.logoPickerContainer}>
+                      {bizProfile.logoUri ? (
+                        <View style={styles.logoPreviewWrap}>
+                          <Image source={{ uri: bizProfile.logoUri }} style={styles.logoImagePreview} resizeMode="contain" />
+                          <View style={styles.logoActionOverlay}>
+                            <Pressable style={styles.logoMiniBtn} onPress={handlePickLogo}>
+                              <Ionicons name="camera" size={11} color="#FFFFFF" />
+                            </Pressable>
+                            <Pressable style={[styles.logoMiniBtn, { backgroundColor: '#EF4444' }]} onPress={handleRemoveLogo}>
+                              <Ionicons name="close" size={11} color="#FFFFFF" />
+                            </Pressable>
+                          </View>
+                        </View>
+                      ) : (
+                        <Pressable style={styles.logoPlaceholderBox} onPress={handlePickLogo}>
+                          <Ionicons name="image-outline" size={20} color={config.primaryColor} />
+                          <Text style={[styles.logoPlaceholderText, { color: config.primaryColor }]}>+ Add Logo</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  )}
 
-                  <View style={[styles.fieldWrap, { marginTop: 4 }]}>
-                    <TextInput
-                      style={styles.inlineTaglineInput}
-                      value={bizProfile.tagline}
-                      onChangeText={(v) => setBizProfile((p) => ({ ...p, tagline: v }))}
-                      placeholder="Store Tagline / Wholesale & Retail"
-                      placeholderTextColor="rgba(0,0,0,0.3)"
-                    />
-                  </View>
-
-                  <View style={[styles.fieldWrap, { marginTop: 6 }]}>
-                    <TextInput
-                      style={styles.inlineAddressInput}
-                      value={bizProfile.address}
-                      onChangeText={(v) => setBizProfile((p) => ({ ...p, address: v }))}
-                      placeholder="Store Address, City, Pincode"
-                      placeholderTextColor="rgba(0,0,0,0.3)"
-                      multiline
-                    />
-                  </View>
-
-                  <View style={styles.inlineContactsRow}>
-                    <View style={[styles.fieldWrap, { flex: 1 }]}>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.fieldWrap}>
+                      <View style={styles.fieldHeaderRow}>
+                        <Ionicons name="storefront-outline" size={11} color={colors.clayDeep} />
+                        <Text style={styles.fieldGuideTag}>SHOP / BUSINESS NAME</Text>
+                      </View>
                       <TextInput
-                        style={styles.inlineContactInput}
-                        value={bizProfile.phone}
-                        onChangeText={(v) => setBizProfile((p) => ({ ...p, phone: v }))}
-                        placeholder="Phone: 9876543210"
+                        style={[styles.inlineStoreNameInput, { color: config.headerTextColor || config.primaryColor }]}
+                        value={bizProfile.businessName}
+                        onChangeText={(v) => setBizProfile((p) => ({ ...p, businessName: v }))}
+                        placeholder="Your Store Name"
                         placeholderTextColor="rgba(0,0,0,0.3)"
-                        keyboardType="phone-pad"
                       />
                     </View>
 
-                    <View style={[styles.fieldWrap, { flex: 1.2 }]}>
+                    <View style={[styles.fieldWrap, { marginTop: 4 }]}>
                       <TextInput
-                        style={[styles.inlineContactInput, styles.gstinField]}
-                        value={bizProfile.gstin}
-                        onChangeText={(v) => setBizProfile((p) => ({ ...p, gstin: v }))}
-                        placeholder="GSTIN: 33AAAAA0000A1Z5"
+                        style={styles.inlineTaglineInput}
+                        value={bizProfile.tagline}
+                        onChangeText={(v) => setBizProfile((p) => ({ ...p, tagline: v }))}
+                        placeholder="Store Tagline / Wholesale & Retail"
                         placeholderTextColor="rgba(0,0,0,0.3)"
-                        autoCapitalize="characters"
                       />
                     </View>
-                  </View>
 
-                  {/* Header Visibility Toggles */}
-                  <View style={styles.headerTogglesRow}>
-                    <Pressable
-                      style={[styles.miniToggleChip, config.showBusinessAddress && styles.miniToggleChipActive]}
-                      onPress={() => setConfig((p) => ({ ...p, showBusinessAddress: !p.showBusinessAddress }))}
-                    >
-                      <Ionicons
-                        name={config.showBusinessAddress ? 'checkmark-circle' : 'close-circle'}
-                        size={12}
-                        color={config.showBusinessAddress ? colors.clayDeep : colors.inkSoft}
-                      />
-                      <Text style={[styles.miniToggleChipText, config.showBusinessAddress && styles.miniToggleChipTextActive]}>
-                        Address
-                      </Text>
-                    </Pressable>
+                    {config.showBusinessAddress && (
+                      <View style={[styles.fieldWrap, { marginTop: 4 }]}>
+                        <TextInput
+                          style={styles.inlineAddressInput}
+                          value={bizProfile.address}
+                          onChangeText={(v) => setBizProfile((p) => ({ ...p, address: v }))}
+                          placeholder="Store Address, City, Pincode"
+                          placeholderTextColor="rgba(0,0,0,0.3)"
+                          multiline
+                        />
+                      </View>
+                    )}
 
-                    <Pressable
-                      style={[styles.miniToggleChip, config.showBusinessPhone && styles.miniToggleChipActive]}
-                      onPress={() => setConfig((p) => ({ ...p, showBusinessPhone: !p.showBusinessPhone }))}
-                    >
-                      <Ionicons
-                        name={config.showBusinessPhone ? 'checkmark-circle' : 'close-circle'}
-                        size={12}
-                        color={config.showBusinessPhone ? colors.clayDeep : colors.inkSoft}
-                      />
-                      <Text style={[styles.miniToggleChipText, config.showBusinessPhone && styles.miniToggleChipTextActive]}>
-                        Phone
-                      </Text>
-                    </Pressable>
+                    <View style={styles.inlineContactsRow}>
+                      {config.showBusinessPhone && (
+                        <View style={[styles.fieldWrap, { flex: 1 }]}>
+                          <TextInput
+                            style={styles.inlineContactInput}
+                            value={bizProfile.phone}
+                            onChangeText={(v) => setBizProfile((p) => ({ ...p, phone: v }))}
+                            placeholder="Phone: 9876543210"
+                            placeholderTextColor="rgba(0,0,0,0.3)"
+                            keyboardType="phone-pad"
+                          />
+                        </View>
+                      )}
 
-                    <Pressable
-                      style={[styles.miniToggleChip, config.showGstin && styles.miniToggleChipActive]}
-                      onPress={() => setConfig((p) => ({ ...p, showGstin: !p.showGstin }))}
-                    >
-                      <Ionicons
-                        name={config.showGstin ? 'checkmark-circle' : 'close-circle'}
-                        size={12}
-                        color={config.showGstin ? colors.clayDeep : colors.inkSoft}
-                      />
-                      <Text style={[styles.miniToggleChipText, config.showGstin && styles.miniToggleChipTextActive]}>
-                        GSTIN
-                      </Text>
-                    </Pressable>
+                      {config.showGstin && (
+                        <View style={[styles.fieldWrap, { flex: 1.2 }]}>
+                          <TextInput
+                            style={[styles.inlineContactInput, styles.gstinField]}
+                            value={bizProfile.gstin}
+                            onChangeText={(v) => setBizProfile((p) => ({ ...p, gstin: v }))}
+                            placeholder="GSTIN: 33AAAAA0000A1Z5"
+                            placeholderTextColor="rgba(0,0,0,0.3)"
+                            autoCapitalize="characters"
+                          />
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Header Visibility Toggles */}
+                    <View style={styles.headerTogglesRow}>
+                      <Pressable
+                        style={[styles.miniToggleChip, config.showLogo && styles.miniToggleChipActive]}
+                        onPress={() => {
+                          if (!config.showLogo && !bizProfile.logoUri) {
+                            handlePickLogo();
+                          } else {
+                            setConfig((p) => ({ ...p, showLogo: !p.showLogo }));
+                          }
+                        }}
+                      >
+                        <Ionicons
+                          name={config.showLogo ? 'checkmark-circle' : 'add-circle-outline'}
+                          size={12}
+                          color={config.showLogo ? colors.clayDeep : colors.inkSoft}
+                        />
+                        <Text style={[styles.miniToggleChipText, config.showLogo && styles.miniToggleChipTextActive]}>
+                          Logo
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={[styles.miniToggleChip, config.showBusinessAddress && styles.miniToggleChipActive]}
+                        onPress={() => setConfig((p) => ({ ...p, showBusinessAddress: !p.showBusinessAddress }))}
+                      >
+                        <Ionicons
+                          name={config.showBusinessAddress ? 'checkmark-circle' : 'close-circle'}
+                          size={12}
+                          color={config.showBusinessAddress ? colors.clayDeep : colors.inkSoft}
+                        />
+                        <Text style={[styles.miniToggleChipText, config.showBusinessAddress && styles.miniToggleChipTextActive]}>
+                          Address
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={[styles.miniToggleChip, config.showBusinessPhone && styles.miniToggleChipActive]}
+                        onPress={() => setConfig((p) => ({ ...p, showBusinessPhone: !p.showBusinessPhone }))}
+                      >
+                        <Ionicons
+                          name={config.showBusinessPhone ? 'checkmark-circle' : 'close-circle'}
+                          size={12}
+                          color={config.showBusinessPhone ? colors.clayDeep : colors.inkSoft}
+                        />
+                        <Text style={[styles.miniToggleChipText, config.showBusinessPhone && styles.miniToggleChipTextActive]}>
+                          Phone
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={[styles.miniToggleChip, config.showGstin && styles.miniToggleChipActive]}
+                        onPress={() => setConfig((p) => ({ ...p, showGstin: !p.showGstin }))}
+                      >
+                        <Ionicons
+                          name={config.showGstin ? 'checkmark-circle' : 'close-circle'}
+                          size={12}
+                          color={config.showGstin ? colors.clayDeep : colors.inkSoft}
+                        />
+                        <Text style={[styles.miniToggleChipText, config.showGstin && styles.miniToggleChipTextActive]}>
+                          GSTIN
+                        </Text>
+                      </Pressable>
+                    </View>
                   </View>
                 </View>
 
@@ -1149,48 +1247,113 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     gap: 12,
   },
+  brandSectionWrap: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    flex: 1.6,
+  },
+  logoPickerContainer: {
+    marginTop: 2,
+  },
+  logoPreviewWrap: {
+    position: 'relative',
+    width: 62,
+    height: 62,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow.card,
+  },
+  logoImagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  logoActionOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingVertical: 2,
+  },
+  logoMiniBtn: {
+    padding: 3,
+    borderRadius: 3,
+  },
+  logoPlaceholderBox: {
+    width: 62,
+    height: 62,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#94A3B8',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 2,
+    ...shadow.card,
+  },
+  logoPlaceholderText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 8,
+    textAlign: 'center',
+    marginTop: 2,
+  },
   fieldWrap: {
     position: 'relative',
   },
+  fieldHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+  },
   fieldGuideTag: {
-    fontFamily: fonts.body,
-    fontSize: 8.5,
+    fontFamily: fonts.bodyBold,
+    fontSize: 9,
     color: colors.clayDeep,
-    marginBottom: 1,
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
   inlineStoreNameInput: {
     fontFamily: fonts.bodyBold,
-    fontSize: 17,
-    letterSpacing: 0.5,
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    fontSize: 18,
+    letterSpacing: 0.3,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    ...shadow.card,
   },
   inlineTaglineInput: {
     fontFamily: fonts.body,
     fontSize: 11,
     color: colors.inkSoft,
-    paddingVertical: 1,
-    paddingHorizontal: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.85)',
   },
   inlineAddressInput: {
     fontFamily: fonts.body,
     fontSize: 10.5,
     color: colors.ink,
-    paddingVertical: 2,
-    paddingHorizontal: 4,
+    paddingVertical: 3,
+    paddingHorizontal: 6,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.85)',
     lineHeight: 14,
   },
   inlineContactsRow: {
@@ -1203,11 +1366,11 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     color: colors.ink,
     paddingVertical: 2,
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.85)',
   },
   gstinField: {
     fontFamily: fonts.bodyBold,

@@ -13,7 +13,7 @@ import {
 } from '@expo-google-fonts/plus-jakarta-sans';
 
 // Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootStackParamList } from './src/navigation/types';
@@ -121,7 +121,7 @@ const navTheme = {
 };
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
@@ -129,9 +129,27 @@ export default function App() {
   });
 
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
+  const [fontTimeout, setFontTimeout] = useState(false);
+
+  // Safety fallback for font loading (max 1.5s) to avoid blank screens on iOS offline
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFontTimeout(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
-    // Initialize RevenueCat immediately so Google Play Billing connects at startup
+    let isMounted = true;
+
+    // Safety fallback for routing resolution (max 2s)
+    const routeTimer = setTimeout(() => {
+      if (isMounted) {
+        setInitialRoute((prev) => prev || 'OnboardingWizard');
+      }
+    }, 2000);
+
+    // Initialize RevenueCat safely
     initRevenueCat().catch(console.warn);
 
     // On web, check if user arrived via a password reset link (e.g. ?mode=resetPassword&oobCode=XYZ)
@@ -141,28 +159,34 @@ export default function App() {
         const mode = urlParams.get('mode');
         const oobCode = urlParams.get('oobCode');
         if ((mode === 'resetPassword' || mode === 'reset') && oobCode) {
-          setInitialRoute('ResetPassword');
+          if (isMounted) setInitialRoute('ResetPassword');
           return;
         }
       } catch {}
     }
 
     // Check initial local auth state for initial screen routing
-    getAuthState().then((state) => {
-      if (!state.isOnboarded) {
-        setInitialRoute('OnboardingWizard');
-      } else if (!state.isLoggedIn) {
-        setInitialRoute('Login');
-      } else {
-        if (state.user?.uid) {
-          setCurrentUidCache(state.user.uid);
-          // Initialize RevenueCat immediately using cached UID so it's ready
-          // before the user navigates to PaywallScreen (avoids race condition)
-          initRevenueCat(state.user.uid).catch(console.warn);
+    getAuthState()
+      .then((state) => {
+        if (!isMounted) return;
+        if (!state.isOnboarded) {
+          setInitialRoute('OnboardingWizard');
+        } else if (!state.isLoggedIn) {
+          setInitialRoute('Login');
+        } else {
+          if (state.user?.uid) {
+            setCurrentUidCache(state.user.uid);
+            initRevenueCat(state.user.uid).catch(console.warn);
+          }
+          setInitialRoute('MainTabs');
         }
-        setInitialRoute('MainTabs');
-      }
-    });
+      })
+      .catch((err) => {
+        console.warn('[App] getAuthState error, defaulting to OnboardingWizard:', err);
+        if (isMounted) {
+          setInitialRoute('OnboardingWizard');
+        }
+      });
 
     // Listen to Firebase live auth state -> activate real-time sync ONLY when auth is ready
     const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
@@ -182,16 +206,20 @@ export default function App() {
     });
 
     return () => {
+      isMounted = false;
+      clearTimeout(routeTimer);
       unsubscribeAuth();
       stopRealtimeSync();
     };
   }, []);
 
+  const isReady = (fontsLoaded || fontError || fontTimeout) && !!initialRoute;
+
   useEffect(() => {
-    if (fontsLoaded && initialRoute) {
+    if (isReady) {
       SplashScreen.hideAsync().catch(console.warn);
     }
-  }, [fontsLoaded, initialRoute]);
+  }, [isReady]);
 
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -291,8 +319,12 @@ export default function App() {
     }
   }, []);
 
-  if (!fontsLoaded || !initialRoute) {
-    return null;
+  if (!isReady || !initialRoute) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color={colors.clayDeep} />
+      </View>
+    );
   }
 
   const isWeb = Platform.OS === 'web';

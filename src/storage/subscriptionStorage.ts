@@ -13,11 +13,15 @@ let isExpoGo = false;
 
 export async function initRevenueCat(uid?: string) {
   if (Platform.OS === 'web' || isExpoGo) return;
+  if (!REVENUECAT_API_KEY || REVENUECAT_API_KEY.includes('YOUR_APPLE_API_KEY')) {
+    console.log('[RevenueCat] Valid Apple/Google API key not configured, skipping native store initialization.');
+    return;
+  }
   
   try {
-    const alreadyConfigured = isConfiguredState || (await Purchases.isConfigured());
+    const alreadyConfigured = isConfiguredState || (await Purchases.isConfigured().catch(() => false));
     if (!alreadyConfigured) {
-      await Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+      await Purchases.setLogLevel(LOG_LEVEL.DEBUG).catch(() => {});
       if (uid) {
         Purchases.configure({ apiKey: REVENUECAT_API_KEY, appUserID: uid });
       } else {
@@ -26,7 +30,7 @@ export async function initRevenueCat(uid?: string) {
       isConfiguredState = true;
       console.log('[RevenueCat] Purchases configured successfully');
     } else if (uid) {
-      await Purchases.logIn(uid);
+      await Purchases.logIn(uid).catch(() => {});
       console.log('[RevenueCat] Logged in user:', uid);
     }
   } catch (error: any) {
@@ -46,10 +50,11 @@ export async function checkProStatus(): Promise<boolean> {
   if (Platform.OS === 'web' || isExpoGo) return false;
   
   try {
-    const configured = isConfiguredState || (await Purchases.isConfigured());
+    const configured = isConfiguredState || (await Purchases.isConfigured().catch(() => false));
     if (!configured) {
       await initRevenueCat();
     }
+    if (!isConfiguredState) return false;
     const customerInfo = await Purchases.getCustomerInfo();
     return typeof customerInfo.entitlements.active[ENTITLEMENT_PRO] !== 'undefined';
   } catch (error) {
@@ -62,10 +67,11 @@ export async function checkBasicStatus(): Promise<boolean> {
   if (Platform.OS === 'web' || isExpoGo) return false;
   
   try {
-    const configured = isConfiguredState || (await Purchases.isConfigured());
+    const configured = isConfiguredState || (await Purchases.isConfigured().catch(() => false));
     if (!configured) {
       await initRevenueCat();
     }
+    if (!isConfiguredState) return false;
     const customerInfo = await Purchases.getCustomerInfo();
     return (
       typeof customerInfo.entitlements.active[ENTITLEMENT_BASIC] !== 'undefined' ||
@@ -78,6 +84,7 @@ export async function checkBasicStatus(): Promise<boolean> {
 }
 
 export async function purchaseProPackage(packageToBuy: PurchasesPackage): Promise<boolean> {
+  if (Platform.OS === 'web' || isExpoGo || !isConfiguredState) return false;
   try {
     const { customerInfo } = await Purchases.purchasePackage(packageToBuy);
     return (
@@ -93,7 +100,7 @@ export async function purchaseProPackage(packageToBuy: PurchasesPackage): Promis
 }
 
 export async function restorePurchases(): Promise<boolean> {
-  if (Platform.OS === 'web' || isExpoGo) return false;
+  if (Platform.OS === 'web' || isExpoGo || !isConfiguredState) return false;
   try {
     const customerInfo = await Purchases.restorePurchases();
     return (
@@ -110,10 +117,14 @@ export async function getAvailablePackages(): Promise<PurchasesPackage[]> {
   if (Platform.OS === 'web' || isExpoGo) return [];
   
   try {
-    const configured = isConfiguredState || (await Purchases.isConfigured());
+    const configured = isConfiguredState || (await Purchases.isConfigured().catch(() => false));
     if (!configured) {
       console.log('[RevenueCat] Configuring Purchases before fetching packages...');
       await initRevenueCat();
+    }
+    if (!isConfiguredState) {
+      console.log('[RevenueCat] Purchases not configured (e.g. missing API key), skipping packages fetch.');
+      return [];
     }
 
     for (let attempt = 1; attempt <= 4; attempt++) {

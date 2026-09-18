@@ -1,14 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Pressable, ScrollView, Alert, Platform, Linking } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Alert,
+  Platform,
+  Linking,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import GlassBackButton from '../components/GlassBackButton';
 import { colors, fonts, radius } from '../theme/theme';
-import { getAvailablePackages, purchaseProPackage, checkProStatus, checkBasicStatus, restorePurchases } from '../storage/subscriptionStorage';
+import {
+  getAvailablePackages,
+  purchaseProPackage,
+  checkProStatus,
+  checkBasicStatus,
+  restorePurchases,
+} from '../storage/subscriptionStorage';
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=in.kadaibook.app';
 const APP_STORE_URL = 'https://apps.apple.com/app/kadaibook/id6743072498';
+
+type SelectedTier = 'free' | 'basic' | 'pro';
 
 export default function PaywallScreen() {
   const navigation = useNavigation();
@@ -17,6 +35,7 @@ export default function PaywallScreen() {
   const [purchasing, setPurchasing] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const [isBasic, setIsBasic] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<SelectedTier>('pro');
 
   useEffect(() => {
     loadData();
@@ -30,28 +49,63 @@ export default function PaywallScreen() {
       setIsPro(proStatus);
       setIsBasic(basicStatus);
 
-      if (!proStatus) {
+      if (proStatus) {
+        setSelectedTier('pro');
+      } else if (basicStatus) {
+        setSelectedTier('basic');
+      } else {
+        setSelectedTier('pro');
+      }
+
+      if (Platform.OS !== 'web') {
         const pkgs = await getAvailablePackages();
-        // Show all packages (e.g. Basic Monthly, Pro Monthly, Pro Yearly)
         setPackages(pkgs);
       }
     } catch (e) {
-      console.warn("Failed to load subscription data", e);
+      console.warn('Failed to load subscription data', e);
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePurchase = async (pkg: any) => {
+  const handlePurchase = async (pkgToBuy?: any) => {
+    if (Platform.OS === 'web') {
+      Alert.alert(
+        'Mobile App Required',
+        'In-app purchases are available on our Android and iOS apps. Please download the app from Google Play or App Store to upgrade.'
+      );
+      return;
+    }
+
+    let targetPkg = pkgToBuy;
+    if (!targetPkg && packages.length > 0) {
+      if (selectedTier === 'basic') {
+        targetPkg = packages.find((p) =>
+          p.identifier.toLowerCase().includes('basic') ||
+          p.product.identifier.toLowerCase().includes('basic')
+        ) || packages[0];
+      } else {
+        targetPkg = packages.find((p) =>
+          p.identifier.toLowerCase().includes('pro') ||
+          p.product.identifier.toLowerCase().includes('pro')
+        ) || packages[0];
+      }
+    }
+
+    if (!targetPkg) {
+      Alert.alert('Notice', 'Subscription package details are loading. Please try again in a moment.');
+      return;
+    }
+
     setPurchasing(true);
-    const success = await purchaseProPackage(pkg);
+    const success = await purchaseProPackage(targetPkg);
     setPurchasing(false);
-    
+
     if (success) {
-      Alert.alert("Success!", "Subscription activated! Thank you for upgrading.");
+      Alert.alert('Success! 🎉', 'Your subscription is now active! Thank you for supporting KadaiBook.');
       navigation.goBack();
     } else {
-      Alert.alert("Purchase failed", "Could not complete the purchase. Please try again.");
+      Alert.alert('Purchase Failed', 'Could not complete the purchase. Please try again.');
     }
   };
 
@@ -60,207 +114,440 @@ export default function PaywallScreen() {
     const success = await restorePurchases();
     setPurchasing(false);
     if (success) {
-      Alert.alert("Success", "Your purchases have been restored.");
+      Alert.alert('Success', 'Your purchases have been successfully restored.');
       await loadData();
     } else {
-      Alert.alert("Notice", "No active subscriptions found to restore.");
+      Alert.alert('Notice', 'No active subscriptions found to restore.');
     }
   };
 
   if (loading) {
     return (
-      <View style={[styles.screen, { alignItems: 'center', justifyContent: 'center' }]}>
+      <View style={[styles.screen, styles.center]}>
         <ActivityIndicator color={colors.clayDeep} size="large" />
       </View>
     );
   }
 
+  const basicPkg = packages.find((p) =>
+    p.identifier.toLowerCase().includes('basic') ||
+    p.product.identifier.toLowerCase().includes('basic')
+  );
+  const proPkg = packages.find((p) =>
+    p.identifier.toLowerCase().includes('pro') ||
+    p.product.identifier.toLowerCase().includes('pro')
+  ) || packages[0];
+
+  const basicPriceText = basicPkg ? basicPkg.product.priceString : '₹99 / mo';
+  const proPriceText = proPkg ? proPkg.product.priceString : '₹249 / mo';
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
+      {/* ── Top Header ── */}
       <View style={styles.topHeader}>
         <GlassBackButton label="Back" />
         <View style={{ flex: 1 }}>
-          <Text style={styles.topHeaderTitle}>Upgrade to Pro</Text>
-          <Text style={styles.topHeaderSub}>Unlock premium features</Text>
+          <Text style={styles.topHeaderTitle}>Subscription Plans</Text>
+          <Text style={styles.topHeaderSub}>Choose the right plan for your shop</Text>
+        </View>
+        <View style={styles.statusPill}>
+          <Text style={styles.statusPillText}>
+            {isPro ? 'Pro Active' : isBasic ? 'Basic Active' : 'Free Plan'}
+          </Text>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* ── Hero Section ── */}
-        <View style={styles.heroSection}>
-          <View style={styles.heroIconWrap}>
-            <Ionicons name="sparkles" size={32} color="#EAB308" />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* ── Hero Banner ── */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroBadge}>
+            <Ionicons name="sparkles" size={14} color="#D97706" />
+            <Text style={styles.heroBadgeText}>ELEVATE YOUR BUSINESS</Text>
           </View>
-          <Text style={styles.title}>Unlock the Full Power{'\n'}of KadaiBook</Text>
-          <Text style={styles.subtitle}>
-            Choose the plan that fits your business. Upgrade anytime.
+          <Text style={styles.heroTitle}>
+            Unlock the Full Power{'\n'}of KadaiBook
+          </Text>
+          <Text style={styles.heroSubtitle}>
+            Grow without limits. Manage orders, customize invoices, and gain deep business insights.
           </Text>
         </View>
 
-        {/* ── Plan Comparison ── */}
-        <View style={styles.comparisonCard}>
-          <Text style={styles.comparisonTitle}>Plan Comparison</Text>
+        {/* ── Interactive Plan Cards ── */}
+        <Text style={styles.sectionHeading}>Select a Plan</Text>
 
-          {/* Table Header */}
-          <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Feature</Text>
-            <Text style={[styles.tableHeaderCell, styles.tableHeaderCellCenter]}>Free</Text>
-            <Text style={[styles.tableHeaderCell, styles.tableHeaderCellCenter]}>Basic</Text>
-            <Text style={[styles.tableHeaderCell, styles.tableHeaderCellCenter, styles.tableHeaderPro]}>Pro</Text>
+        <View style={styles.plansContainer}>
+          {/* FREE TIER CARD */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.planCard,
+              selectedTier === 'free' && styles.planCardSelected,
+              pressed && { opacity: 0.9 },
+            ]}
+            onPress={() => setSelectedTier('free')}
+          >
+            <View style={styles.planCardHeader}>
+              <View>
+                <View style={styles.planTitleRow}>
+                  <Text style={styles.planName}>Free</Text>
+                  {!isBasic && !isPro && (
+                    <View style={styles.currentBadge}>
+                      <Text style={styles.currentBadgeText}>Current</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.planPrice}>₹0 <Text style={styles.planPeriod}>/ forever</Text></Text>
+              </View>
+              <View
+                style={[
+                  styles.radioOuter,
+                  selectedTier === 'free' && styles.radioOuterSelected,
+                ]}
+              >
+                {selectedTier === 'free' && <View style={styles.radioInner} />}
+              </View>
+            </View>
+            <View style={styles.planDivider} />
+            <View style={styles.planFeatureList}>
+              <View style={styles.planFeatureItem}>
+                <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+                <Text style={styles.planFeatureText}>50 Orders / month</Text>
+              </View>
+              <View style={styles.planFeatureItem}>
+                <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+                <Text style={styles.planFeatureText}>20 Customers limit</Text>
+              </View>
+              <View style={styles.planFeatureItem}>
+                <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+                <Text style={styles.planFeatureText}>1 Standard Invoice Template</Text>
+              </View>
+            </View>
+          </Pressable>
+
+          {/* BASIC TIER CARD */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.planCard,
+              selectedTier === 'basic' && styles.planCardSelected,
+              pressed && { opacity: 0.9 },
+            ]}
+            onPress={() => setSelectedTier('basic')}
+          >
+            <View style={styles.planCardHeader}>
+              <View>
+                <View style={styles.planTitleRow}>
+                  <Text style={styles.planName}>Basic</Text>
+                  {isBasic && !isPro && (
+                    <View style={styles.currentBadge}>
+                      <Text style={styles.currentBadgeText}>Current</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.planPrice}>{basicPriceText}</Text>
+              </View>
+              <View
+                style={[
+                  styles.radioOuter,
+                  selectedTier === 'basic' && styles.radioOuterSelected,
+                ]}
+              >
+                {selectedTier === 'basic' && <View style={styles.radioInner} />}
+              </View>
+            </View>
+            <View style={styles.planDivider} />
+            <View style={styles.planFeatureList}>
+              <View style={styles.planFeatureItem}>
+                <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+                <Text style={styles.planFeatureText}>150 Orders / month</Text>
+              </View>
+              <View style={styles.planFeatureItem}>
+                <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+                <Text style={styles.planFeatureText}>60 Customers limit</Text>
+              </View>
+              <View style={styles.planFeatureItem}>
+                <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+                <Text style={styles.planFeatureText}>Cloud Sync & Backup</Text>
+              </View>
+            </View>
+          </Pressable>
+
+          {/* PRO TIER CARD (HIGHLIGHTED) */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.planCard,
+              styles.proPlanCard,
+              selectedTier === 'pro' && styles.proPlanCardSelected,
+              pressed && { opacity: 0.9 },
+            ]}
+            onPress={() => setSelectedTier('pro')}
+          >
+            <View style={styles.proRibbon}>
+              <Ionicons name="star" size={12} color="#FFFFFF" />
+              <Text style={styles.proRibbonText}>MOST POPULAR • UNLIMITED</Text>
+            </View>
+            <View style={styles.planCardHeader}>
+              <View>
+                <View style={styles.planTitleRow}>
+                  <Text style={[styles.planName, styles.proPlanName]}>Pro</Text>
+                  {isPro && (
+                    <View style={styles.currentBadge}>
+                      <Text style={styles.currentBadgeText}>Active</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={[styles.planPrice, styles.proPlanPrice]}>{proPriceText}</Text>
+              </View>
+              <View
+                style={[
+                  styles.radioOuter,
+                  styles.proRadioOuter,
+                  selectedTier === 'pro' && styles.proRadioOuterSelected,
+                ]}
+              >
+                {selectedTier === 'pro' && <View style={styles.proRadioInner} />}
+              </View>
+            </View>
+            <View style={[styles.planDivider, styles.proPlanDivider]} />
+            <View style={styles.planFeatureList}>
+              <View style={styles.planFeatureItem}>
+                <Ionicons name="infinite" size={16} color="#CA8A04" />
+                <Text style={[styles.planFeatureText, styles.proFeatureText]}>
+                  Unlimited Orders & Unlimited Customers
+                </Text>
+              </View>
+              <View style={styles.planFeatureItem}>
+                <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+                <Text style={[styles.planFeatureText, styles.proFeatureText]}>
+                  All 6+ Premium Invoice Templates & Custom Logo
+                </Text>
+              </View>
+              <View style={styles.planFeatureItem}>
+                <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+                <Text style={[styles.planFeatureText, styles.proFeatureText]}>
+                  Export Orders to PDF & Excel Reports
+                </Text>
+              </View>
+              <View style={styles.planFeatureItem}>
+                <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+                <Text style={[styles.planFeatureText, styles.proFeatureText]}>
+                  Advanced Profit & Business Analytics
+                </Text>
+              </View>
+              <View style={styles.planFeatureItem}>
+                <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+                <Text style={[styles.planFeatureText, styles.proFeatureText]}>
+                  Priority Customer Support
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+        </View>
+
+        {/* ── Detailed Comparison Matrix ── */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionHeading}>Plan Comparison</Text>
+          <Text style={styles.sectionSub}>Feature by feature</Text>
+        </View>
+
+        <View style={styles.comparisonTable}>
+          {/* Header */}
+          <View style={styles.compHeaderRow}>
+            <Text style={[styles.compHeaderCol, { flex: 2.2 }]}>Features</Text>
+            <Text style={[styles.compHeaderCol, styles.compColCenter]}>Free</Text>
+            <Text style={[styles.compHeaderCol, styles.compColCenter]}>Basic</Text>
+            <View style={[styles.compHeaderCol, styles.compColCenter, styles.compProHeaderCol]}>
+              <Text style={styles.compProHeaderText}>Pro</Text>
+            </View>
           </View>
 
-          {/* Rows */}
+          {/* Feature Rows */}
           {[
-            { feature: 'Orders', free: '50', basic: '150', pro: 'Unlimited', icon: 'receipt-outline' },
-            { feature: 'Customers', free: '20', basic: '60', pro: 'Unlimited', icon: 'people-outline' },
-            { feature: 'Invoice Templates', free: '1 Default', basic: '1 Default', pro: 'All Premium', icon: 'document-text-outline' },
-            { feature: 'PDF / Excel Export', free: '—', basic: '—', pro: '✓', icon: 'download-outline' },
-            { feature: 'Share Reports', free: '—', basic: '—', pro: '✓', icon: 'share-social-outline' },
-            { feature: 'Business Analytics', free: 'Basic', basic: 'Basic', pro: 'Advanced', icon: 'bar-chart-outline' },
-            { feature: 'Priority Support', free: '—', basic: '—', pro: '✓', icon: 'headset-outline' },
-          ].map((row, idx) => (
-            <View key={idx} style={[styles.tableRow, idx % 2 === 0 && styles.tableRowAlt]}>
-              <View style={[styles.tableCell, { flex: 2, flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
-                <Ionicons name={row.icon as any} size={16} color={colors.inkSoft} />
-                <Text style={styles.tableCellText}>{row.feature}</Text>
+            { name: 'Monthly Orders', free: '50', basic: '150', pro: 'Unlimited', icon: 'receipt-outline' },
+            { name: 'Total Customers', free: '20', basic: '60', pro: 'Unlimited', icon: 'people-outline' },
+            { name: 'Invoice Templates', free: '1 Default', basic: '1 Default', pro: 'All Premium', icon: 'document-text-outline' },
+            { name: 'Custom Logo & Branding', free: '—', basic: '—', pro: '✓', icon: 'color-palette-outline' },
+            { name: 'PDF & Excel Export', free: '—', basic: '—', pro: '✓', icon: 'download-outline' },
+            { name: 'Business Reports', free: 'Basic', basic: 'Basic', pro: 'Advanced', icon: 'bar-chart-outline' },
+            { name: 'WhatsApp Invoicing', free: '✓', basic: '✓', pro: '✓', icon: 'logo-whatsapp' },
+            { name: 'Cloud Multi-Device Sync', free: '✓', basic: '✓', pro: '✓', icon: 'cloud-done-outline' },
+            { name: 'Priority Support', free: '—', basic: '—', pro: '✓', icon: 'headset-outline' },
+          ].map((item, index) => (
+            <View
+              key={index}
+              style={[
+                styles.compRow,
+                index % 2 === 1 && styles.compRowAlt,
+              ]}
+            >
+              <View style={[styles.compCell, { flex: 2.2, flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+                <Ionicons name={item.icon as any} size={15} color={colors.inkSoft} />
+                <Text style={styles.compCellFeature}>{item.name}</Text>
               </View>
-              <Text style={[styles.tableCell, styles.tableCellCenter, styles.tableCellTextMuted]}>
-                {row.free}
+              <Text style={[styles.compCell, styles.compColCenter, styles.compMuted]}>
+                {item.free}
               </Text>
-              <Text style={[styles.tableCell, styles.tableCellCenter, styles.tableCellTextMuted]}>
-                {row.basic}
+              <Text style={[styles.compCell, styles.compColCenter, styles.compBasic]}>
+                {item.basic}
               </Text>
-              <Text style={[styles.tableCell, styles.tableCellCenter, styles.tableCellTextPro]}>
-                {row.pro}
-              </Text>
+              <View style={[styles.compCell, styles.compColCenter, styles.compProCol]}>
+                <Text style={styles.compProText}>{item.pro}</Text>
+              </View>
             </View>
           ))}
         </View>
 
-        {/* ── Pro Highlights ── */}
-        <View style={styles.highlightsCard}>
-          <Text style={styles.highlightsTitle}>Why Go Pro?</Text>
-          {[
-            { icon: 'infinite-outline', text: 'Create unlimited orders & manage unlimited customers' },
-            { icon: 'color-palette-outline', text: 'Access all premium invoice templates with custom branding' },
-            { icon: 'analytics-outline', text: 'Advanced business analytics & financial reports' },
-            { icon: 'cloud-download-outline', text: 'Export orders as PDF & Excel for accounting' },
-            { icon: 'share-social-outline', text: 'Share business reports via WhatsApp & email' },
-          ].map((item, idx) => (
-            <View key={idx} style={styles.highlightRow}>
-              <View style={styles.highlightIconWrap}>
-                <Ionicons name={item.icon as any} size={18} color="#CA8A04" />
-              </View>
-              <Text style={styles.highlightText}>{item.text}</Text>
+        {/* ── Why Go Pro (Value Cards) ── */}
+        <Text style={styles.sectionHeading}>Why Upgrade to Pro?</Text>
+        <View style={styles.benefitsGrid}>
+          <View style={styles.benefitCard}>
+            <View style={[styles.benefitIconWrap, { backgroundColor: '#FEF3C7' }]}>
+              <Ionicons name="infinite" size={22} color="#D97706" />
             </View>
-          ))}
+            <Text style={styles.benefitTitle}>Scale Without Limits</Text>
+            <Text style={styles.benefitDesc}>
+              Never hit a ceiling. Add unlimited orders, products, and customer contacts as your sales surge.
+            </Text>
+          </View>
+
+          <View style={styles.benefitCard}>
+            <View style={[styles.benefitIconWrap, { backgroundColor: '#E0F2FE' }]}>
+              <Ionicons name="brush-outline" size={22} color="#0284C7" />
+            </View>
+            <Text style={styles.benefitTitle}>Professional Invoices</Text>
+            <Text style={styles.benefitDesc}>
+              Make your brand stand out with customizable premium invoice designs and instant PDF downloads.
+            </Text>
+          </View>
+
+          <View style={styles.benefitCard}>
+            <View style={[styles.benefitIconWrap, { backgroundColor: '#DCFCE7' }]}>
+              <Ionicons name="trending-up-outline" size={22} color="#16A34A" />
+            </View>
+            <Text style={styles.benefitTitle}>Deep Profit Insights</Text>
+            <Text style={styles.benefitDesc}>
+              Understand margins, track unpaid customer balances, and optimize expense categories effortlessly.
+            </Text>
+          </View>
+
+          <View style={styles.benefitCard}>
+            <View style={[styles.benefitIconWrap, { backgroundColor: '#F3E8FF' }]}>
+              <Ionicons name="shield-checkmark-outline" size={22} color="#9333EA" />
+            </View>
+            <Text style={styles.benefitTitle}>Secure & Tax-Ready</Text>
+            <Text style={styles.benefitDesc}>
+              Export tax-compliant Excel sheets in 1-click for your CA or accounting software.
+            </Text>
+          </View>
         </View>
 
-
+        {/* ── Web vs Mobile Purchase CTA ── */}
         {Platform.OS === 'web' ? (
-          /* ── Web: Download App CTA ── */
-          <View style={styles.webUpgradeCard}>
-            <View style={styles.webUpgradeIconRow}>
-              <Ionicons name="phone-portrait-outline" size={36} color={colors.clayDeep} />
+          <View style={styles.webCtaCard}>
+            <View style={styles.webCtaIconWrap}>
+              <Ionicons name="phone-portrait" size={32} color={colors.clayDeep} />
             </View>
-            <Text style={styles.webUpgradeTitle}>
-              Download the App to Upgrade
-            </Text>
-            <Text style={styles.webUpgradeSub}>
-              In-app subscriptions are available exclusively on our mobile app.
-              Download KadaiBook from the Play Store or App Store to unlock Pro features.
+            <Text style={styles.webCtaTitle}>Upgrade on KadaiBook Mobile</Text>
+            <Text style={styles.webCtaDesc}>
+              Subscriptions are managed securely via Google Play and Apple App Store.
+              Install the mobile app to upgrade to Pro and access all features across your web dashboard!
             </Text>
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.storeBtn,
-                styles.storeBtnGoogle,
-                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-              ]}
-              onPress={() => Linking.openURL(PLAY_STORE_URL)}
-            >
-              <Ionicons name="logo-google-playstore" size={22} color="#FFFFFF" />
-              <View>
-                <Text style={styles.storeBtnLabel}>GET IT ON</Text>
-                <Text style={styles.storeBtnTitle}>Google Play</Text>
-              </View>
-            </Pressable>
+            <View style={styles.storeButtonsRow}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.storeBadge,
+                  styles.storeBadgeGoogle,
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+                ]}
+                onPress={() => Linking.openURL(PLAY_STORE_URL)}
+              >
+                <Ionicons name="logo-google-playstore" size={20} color="#FFFFFF" />
+                <View>
+                  <Text style={styles.storeBadgeSub}>GET IT ON</Text>
+                  <Text style={styles.storeBadgeMain}>Google Play</Text>
+                </View>
+              </Pressable>
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.storeBtn,
-                styles.storeBtnApple,
-                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-              ]}
-              onPress={() => Linking.openURL(APP_STORE_URL)}
-            >
-              <Ionicons name="logo-apple" size={24} color="#FFFFFF" />
-              <View>
-                <Text style={styles.storeBtnLabel}>Download on the</Text>
-                <Text style={styles.storeBtnTitle}>App Store</Text>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.storeBadge,
+                  styles.storeBadgeApple,
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+                ]}
+                onPress={() => Linking.openURL(APP_STORE_URL)}
+              >
+                <Ionicons name="logo-apple" size={22} color="#FFFFFF" />
+                <View>
+                  <Text style={styles.storeBadgeSub}>Download on</Text>
+                  <Text style={styles.storeBadgeMain}>App Store</Text>
+                </View>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.actionContainer}>
+            {selectedTier === 'free' ? (
+              <View style={styles.freeActiveNotice}>
+                <Text style={styles.freeActiveNoticeText}>
+                  You are viewing the Free plan. Select Basic or Pro above to upgrade!
+                </Text>
               </View>
-            </Pressable>
-          </View>
-        ) : isPro ? (
-          <View style={styles.activeContainer}>
-            <Text style={styles.activeText}>You are currently on the Pro plan! Enjoy all premium features.</Text>
-          </View>
-        ) : packages.length > 0 ? (
-          packages.map((pkg) => (
+            ) : (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.upgradeButton,
+                  selectedTier === 'pro' && styles.upgradeButtonPro,
+                  purchasing && { opacity: 0.7 },
+                  pressed && { transform: [{ scale: 0.98 }] },
+                ]}
+                onPress={() => handlePurchase()}
+                disabled={purchasing}
+              >
+                {purchasing ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons
+                      name={selectedTier === 'pro' ? 'sparkles' : 'arrow-up-circle'}
+                      size={20}
+                      color="#FFFFFF"
+                    />
+                    <Text style={styles.upgradeButtonText}>
+                      {selectedTier === 'pro'
+                        ? `Upgrade to Pro • ${proPriceText}`
+                        : `Upgrade to Basic • ${basicPriceText}`}
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+            )}
+
+            {/* Trust Badges */}
+            <View style={styles.trustBadges}>
+              <View style={styles.trustItem}>
+                <Ionicons name="shield-checkmark" size={14} color="#16A34A" />
+                <Text style={styles.trustText}>Secure Checkout</Text>
+              </View>
+              <View style={styles.trustDot} />
+              <View style={styles.trustItem}>
+                <Ionicons name="flash" size={14} color="#D97706" />
+                <Text style={styles.trustText}>Instant Activation</Text>
+              </View>
+              <View style={styles.trustDot} />
+              <View style={styles.trustItem}>
+                <Ionicons name="refresh" size={14} color="#4F7C90" />
+                <Text style={styles.trustText}>Cancel Anytime</Text>
+              </View>
+            </View>
+
+            {/* Restore purchases */}
             <Pressable
-              key={pkg.identifier}
-              style={({ pressed }) => [
-                styles.packageCard,
-                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-              ]}
-              onPress={() => handlePurchase(pkg)}
+              style={styles.restoreBtn}
+              onPress={handleRestore}
               disabled={purchasing}
             >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.packageTitle}>{pkg.product.title}</Text>
-                <Text style={styles.packageDesc}>{pkg.product.description}</Text>
-              </View>
-              <View style={styles.priceContainer}>
-                <Text style={styles.packagePrice}>{pkg.product.priceString}</Text>
-              </View>
-            </Pressable>
-          ))
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="refresh-circle-outline" size={48} color={colors.clayDeep} style={{ marginBottom: 12 }} />
-            <Text style={[styles.emptyText, { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.ink, marginBottom: 8 }]}>
-              Loading Subscription Plans...
-            </Text>
-            <Text style={styles.emptyText}>
-              Connecting to Google Play. This may take a moment on first launch.
-            </Text>
-            <Pressable
-              style={{
-                marginTop: 20,
-                backgroundColor: colors.clayDeep,
-                paddingHorizontal: 28,
-                paddingVertical: 13,
-                borderRadius: 50,
-              }}
-              onPress={loadData}
-            >
-              <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: 15 }}>
-                Tap to Retry
-              </Text>
+              <Text style={styles.restoreBtnText}>Restore Previous Purchases</Text>
             </Pressable>
           </View>
-        )}
-
-        {Platform.OS !== 'web' && (
-          <Pressable
-            style={{ marginTop: 24, marginBottom: 16, alignSelf: 'center', padding: 8 }}
-            onPress={handleRestore}
-            disabled={purchasing}
-          >
-            <Text style={{ color: colors.clayDeep, fontFamily: fonts.bodyBold, fontSize: 14 }}>
-              Restore Purchases
-            </Text>
-          </Pressable>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -272,288 +559,532 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.paper,
   },
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    gap: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
+    backgroundColor: colors.paperCard,
   },
   topHeaderTitle: {
     fontFamily: fonts.bodyBold,
-    fontSize: 20,
+    fontSize: 18,
     color: colors.ink,
   },
   topHeaderSub: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.inkSoft,
+  },
+  statusPill: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  statusPillText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: '#92400E',
   },
   content: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
-  /* ── Hero ── */
-  heroSection: {
+
+  /* ── Hero Banner ── */
+  heroCard: {
+    backgroundColor: '#2E2A24',
+    borderRadius: radius.lg,
+    padding: 22,
     alignItems: 'center',
     marginBottom: 24,
-    paddingTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  heroIconWrap: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    backgroundColor: '#FEF9C3',
+  heroBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+    gap: 6,
+    backgroundColor: '#FEF3C725',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#FDE68A40',
+    marginBottom: 12,
   },
-  title: {
+  heroBadgeText: {
     fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: '#FDE68A',
+    letterSpacing: 0.8,
+  },
+  heroTitle: {
+    fontFamily: fonts.display,
     fontSize: 22,
-    color: colors.ink,
+    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 8,
     lineHeight: 30,
   },
-  subtitle: {
+  heroSubtitle: {
     fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.inkSoft,
+    fontSize: 13,
+    color: '#DCD3C0',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
     maxWidth: 320,
   },
+
+  sectionHeading: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 17,
+    color: colors.ink,
+    marginBottom: 12,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  sectionSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+  },
+
+  /* ── Plan Cards ── */
+  plansContainer: {
+    gap: 12,
+    marginBottom: 24,
+  },
+  planCard: {
+    backgroundColor: colors.paperCard,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    padding: 16,
+    position: 'relative',
+    shadowColor: '#2E2A24',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  planCardSelected: {
+    borderColor: colors.clayDeep,
+    backgroundColor: '#FFFDF9',
+  },
+  proPlanCard: {
+    borderColor: '#EAB308',
+    backgroundColor: '#FFFDF5',
+    paddingTop: 22,
+  },
+  proPlanCardSelected: {
+    borderColor: '#CA8A04',
+    borderWidth: 2,
+    backgroundColor: '#FEFCE8',
+    shadowColor: '#CA8A04',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+  },
+  proRibbon: {
+    position: 'absolute',
+    top: -1,
+    left: -1,
+    right: -1,
+    backgroundColor: '#CA8A04',
+    borderTopLeftRadius: radius.md,
+    borderTopRightRadius: radius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 3,
+  },
+  proRibbonText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  planCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  planTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  planName: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 18,
+    color: colors.ink,
+  },
+  proPlanName: {
+    color: '#854D0E',
+  },
+  currentBadge: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+  },
+  currentBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    color: '#0284C7',
+  },
+  planPrice: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    color: colors.ink,
+  },
+  proPlanPrice: {
+    color: '#92400E',
+  },
+  planPeriod: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+  },
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioOuterSelected: {
+    borderColor: colors.clayDeep,
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.clayDeep,
+  },
+  proRadioOuter: {
+    borderColor: '#FDE68A',
+  },
+  proRadioOuterSelected: {
+    borderColor: '#CA8A04',
+  },
+  proRadioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#CA8A04',
+  },
+  planDivider: {
+    height: 1,
+    backgroundColor: colors.line,
+    marginVertical: 12,
+  },
+  proPlanDivider: {
+    backgroundColor: '#FEF08A',
+  },
+  planFeatureList: {
+    gap: 8,
+  },
+  planFeatureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  planFeatureText: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.ink,
+    flexShrink: 1,
+  },
+  proFeatureText: {
+    fontFamily: fonts.bodyMedium,
+    color: '#713F12',
+  },
+
   /* ── Comparison Table ── */
-  comparisonCard: {
+  comparisonTable: {
     backgroundColor: colors.paperCard,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
-    marginBottom: 20,
     overflow: 'hidden',
+    marginBottom: 24,
   },
-  comparisonTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    color: colors.ink,
-    padding: 16,
-    paddingBottom: 0,
-  },
-  tableHeader: {
+  compHeaderRow: {
     flexDirection: 'row',
-    paddingHorizontal: 12,
+    backgroundColor: '#F3EFE6',
     paddingVertical: 10,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    marginTop: 12,
-    backgroundColor: '#F8F5EE',
+    alignItems: 'center',
   },
-  tableHeaderCell: {
+  compHeaderCol: {
     flex: 1,
     fontFamily: fonts.bodyBold,
     fontSize: 11,
     color: colors.inkSoft,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
-  tableHeaderCellCenter: {
+  compColCenter: {
     textAlign: 'center',
-  },
-  tableHeaderPro: {
-    color: '#CA8A04',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  tableRowAlt: {
-    backgroundColor: '#FAFAF5',
+  compProHeaderCol: {
+    backgroundColor: '#FEF3C7',
+    paddingVertical: 4,
+    borderRadius: 6,
   },
-  tableCell: {
-    flex: 1,
-  },
-  tableCellCenter: {
-    textAlign: 'center',
-  },
-  tableCellText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    color: colors.ink,
-    flexShrink: 1,
-  },
-  tableCellTextMuted: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
-  },
-  tableCellTextPro: {
+  compProHeaderText: {
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     color: '#854D0E',
+    textAlign: 'center',
   },
-  /* ── Highlights ── */
-  highlightsCard: {
-    backgroundColor: '#FFFBEB',
-    borderRadius: radius.md,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
+  compRow: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  compRowAlt: {
+    backgroundColor: '#FAF7F0',
+  },
+  compCell: {
+    flex: 1,
+  },
+  compCellFeature: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.ink,
+    flexShrink: 1,
+  },
+  compMuted: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  compBasic: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.ink,
+  },
+  compProCol: {
+    backgroundColor: '#FEFCE8',
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  compProText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: '#854D0E',
+    textAlign: 'center',
+  },
+
+  /* ── Value Benefits Grid ── */
+  benefitsGrid: {
+    gap: 12,
     marginBottom: 24,
   },
-  highlightsTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    color: '#92400E',
-    marginBottom: 14,
-  },
-  highlightRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 12,
-  },
-  highlightIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#FEF3C7',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  highlightText: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: '#78350F',
-    lineHeight: 20,
-    flex: 1,
-    paddingTop: 6,
-  },
-  packageCard: {
-    backgroundColor: colors.clayDeep,
-    padding: 20,
-    borderRadius: radius.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  packageTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 18,
-    color: colors.white,
-    marginBottom: 4,
-  },
-  packageDesc: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
-  },
-  priceContainer: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  packagePrice: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    color: colors.white,
-  },
-  activeContainer: {
-    padding: 16,
-    backgroundColor: '#E0F2FE',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: '#0284C740',
-  },
-  activeText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 15,
-    color: '#0369A1',
-    textAlign: 'center',
-  },
-  emptyContainer: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.inkSoft,
-    textAlign: 'center',
-  },
-  emptyStep: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    color: colors.ink,
-    lineHeight: 20,
-    paddingHorizontal: 4,
-  },
-  /* ── Web: Download App Styles ── */
-  webUpgradeCard: {
+  benefitCard: {
     backgroundColor: colors.paperCard,
     borderRadius: radius.md,
-    padding: 28,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 16,
   },
-  webUpgradeIconRow: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: '#F1E8D9',
+  benefitIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-  },
-  webUpgradeTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 20,
-    color: colors.ink,
-    textAlign: 'center',
     marginBottom: 10,
   },
-  webUpgradeSub: {
+  benefitTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+    color: colors.ink,
+    marginBottom: 4,
+  },
+  benefitDesc: {
     fontFamily: fonts.body,
-    fontSize: 14,
+    fontSize: 12,
+    color: colors.inkSoft,
+    lineHeight: 18,
+  },
+
+  /* ── Action / Upgrade Container ── */
+  actionContainer: {
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  freeActiveNotice: {
+    backgroundColor: '#F3EFE6',
+    padding: 14,
+    borderRadius: radius.md,
+    width: '100%',
+    alignItems: 'center',
+  },
+  freeActiveNoticeText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
     color: colors.inkSoft,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-    maxWidth: 400,
   },
-  storeBtn: {
+  upgradeButton: {
+    backgroundColor: colors.clayDeep,
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
-    width: '100%',
-    maxWidth: 280,
-    marginBottom: 12,
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 16,
+    borderRadius: radius.pill,
+    shadowColor: colors.clayDeep,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  storeBtnGoogle: {
+  upgradeButtonPro: {
+    backgroundColor: '#CA8A04',
+    shadowColor: '#CA8A04',
+  },
+  upgradeButtonText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  trustBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 14,
+    marginBottom: 10,
+  },
+  trustItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  trustDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: colors.line,
+  },
+  trustText: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  restoreBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginTop: 4,
+  },
+  restoreBtnText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.clayDeep,
+    textDecorationLine: 'underline',
+  },
+
+  /* ── Web CTA Card ── */
+  webCtaCard: {
+    backgroundColor: colors.paperCard,
+    borderRadius: radius.lg,
+    padding: 24,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  webCtaIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    backgroundColor: '#F5EBE1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  webCtaTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 19,
+    color: colors.ink,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  webCtaDesc: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.inkSoft,
+    textAlign: 'center',
+    lineHeight: 20,
+    maxWidth: 420,
+    marginBottom: 20,
+  },
+  storeButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  storeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    minWidth: 160,
+  },
+  storeBadgeGoogle: {
     backgroundColor: '#1A73E8',
   },
-  storeBtnApple: {
+  storeBadgeApple: {
     backgroundColor: '#000000',
   },
-  storeBtnLabel: {
+  storeBadgeSub: {
     fontFamily: fonts.body,
-    fontSize: 10,
+    fontSize: 9,
     color: 'rgba(255,255,255,0.8)',
-    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  storeBtnTitle: {
+  storeBadgeMain: {
     fontFamily: fonts.bodyBold,
-    fontSize: 17,
+    fontSize: 15,
     color: '#FFFFFF',
   },
 });

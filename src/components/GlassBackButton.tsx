@@ -16,7 +16,15 @@ export default function GlassBackButton({ label = 'Back', onPress }: Props) {
     if (onPress) {
       onPress();
     } else {
-      navigation.goBack();
+      if (navigation.canGoBack && navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        try {
+          (navigation as any).navigate('MainTabs', { screen: 'DashboardTab' });
+        } catch {
+          // fallback in case MainTabs is not in current route tree
+        }
+      }
     }
   };
 

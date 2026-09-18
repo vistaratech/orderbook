@@ -294,20 +294,17 @@ export default function InvoiceTemplateCustomizerScreen() {
         <View style={styles.headerBar}>
           <GlassBackButton
             label={t('common.back', 'Back')}
-            onPress={hasParentSidebar ? () => (navigation as any).navigate('MainTabs', { screen: 'DashboardTab' }) : undefined}
+            onPress={() => {
+              if (navigation.canGoBack && navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                (navigation as any).navigate('MainTabs', { screen: 'DashboardTab' });
+              }
+            }}
           />
           <View style={styles.headerTitleWrap}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={styles.headerTitle} numberOfLines={1}>
-                {t('settings.invoiceTemplate', 'Bill & Invoice Studio')}
-              </Text>
-              <View style={styles.directEditBadge}>
-                <Ionicons name="create-outline" size={12} color="#0284C7" />
-                <Text style={styles.directEditBadgeText}>Direct On-Bill Editing</Text>
-              </View>
-            </View>
-            <Text style={styles.headerSubtitle} numberOfLines={1}>
-              Edit text, upload logo, toggle columns, and customize your invoice directly on the bill canvas below
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {t('settings.invoiceTemplate', 'Bill & Invoice Studio')}
             </Text>
           </View>
 
@@ -315,10 +312,8 @@ export default function InvoiceTemplateCustomizerScreen() {
             <Pressable
               style={({ pressed }) => [styles.resetActionBtn, pressed && { opacity: 0.7 }]}
               onPress={handleReset}
-              // @ts-ignore
-              title="Reset Settings"
             >
-              <Ionicons name="refresh" size={15} color={colors.inkSoft} />
+              <Ionicons name="refresh" size={13} color={colors.inkSoft} />
               <Text style={styles.resetActionBtnText}>Reset</Text>
             </Pressable>
 
@@ -326,8 +321,8 @@ export default function InvoiceTemplateCustomizerScreen() {
               style={({ pressed }) => [styles.testPrintBtn, pressed && { opacity: 0.8 }]}
               onPress={handleTestPrint}
             >
-              <Ionicons name="print-outline" size={15} color={colors.ink} />
-              <Text style={styles.testPrintBtnText}>Test PDF Print</Text>
+              <Ionicons name="print-outline" size={13} color={colors.ink} />
+              <Text style={styles.testPrintBtnText}>Test Print</Text>
             </Pressable>
 
             <Pressable
@@ -344,13 +339,13 @@ export default function InvoiceTemplateCustomizerScreen() {
                 <ActivityIndicator size="small" color={colors.white} />
               ) : saveSuccess ? (
                 <>
-                  <Ionicons name="checkmark-done" size={16} color={colors.white} />
-                  <Text style={styles.saveBtnText}>Applied & Saved!</Text>
+                  <Ionicons name="checkmark-done" size={14} color={colors.white} />
+                  <Text style={styles.saveBtnText}>Saved!</Text>
                 </>
               ) : (
                 <>
-                  <Ionicons name="save-outline" size={15} color={colors.white} />
-                  <Text style={styles.saveBtnText}>Save & Apply</Text>
+                  <Ionicons name="save-outline" size={14} color={colors.white} />
+                  <Text style={styles.saveBtnText}>Save</Text>
                 </>
               )}
             </Pressable>
@@ -1052,26 +1047,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 16,
     color: colors.ink,
-  },
-  directEditBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#E0F2FE',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  directEditBadgeText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    color: '#0284C7',
-  },
-  headerSubtitle: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.inkSoft,
-    marginTop: 1,
   },
   headerActions: {
     flexDirection: 'row',

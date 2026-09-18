@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Platform,
   useWindowDimensions,
-  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -45,7 +44,7 @@ import { showAppAlert, confirmAction } from '../utils/dialog';
 import { triggerGlobalSubscriptionModal } from '../context/SubscriptionModalContext';
 import FadeInView from '../components/FadeInView';
 
-// Mock sample order for real-time live preview
+// Standard Indian Sample Order for Live Realistic Invoicing
 const SAMPLE_ORDER: Order = {
   id: 'sample_ord_1',
   orderNumber: 'INV-2026-0042',
@@ -55,7 +54,7 @@ const SAMPLE_ORDER: Order = {
   items: [
     {
       id: 'itm_1',
-      name: 'Organic Traditional Rice',
+      name: 'Organic Traditional Rice (பொன்னி அரிசி)',
       qty: 5,
       unit: 'kg',
       price: 120,
@@ -64,7 +63,7 @@ const SAMPLE_ORDER: Order = {
     },
     {
       id: 'itm_2',
-      name: 'Pure Cold Pressed Sesame Oil',
+      name: 'Cold Pressed Sesame Oil (நல்லெண்ணெய்)',
       qty: 2,
       unit: 'L',
       price: 340,
@@ -73,7 +72,7 @@ const SAMPLE_ORDER: Order = {
     },
     {
       id: 'itm_3',
-      name: 'Natural Palm Jaggery (Karupatti)',
+      name: 'Natural Palm Jaggery (பனங்கருப்பட்டி)',
       qty: 1,
       unit: 'kg',
       price: 220,
@@ -91,7 +90,7 @@ const SAMPLE_ORDER: Order = {
   updatedAt: new Date().toISOString(),
 };
 
-type ActiveSection = 'header' | 'title' | 'columns' | 'payments' | 'terms' | 'theme';
+type StudioTab = 'header' | 'title' | 'columns' | 'payments' | 'terms' | 'theme';
 
 export default function InvoiceTemplateCustomizerScreen() {
   const navigation = useNavigation();
@@ -102,23 +101,20 @@ export default function InvoiceTemplateCustomizerScreen() {
 
   const [config, setConfig] = useState<InvoiceTemplateConfig>(DEFAULT_INVOICE_TEMPLATE_CONFIG);
   const [bizProfile, setBizProfile] = useState<BusinessProfile>({
-    businessName: 'KadaiBook Store',
+    businessName: 'SRI MURUGAN TRADERS',
     phone: '9876543210',
-    email: 'contact@kadaibook.in',
-    address: '124, Market Road, Near Gandhi Statue, Chennai - 600001',
-    gstin: '33AABCK1234F1Z5',
-    tagline: 'Quality Products & Reliable Service',
-    upiId: 'kadaibook@upi',
-    bankDetails: 'State Bank of India\nA/C: 9876543210123\nIFSC: SBIN0001234',
+    email: 'contact@srimurugantraders.in',
+    address: '124, West Masi Street, Madurai - 625001, Tamil Nadu',
+    gstin: '33AABCS1234F1Z5',
+    tagline: 'Wholesale & Retail Commercial Merchants',
+    upiId: 'srimurugan@upi',
+    bankDetails: 'State Bank of India\nA/C: 9876543210123\nIFSC: SBIN0001234\nBranch: Madurai Main',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [activeSection, setActiveSection] = useState<ActiveSection>('header');
-  const [mobileTab, setMobileTab] = useState<'visual' | 'inspector' | 'print'>('visual');
-  const [fullPrintModal, setFullPrintModal] = useState(false);
-
-  const controlsScrollRef = useRef<ScrollView>(null);
+  const [activeTab, setActiveTab] = useState<StudioTab>('header');
+  const [mobileMode, setMobileMode] = useState<'editor' | 'preview'>('editor');
 
   useEffect(() => {
     loadData();
@@ -168,19 +164,12 @@ export default function InvoiceTemplateCustomizerScreen() {
     }));
   };
 
-  const handleSelectSection = (section: ActiveSection) => {
-    setActiveSection(section);
-    if (!isDesktop) {
-      setMobileTab('inspector');
-    }
-  };
-
   const handleSave = async () => {
     const isPro = await checkProStatus();
     if (!isPro) {
       triggerGlobalSubscriptionModal({
         title: '👑 Pro Invoice Templates',
-        message: 'Customizing bill presets, colors, custom logos, signatures, and UPI QR codes on invoices is a Pro feature.\n\nUpgrade to KadaiBook Pro for complete invoice styling & brand freedom!',
+        message: 'Customizing bill presets, colors, custom logos, signatures, and UPI QR codes on invoices is a Pro feature.\n\nUpgrade starting from just ₹99/mo for complete invoice styling & brand freedom!',
         actionName: 'save custom bill designs',
         onUpgrade: () => (navigation as any).navigate('PaywallScreen'),
       });
@@ -198,7 +187,7 @@ export default function InvoiceTemplateCustomizerScreen() {
       setTimeout(() => setSaveSuccess(false), 3500);
       showAppAlert(
         t('common.success', 'Success'),
-        'Invoice template & bill customizations saved successfully!'
+        'Invoice template & bill customizations saved and applied to all orders!'
       );
     } catch (err) {
       console.error('Save failed:', err);
@@ -211,7 +200,7 @@ export default function InvoiceTemplateCustomizerScreen() {
   const handleReset = () => {
     confirmAction({
       title: 'Reset to Defaults?',
-      message: 'Are you sure you want to restore original template settings?',
+      message: 'Restore original standard Indian bill template settings?',
       confirmText: 'Reset',
       destructive: true,
       onConfirm: async () => {
@@ -233,25 +222,36 @@ export default function InvoiceTemplateCustomizerScreen() {
         <SafeAreaView style={styles.screen} edges={['top']}>
           <View style={styles.loadingWrap}>
             <ActivityIndicator size="large" color={colors.clayDeep} />
-            <Text style={styles.loadingText}>Loading Invoice Studio…</Text>
+            <Text style={styles.loadingText}>Loading Indian Bill Studio…</Text>
           </View>
         </SafeAreaView>
       </DesktopLayout>
     );
   }
 
-  const activePreset = INVOICE_THEME_PRESETS[config.templateId] || INVOICE_THEME_PRESETS.modern_slate;
-  const sampleHtml = generatePrintableInvoiceHtml(SAMPLE_ORDER, bizProfile, config);
+  // Calculations for live bill display
+  const subtotalAmount = 1440;
+  const discountAmount = config.showDiscount ? 20 : 0;
+  const taxableAmount = subtotalAmount - discountAmount;
+  const cgstAmount = config.showGSTRate ? 20 : 0;
+  const sgstAmount = config.showGSTRate ? 20 : 0;
+  const grandTotal = taxableAmount + cgstAmount + sgstAmount;
+  const advancePaid = 500;
+  const balanceDue = grandTotal - advancePaid;
 
-  // Totals calculation
-  const subtotal = 1440;
-  const advance = SAMPLE_ORDER.advance || 0;
-  const balance = subtotal - advance;
+  const tabs: { id: StudioTab; label: string; subLabel: string; icon: any }[] = [
+    { id: 'header', label: '1. Store & Header', subLabel: 'கடை விபரம் & லோகோ', icon: 'storefront-outline' },
+    { id: 'title', label: '2. Bill Title & Series', subLabel: 'பில் வகை & எண்', icon: 'document-text-outline' },
+    { id: 'columns', label: '3. Items & Columns', subLabel: 'அட்டவணை காலம்கள்', icon: 'grid-outline' },
+    { id: 'payments', label: '4. Bank & UPI QR', subLabel: 'வங்கி & QR குறியீடு', icon: 'qr-code-outline' },
+    { id: 'terms', label: '5. Terms & Sign', subLabel: 'விதிகள் & கையொப்பம்', icon: 'shield-checkmark-outline' },
+    { id: 'theme', label: '6. Colors & Paper', subLabel: 'நிறம் & பிரிண்ட் அளவு', icon: 'color-palette-outline' },
+  ];
 
   return (
     <DesktopLayout currentTabName="InvoiceTemplateCustomizer">
       <SafeAreaView style={styles.screen} edges={['top']}>
-        {/* ─── Top Studio Bar ─── */}
+        {/* ─── Top Studio App Bar ─── */}
         <View style={styles.headerBar}>
           <GlassBackButton
             label={t('common.back', 'Back')}
@@ -260,15 +260,14 @@ export default function InvoiceTemplateCustomizerScreen() {
           <View style={styles.headerTitleWrap}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text style={styles.headerTitle} numberOfLines={1}>
-                {language === 'ta' ? 'பில் டிசைனர்' : 'Live Bill Studio'}
+                {language === 'ta' ? 'வணிக பில் & இன்வாய்ஸ் ஸ்டுடியோ' : 'Universal Bill & Invoice Studio'}
               </Text>
-              <View style={styles.liveTag}>
-                <View style={styles.liveTagDot} />
-                <Text style={styles.liveTagText}>Interactive WYSIWYG</Text>
+              <View style={styles.countryBadge}>
+                <Text style={styles.countryBadgeText}>🇮🇳 Indian Standard GST & Retail</Text>
               </View>
             </View>
             <Text style={styles.headerSubtitle} numberOfLines={1}>
-              {language === 'ta' ? 'பில்லிலேயே நேரடியாக கிளிக் செய்து மாற்றங்களை செய்யவும்' : 'Click on any section of the bill to customize in real-time'}
+              {language === 'ta' ? 'இங்கு சேமிக்கும் மாற்றங்கள் அனைத்து ஆர்டர் பில்கள் மற்றும் PDF பிரிண்டுகளிலும் உடனடியாக பிரதிபலிக்கும்' : 'Saved customizations automatically apply to all order invoices, PDF downloads & WhatsApp shares'}
             </Text>
           </View>
 
@@ -296,584 +295,210 @@ export default function InvoiceTemplateCustomizerScreen() {
               ) : saveSuccess ? (
                 <>
                   <Ionicons name="checkmark-done" size={16} color={colors.white} />
-                  <Text style={styles.saveBtnText}>Saved!</Text>
+                  <Text style={styles.saveBtnText}>Applied & Saved!</Text>
                 </>
               ) : (
                 <>
-                  <Ionicons name="checkmark-sharp" size={15} color={colors.white} />
-                  <Text style={styles.saveBtnText}>{t('common.save', 'Save')}</Text>
+                  <Ionicons name="save-outline" size={15} color={colors.white} />
+                  <Text style={styles.saveBtnText}>Save & Apply</Text>
                 </>
               )}
             </Pressable>
           </View>
         </View>
 
-        {/* ─── Mobile View Tabs (Visual Bill vs Section Inspector) ─── */}
+        {/* ─── Mobile View Toggle (Editor vs Live Bill) ─── */}
         {!isDesktop && (
           <View style={styles.mobileModeBar}>
             <Pressable
-              style={[styles.mobileModeTab, mobileTab === 'visual' && styles.mobileModeTabActive]}
-              onPress={() => setMobileTab('visual')}
-            >
-              <Ionicons
-                name="document-text"
-                size={16}
-                color={mobileTab === 'visual' ? colors.clayDeep : colors.inkSoft}
-              />
-              <Text
-                style={[
-                  styles.mobileModeTabText,
-                  mobileTab === 'visual' && styles.mobileModeTabTextActive,
-                ]}
-              >
-                📄 Live Interactive Bill
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.mobileModeTab, mobileTab === 'inspector' && styles.mobileModeTabActive]}
-              onPress={() => setMobileTab('inspector')}
+              style={[styles.mobileModeTab, mobileMode === 'editor' && styles.mobileModeTabActive]}
+              onPress={() => setMobileMode('editor')}
             >
               <Ionicons
                 name="options-outline"
                 size={16}
-                color={mobileTab === 'inspector' ? colors.clayDeep : colors.inkSoft}
+                color={mobileMode === 'editor' ? colors.clayDeep : colors.inkSoft}
               />
               <Text
                 style={[
                   styles.mobileModeTabText,
-                  mobileTab === 'inspector' && styles.mobileModeTabTextActive,
+                  mobileMode === 'editor' && styles.mobileModeTabTextActive,
                 ]}
               >
-                ⚙️ {activeSection.toUpperCase()} Editor
+                ⚙️ Configure Settings ({activeTab})
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.mobileModeTab, mobileMode === 'preview' && styles.mobileModeTabActive]}
+              onPress={() => setMobileMode('preview')}
+            >
+              <Ionicons
+                name="document-text"
+                size={16}
+                color={mobileMode === 'preview' ? colors.clayDeep : colors.inkSoft}
+              />
+              <Text
+                style={[
+                  styles.mobileModeTabText,
+                  mobileMode === 'preview' && styles.mobileModeTabTextActive,
+                ]}
+              >
+                📄 Live Indian Bill Preview
               </Text>
             </Pressable>
           </View>
         )}
 
-        {/* ─── Main Interactive Studio Workspace ─── */}
-        <View style={styles.studioContainer}>
-          {/* ════ LEFT COLUMN: Live Interactive Bill Canvas ════ */}
-          {(isDesktop || mobileTab === 'visual') && (
-            <View style={[styles.canvasPane, isDesktop && { width: '56%' }]}>
-              {/* Quick Preset Swatches Bar */}
-              <View style={styles.quickPresetBar}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickPresetScroll}>
-                  <Text style={styles.presetBarLabel}>Styles:</Text>
-                  {Object.values(INVOICE_THEME_PRESETS).map((preset) => {
-                    const isSelected = config.templateId === preset.id;
+        {/* ─── Quick Presets Bar (GST, Retail, Thermal, Modern) ─── */}
+        <View style={styles.presetsToolbar}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetsScroll}>
+            <Text style={styles.presetToolbarLabel}>Standard Layouts:</Text>
+            {[
+              { id: 'gst_tax_invoice', label: '🏛️ GST Tax Invoice', sub: 'வரி பில் (B2B/B2C)' },
+              { id: 'terracotta', label: '🧾 Retail Cash Bill', sub: 'கடை ரொக்க பில்' },
+              { id: 'thermal_pos', label: '🖨️ Thermal POS Slip', sub: '80mm தெர்மல் பில்' },
+              { id: 'modern_slate', label: '📜 Modern Executive', sub: 'நவீன இன்வாய்ஸ்' },
+              { id: 'classic', label: '🏛️ Classic Bordered', sub: 'பாரம்பரிய பில்' },
+              { id: 'emerald', label: '🌲 Forest Emerald', sub: 'பச்சை தீம்' },
+            ].map((p) => {
+              const isSelected = config.templateId === p.id;
+              return (
+                <Pressable
+                  key={p.id}
+                  style={[
+                    styles.presetPill,
+                    isSelected && styles.presetPillActive,
+                  ]}
+                  onPress={() => handleApplyPreset(p.id as InvoiceTemplateId)}
+                >
+                  <Text style={[styles.presetPillTitle, isSelected && styles.presetPillTitleActive]}>
+                    {p.label}
+                  </Text>
+                  <Text style={[styles.presetPillSub, isSelected && styles.presetPillSubActive]}>
+                    {p.sub}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* ─── Main Two-Column Layout ─── */}
+        <View style={styles.studioBody}>
+          {/* ════ LEFT COLUMN: Structured Configuration Inspector ════ */}
+          {(isDesktop || mobileMode === 'editor') && (
+            <View style={[styles.editorColumn, isDesktop && { width: '48%' }]}>
+              {/* Category Tabs Header */}
+              <View style={styles.tabsHeader}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
+                  {tabs.map((tab) => {
+                    const isSelected = activeTab === tab.id;
                     return (
                       <Pressable
-                        key={preset.id}
-                        style={[
-                          styles.quickThemeChip,
-                          isSelected && styles.quickThemeChipActive,
-                          { borderColor: isSelected ? config.primaryColor : colors.line },
-                        ]}
-                        onPress={() => handleApplyPreset(preset.id)}
-                      >
-                        <View style={[styles.quickThemeDot, { backgroundColor: preset.primaryColor }]} />
-                        <Text
-                          style={[
-                            styles.quickThemeText,
-                            isSelected && { fontFamily: fonts.bodyBold, color: colors.ink },
-                          ]}
-                        >
-                          {language === 'ta' ? preset.tamilName : preset.name}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-
-              {/* Bill Viewport */}
-              <ScrollView
-                style={styles.canvasScroll}
-                contentContainerStyle={styles.canvasContent}
-                showsVerticalScrollIndicator={false}
-              >
-                <FadeInView delay={40} translateY={10}>
-                  {/* Paper Card Container */}
-                  <View
-                    style={[
-                      styles.interactivePaper,
-                      {
-                        borderColor: config.cardBorderColor || '#E2E8F0',
-                      },
-                    ]}
-                  >
-                    {/* ───── SECTION 1: HEADER & STORE DETAILS ───── */}
-                    <Pressable
-                      style={[
-                        styles.billSectionWrap,
-                        activeSection === 'header' && styles.billSectionActive,
-                        {
-                          backgroundColor: config.headerBgColor || '#F8FAFC',
-                          borderTopLeftRadius: 10,
-                          borderTopRightRadius: 10,
-                        },
-                      ]}
-                      onPress={() => handleSelectSection('header')}
-                    >
-                      <View style={styles.sectionEditHint}>
-                        <Ionicons name="pencil" size={11} color={colors.clayDeep} />
-                        <Text style={styles.sectionEditHintText}>Store Info & Header (Click to edit)</Text>
-                      </View>
-
-                      <View style={styles.billHeaderRow}>
-                        <View style={{ flex: 1 }}>
-                          {config.showLogo && (
-                            <View style={styles.mockLogoBadge}>
-                              <Ionicons name="storefront" size={config.logoSize === 'large' ? 24 : config.logoSize === 'small' ? 14 : 18} color={config.primaryColor} />
-                              <Text style={[styles.mockLogoText, { color: config.primaryColor }]}>LOGO</Text>
-                            </View>
-                          )}
-                          <Text style={[styles.billStoreName, { color: config.headerTextColor || config.primaryColor }]}>
-                            {bizProfile.businessName || 'MY BUSINESS NAME'}
-                          </Text>
-                          {config.showTagline && bizProfile.tagline ? (
-                            <Text style={styles.billStoreTagline}>{bizProfile.tagline}</Text>
-                          ) : null}
-
-                          <View style={styles.billContactBlock}>
-                            {config.showBusinessAddress && bizProfile.address ? (
-                              <Text style={styles.billContactLine} numberOfLines={2}>
-                                📍 {bizProfile.address}
-                              </Text>
-                            ) : null}
-                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
-                              {config.showBusinessPhone && bizProfile.phone ? (
-                                <Text style={styles.billContactLine}>📞 {bizProfile.phone}</Text>
-                              ) : null}
-                              {config.showGstin && bizProfile.gstin ? (
-                                <Text style={[styles.billContactLine, styles.gstinHighlight]}>
-                                  GSTIN: {bizProfile.gstin}
-                                </Text>
-                              ) : null}
-                            </View>
-                          </View>
-                        </View>
-
-                        {/* Document Title Banner */}
-                        <View style={styles.billTitleBox}>
-                          <Pressable
-                            style={[
-                              styles.billTitlePill,
-                              { backgroundColor: config.primaryColor },
-                            ]}
-                            onPress={() => handleSelectSection('title')}
-                          >
-                            <Text style={styles.billTitleText}>{config.invoiceTitle || 'TAX INVOICE'}</Text>
-                          </Pressable>
-
-                          <Text style={styles.billMetaLine}>
-                            <Text style={{ fontFamily: fonts.bodyBold }}>Bill #:</Text> {SAMPLE_ORDER.orderNumber}
-                          </Text>
-                          <Text style={styles.billMetaLine}>
-                            <Text style={{ fontFamily: fonts.bodyBold }}>Date:</Text> {formatDate(SAMPLE_ORDER.orderDate)}
-                          </Text>
-                          {config.showDueDate && (
-                            <Text style={[styles.billMetaLine, { color: colors.pending }]}>
-                              <Text style={{ fontFamily: fonts.bodyBold }}>Due:</Text> Immediate
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                    </Pressable>
-
-                    {/* Quick Title Switcher Strip */}
-                    <View style={styles.quickTitleStrip}>
-                      <Text style={styles.quickStripLabel}>Title:</Text>
-                      {['TAX INVOICE', 'CASH BILL', 'RETAIL INVOICE', 'BILL OF SUPPLY', 'ESTIMATE'].map((tName) => (
-                        <Pressable
-                          key={tName}
-                          style={[
-                            styles.quickTitleChip,
-                            config.invoiceTitle === tName && styles.quickTitleChipActive,
-                          ]}
-                          onPress={() => setConfig((p) => ({ ...p, invoiceTitle: tName }))}
-                        >
-                          <Text
-                            style={[
-                              styles.quickTitleChipText,
-                              config.invoiceTitle === tName && styles.quickTitleChipTextActive,
-                            ]}
-                          >
-                            {tName}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
-
-                    {/* Customer Info Strip */}
-                    <View style={styles.billCustomerStrip}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.billCustomerLabel}>Billed To (Customer):</Text>
-                        <Text style={styles.billCustomerName}>{SAMPLE_ORDER.customerName}</Text>
-                        {config.showCustomerPhone && (
-                          <Text style={styles.billCustomerSub}>Ph: {SAMPLE_ORDER.phoneNumber}</Text>
-                        )}
-                      </View>
-                      <View style={styles.statusPaidPill}>
-                        <Ionicons name="checkmark-circle" size={13} color="#15803D" />
-                        <Text style={styles.statusPaidText}>Partially Paid</Text>
-                      </View>
-                    </View>
-
-                    {/* ───── SECTION 2: INTERACTIVE TABLE COLUMNS ───── */}
-                    <View style={styles.columnsToolbarWrap}>
-                      <View style={styles.columnsToolbarHeader}>
-                        <Ionicons name="grid-outline" size={13} color={colors.clayDeep} />
-                        <Text style={styles.columnsToolbarTitle}>Table Columns (Tap to Show/Hide on Bill):</Text>
-                      </View>
-                      <View style={styles.columnsChipsRow}>
-                        {[
-                          { key: 'showRate', label: 'Rate (விலை)', val: config.showRate },
-                          { key: 'showUnit', label: 'Unit (அளவு)', val: config.showUnit },
-                          { key: 'showGSTRate', label: 'GST % (வரி)', val: config.showGSTRate },
-                          { key: 'showDiscount', label: 'Discount (தள்ளுபடி)', val: config.showDiscount },
-                          { key: 'showHsn', label: 'HSN Code', val: config.showHsn },
-                          { key: 'showItemSerialNo', label: 'S.No (#)', val: config.showItemSerialNo },
-                        ].map((col) => (
-                          <Pressable
-                            key={col.key}
-                            style={[
-                              styles.colToggleChip,
-                              col.val && styles.colToggleChipActive,
-                            ]}
-                            onPress={() =>
-                              setConfig((prev) => ({
-                                ...prev,
-                                [col.key]: !col.val,
-                              }))
-                            }
-                          >
-                            <Ionicons
-                              name={col.val ? 'checkmark-circle' : 'add-circle-outline'}
-                              size={13}
-                              color={col.val ? colors.white : colors.inkSoft}
-                            />
-                            <Text
-                              style={[
-                                styles.colToggleChipText,
-                                col.val && styles.colToggleChipTextActive,
-                              ]}
-                            >
-                              {col.label}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </View>
-                    </View>
-
-                    {/* Table Render */}
-                    <Pressable
-                      style={[
-                        styles.billSectionWrap,
-                        activeSection === 'columns' && styles.billSectionActive,
-                      ]}
-                      onPress={() => handleSelectSection('columns')}
-                    >
-                      <View style={[styles.billTableHead, { backgroundColor: config.primaryColor }]}>
-                        {config.showItemSerialNo && (
-                          <Text style={[styles.billTh, { width: 28, color: colors.white }]}>#</Text>
-                        )}
-                        <Text style={[styles.billTh, { flex: 2.2, color: colors.white }]}>Item Description</Text>
-                        {config.showHsn && (
-                          <Text style={[styles.billTh, { width: 44, color: colors.white }]}>HSN</Text>
-                        )}
-                        <Text style={[styles.billTh, { width: 38, textAlign: 'center', color: colors.white }]}>Qty</Text>
-                        {config.showUnit && (
-                          <Text style={[styles.billTh, { width: 36, textAlign: 'center', color: colors.white }]}>Unit</Text>
-                        )}
-                        {config.showRate && (
-                          <Text style={[styles.billTh, { width: 55, textAlign: 'right', color: colors.white }]}>Rate</Text>
-                        )}
-                        {config.showGSTRate && (
-                          <Text style={[styles.billTh, { width: 45, textAlign: 'center', color: colors.white }]}>GST</Text>
-                        )}
-                        {config.showDiscount && (
-                          <Text style={[styles.billTh, { width: 45, textAlign: 'right', color: colors.white }]}>Disc</Text>
-                        )}
-                        <Text style={[styles.billTh, { width: 65, textAlign: 'right', color: colors.white }]}>Amount</Text>
-                      </View>
-
-                      {SAMPLE_ORDER.items.map((it, idx) => (
-                        <View
-                          key={it.id}
-                          style={[
-                            styles.billTableRow,
-                            idx % 2 === 1 && { backgroundColor: '#F8FAFC' },
-                          ]}
-                        >
-                          {config.showItemSerialNo && (
-                            <Text style={[styles.billTd, { width: 28, color: colors.inkSoft }]}>{idx + 1}</Text>
-                          )}
-                          <Text style={[styles.billTd, { flex: 2.2, fontFamily: fonts.bodyBold }]}>
-                            {it.name}
-                          </Text>
-                          {config.showHsn && (
-                            <Text style={[styles.billTd, { width: 44, color: colors.inkSoft, fontSize: 10 }]}>
-                              {it.hsnCode || '-'}
-                            </Text>
-                          )}
-                          <Text style={[styles.billTd, { width: 38, textAlign: 'center' }]}>{it.qty}</Text>
-                          {config.showUnit && (
-                            <Text style={[styles.billTd, { width: 36, textAlign: 'center', color: colors.inkSoft }]}>
-                              {it.unit || '-'}
-                            </Text>
-                          )}
-                          {config.showRate && (
-                            <Text style={[styles.billTd, { width: 55, textAlign: 'right' }]}>
-                              ₹{it.price}
-                            </Text>
-                          )}
-                          {config.showGSTRate && (
-                            <Text style={[styles.billTd, { width: 45, textAlign: 'center', fontSize: 10 }]}>
-                              {it.taxRate ? `${it.taxRate}%` : '0%'}
-                            </Text>
-                          )}
-                          {config.showDiscount && (
-                            <Text style={[styles.billTd, { width: 45, textAlign: 'right', color: colors.inflow, fontSize: 10 }]}>
-                              {it.discount ? `-₹${it.discount}` : '-'}
-                            </Text>
-                          )}
-                          <Text style={[styles.billTd, { width: 65, textAlign: 'right', fontFamily: fonts.bodyBold }]}>
-                            ₹{it.qty * it.price - (it.discount || 0)}
-                          </Text>
-                        </View>
-                      ))}
-                    </Pressable>
-
-                    {/* ───── SECTION 3: SUMMARY & TOTALS ───── */}
-                    <View style={styles.billSummaryBlock}>
-                      <View style={{ flex: 1 }} />
-                      <View style={styles.billTotalsCard}>
-                        <View style={styles.billTotalRow}>
-                          <Text style={styles.billTotalLabel}>Grand Total:</Text>
-                          <Text style={styles.billTotalVal}>{formatCurrency(subtotal)}</Text>
-                        </View>
-                        <View style={styles.billTotalRow}>
-                          <Text style={[styles.billTotalLabel, { color: colors.inflow }]}>Advance Paid:</Text>
-                          <Text style={[styles.billTotalVal, { color: colors.inflow }]}>
-                            {formatCurrency(advance)}
-                          </Text>
-                        </View>
-                        <View style={[styles.billTotalRow, styles.balanceDueHighlight]}>
-                          <Text style={[styles.billTotalLabel, { color: colors.danger, fontFamily: fonts.bodyBold }]}>
-                            Balance Due:
-                          </Text>
-                          <Text style={[styles.billTotalVal, { color: colors.danger, fontFamily: fonts.bodyBold, fontSize: 14 }]}>
-                            {formatCurrency(balance)}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* ───── SECTION 4: UPI QR & BANK DETAILS ───── */}
-                    <Pressable
-                      style={[
-                        styles.billSectionWrap,
-                        activeSection === 'payments' && styles.billSectionActive,
-                        styles.paymentSectionBox,
-                      ]}
-                      onPress={() => handleSelectSection('payments')}
-                    >
-                      <View style={styles.sectionEditHint}>
-                        <Ionicons name="qr-code" size={11} color={colors.clayDeep} />
-                        <Text style={styles.sectionEditHintText}>UPI QR & Bank Details (Click to edit)</Text>
-                      </View>
-
-                      <View style={styles.paymentSectionInner}>
-                        {config.showUpiQr && (
-                          <View style={styles.qrMockCard}>
-                            <View style={styles.qrPlaceholder}>
-                              <Ionicons name="qr-code" size={44} color={config.primaryColor} />
-                            </View>
-                            <Text style={styles.qrText}>Scan to Pay via UPI</Text>
-                            <Text style={styles.qrVpaText}>{config.upiId || bizProfile.upiId || 'store@upi'}</Text>
-                          </View>
-                        )}
-
-                        {config.showBankDetails && (
-                          <View style={styles.bankMockCard}>
-                            <Text style={styles.bankMockTitle}>🏦 Bank Account Transfer</Text>
-                            <Text style={styles.bankMockText}>
-                              {config.bankDetailsCustom || bizProfile.bankDetails || 'State Bank of India\nA/C: 9876543210\nIFSC: SBIN0001234'}
-                            </Text>
-                          </View>
-                        )}
-
-                        {!config.showUpiQr && !config.showBankDetails && (
-                          <View style={styles.emptyPaymentNotice}>
-                            <Ionicons name="information-circle-outline" size={15} color={colors.inkSoft} />
-                            <Text style={styles.emptyPaymentText}>
-                              UPI QR and Bank details are currently hidden. Tap here to enable.
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </Pressable>
-
-                    {/* ───── SECTION 5: TERMS, NOTES & SIGNATURE ───── */}
-                    <Pressable
-                      style={[
-                        styles.billSectionWrap,
-                        activeSection === 'terms' && styles.billSectionActive,
-                        styles.termsSectionBox,
-                      ]}
-                      onPress={() => handleSelectSection('terms')}
-                    >
-                      <View style={styles.sectionEditHint}>
-                        <Ionicons name="document-text" size={11} color={colors.clayDeep} />
-                        <Text style={styles.sectionEditHintText}>Terms & Signature (Click to edit)</Text>
-                      </View>
-
-                      <View style={styles.termsRow}>
-                        <View style={{ flex: 1.4 }}>
-                          {config.showTerms && (
-                            <View style={{ marginBottom: 6 }}>
-                              <Text style={styles.termsHeading}>{config.termsHeading || 'Terms & Conditions'}:</Text>
-                              <Text style={styles.termsBody}>
-                                {config.termsAndConditions || '1. Goods once sold will not be taken back.\n2. Warranty as per manufacturer norms.'}
-                              </Text>
-                            </View>
-                          )}
-                          <Text style={styles.footerNote}>{config.footerMessage || 'Thank you for your business!'}</Text>
-                        </View>
-
-                        {config.showSignatory && (
-                          <View style={styles.signatureBox}>
-                            <View style={styles.signLine} />
-                            <Text style={styles.signTitle}>
-                              For {bizProfile.businessName || 'Store'}
-                            </Text>
-                            <Text style={styles.signSub}>{config.signatoryTitle || 'Authorized Signatory'}</Text>
-                          </View>
-                        )}
-                      </View>
-                    </Pressable>
-                  </View>
-                </FadeInView>
-              </ScrollView>
-            </View>
-          )}
-
-          {/* ════ RIGHT COLUMN: Active Section Inspector & Controls ════ */}
-          {(isDesktop || mobileTab === 'inspector') && (
-            <View style={[styles.inspectorPane, isDesktop && { width: '44%' }]}>
-              {/* Section Tabs Navigator */}
-              <View style={styles.inspectorTabsHeader}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.inspectorTabsScroll}>
-                  {[
-                    { id: 'header', label: 'Store & Logo', icon: 'storefront-outline' },
-                    { id: 'title', label: 'Title & Prefix', icon: 'document-outline' },
-                    { id: 'columns', label: 'Columns', icon: 'grid-outline' },
-                    { id: 'payments', label: 'UPI & Bank', icon: 'qr-code-outline' },
-                    { id: 'terms', label: 'Terms & Sign', icon: 'pencil-outline' },
-                    { id: 'theme', label: 'Colors & Paper', icon: 'color-palette-outline' },
-                  ].map((sec) => {
-                    const isSelected = activeSection === sec.id;
-                    return (
-                      <Pressable
-                        key={sec.id}
-                        style={[
-                          styles.inspectorTab,
-                          isSelected && styles.inspectorTabActive,
-                        ]}
-                        onPress={() => setActiveSection(sec.id as ActiveSection)}
+                        key={tab.id}
+                        style={[styles.tabButton, isSelected && styles.tabButtonActive]}
+                        onPress={() => setActiveTab(tab.id)}
                       >
                         <Ionicons
-                          name={sec.icon as any}
-                          size={14}
+                          name={tab.icon}
+                          size={15}
                           color={isSelected ? colors.white : colors.ink}
                         />
-                        <Text
-                          style={[
-                            styles.inspectorTabText,
-                            isSelected && styles.inspectorTabTextActive,
-                          ]}
-                        >
-                          {sec.label}
-                        </Text>
+                        <View>
+                          <Text style={[styles.tabButtonText, isSelected && styles.tabButtonTextActive]}>
+                            {tab.label}
+                          </Text>
+                          <Text style={[styles.tabButtonSub, isSelected && styles.tabButtonSubActive]}>
+                            {tab.subLabel}
+                          </Text>
+                        </View>
                       </Pressable>
                     );
                   })}
                 </ScrollView>
               </View>
 
+              {/* Form Controls Scroll */}
               <ScrollView
-                ref={controlsScrollRef}
-                style={styles.inspectorScroll}
-                contentContainerStyle={styles.inspectorContent}
+                style={styles.formScroll}
+                contentContainerStyle={styles.formContent}
                 showsVerticalScrollIndicator={false}
               >
-                {/* ── SECTION 1: HEADER & BUSINESS INFO ── */}
-                {activeSection === 'header' && (
-                  <View>
-                    <View style={styles.inspectorHeaderTitleRow}>
-                      <Ionicons name="storefront" size={18} color={colors.clayDeep} />
-                      <Text style={styles.inspectorSectionTitle}>Store Details & Header</Text>
+                {/* ── 1. STORE & HEADER ── */}
+                {activeTab === 'header' && (
+                  <FadeInView delay={20} translateY={6}>
+                    <View style={styles.sectionHeaderBox}>
+                      <Text style={styles.sectionTitle}>1. Store Profile & Bill Header</Text>
+                      <Text style={styles.sectionDesc}>கடையின் பெயர், முகவரி, போன் எண், GSTIN மற்றும் லோகோ விவரங்கள்</Text>
                     </View>
-                    <Text style={styles.inspectorSectionDesc}>
-                      {language === 'ta' ? 'பில்லில் தெரியும் உங்கள் கடையின் பெயர், முகவரி, போன் எண் மற்றும் லோகோ விவரங்கள்' : 'Edit your shop details and choose which contact lines appear on the bill.'}
-                    </Text>
 
-                    <View style={styles.formCard}>
+                    <View style={styles.inputCard}>
                       <Text style={styles.inputLabel}>Shop / Business Name (கடையின் பெயர்) *</Text>
                       <TextInput
                         style={styles.inputField}
                         value={bizProfile.businessName}
-                        onChangeText={(val) => setBizProfile((p) => ({ ...p, businessName: val }))}
+                        onChangeText={(v) => setBizProfile((p) => ({ ...p, businessName: v }))}
                         placeholder="e.g. Sri Murugan Stores"
                         placeholderTextColor={colors.inkSoft}
                       />
 
-                      <Text style={[styles.inputLabel, { marginTop: 12 }]}>Tagline / Subheading</Text>
+                      <Text style={[styles.inputLabel, { marginTop: 12 }]}>Tagline / Business Nature (தொழில் வாசகம்)</Text>
                       <TextInput
                         style={styles.inputField}
                         value={bizProfile.tagline}
-                        onChangeText={(val) => setBizProfile((p) => ({ ...p, tagline: val }))}
+                        onChangeText={(v) => setBizProfile((p) => ({ ...p, tagline: v }))}
                         placeholder="e.g. Quality Groceries & Wholesaler"
                         placeholderTextColor={colors.inkSoft}
                       />
 
-                      <Text style={[styles.inputLabel, { marginTop: 12 }]}>Phone Number (போன் எண்)</Text>
+                      <Text style={[styles.inputLabel, { marginTop: 12 }]}>Phone / Mobile Number (தொடர்பு எண்)</Text>
                       <TextInput
                         style={styles.inputField}
                         value={bizProfile.phone}
-                        onChangeText={(val) => setBizProfile((p) => ({ ...p, phone: val }))}
+                        onChangeText={(v) => setBizProfile((p) => ({ ...p, phone: v }))}
                         placeholder="e.g. 9876543210"
                         placeholderTextColor={colors.inkSoft}
                         keyboardType="phone-pad"
                       />
 
-                      <Text style={[styles.inputLabel, { marginTop: 12 }]}>Store Address (முகவரி)</Text>
+                      <Text style={[styles.inputLabel, { marginTop: 12 }]}>Full Store Address (கடை முகவரி)</Text>
                       <TextInput
                         style={[styles.inputField, { height: 60 }]}
                         value={bizProfile.address}
-                        onChangeText={(val) => setBizProfile((p) => ({ ...p, address: val }))}
-                        placeholder="e.g. 12, Main Bazaar Street, Madurai"
+                        onChangeText={(v) => setBizProfile((p) => ({ ...p, address: v }))}
+                        placeholder="e.g. 124, West Masi Street, Madurai - 625001"
                         placeholderTextColor={colors.inkSoft}
                         multiline
                       />
 
-                      <Text style={[styles.inputLabel, { marginTop: 12 }]}>GSTIN / Tax ID (வரி எண்)</Text>
-                      <TextInput
-                        style={styles.inputField}
-                        value={bizProfile.gstin}
-                        onChangeText={(val) => setBizProfile((p) => ({ ...p, gstin: val }))}
-                        placeholder="e.g. 33AAAAA0000A1Z5"
-                        placeholderTextColor={colors.inkSoft}
-                        autoCapitalize="characters"
-                      />
+                      <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                        <View style={{ flex: 1.5 }}>
+                          <Text style={styles.inputLabel}>GSTIN / Tax ID (வரி எண்)</Text>
+                          <TextInput
+                            style={styles.inputField}
+                            value={bizProfile.gstin}
+                            onChangeText={(v) => setBizProfile((p) => ({ ...p, gstin: v }))}
+                            placeholder="33AAAAA0000A1Z5"
+                            placeholderTextColor={colors.inkSoft}
+                            autoCapitalize="characters"
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.inputLabel}>State Code</Text>
+                          <TextInput
+                            style={[styles.inputField, { backgroundColor: '#F1F5F9' }]}
+                            value="33 - TN"
+                            editable={false}
+                          />
+                        </View>
+                      </View>
                     </View>
 
-                    <View style={styles.formCard}>
-                      <Text style={styles.cardHeaderSmall}>Visibility Toggles</Text>
+                    <View style={styles.inputCard}>
+                      <Text style={styles.cardHeaderSmall}>Display Toggles on Bill</Text>
                       <View style={styles.toggleRow}>
-                        <Text style={styles.toggleText}>Show Store Logo</Text>
+                        <Text style={styles.toggleLabel}>Show Business Logo</Text>
                         <Switch
                           value={config.showLogo}
                           onValueChange={(v) => setConfig((p) => ({ ...p, showLogo: v }))}
@@ -881,35 +506,8 @@ export default function InvoiceTemplateCustomizerScreen() {
                           thumbColor={config.showLogo ? colors.clayDeep : '#f4f3f4'}
                         />
                       </View>
-                      {config.showLogo && (
-                        <View style={{ marginTop: 8, marginBottom: 8 }}>
-                          <Text style={styles.inputLabel}>Logo Size</Text>
-                          <View style={styles.chipRow}>
-                            {(['small', 'medium', 'large'] as LogoSize[]).map((sz) => (
-                              <Pressable
-                                key={sz}
-                                style={[
-                                  styles.sizeChip,
-                                  config.logoSize === sz && styles.sizeChipActive,
-                                ]}
-                                onPress={() => setConfig((p) => ({ ...p, logoSize: sz }))}
-                              >
-                                <Text
-                                  style={[
-                                    styles.sizeChipText,
-                                    config.logoSize === sz && styles.sizeChipTextActive,
-                                  ]}
-                                >
-                                  {sz.toUpperCase()}
-                                </Text>
-                              </Pressable>
-                            ))}
-                          </View>
-                        </View>
-                      )}
-
                       <View style={styles.toggleRow}>
-                        <Text style={styles.toggleText}>Show Address on Bill</Text>
+                        <Text style={styles.toggleLabel}>Show Store Address on Bill</Text>
                         <Switch
                           value={config.showBusinessAddress}
                           onValueChange={(v) => setConfig((p) => ({ ...p, showBusinessAddress: v }))}
@@ -917,9 +515,8 @@ export default function InvoiceTemplateCustomizerScreen() {
                           thumbColor={config.showBusinessAddress ? colors.clayDeep : '#f4f3f4'}
                         />
                       </View>
-
                       <View style={styles.toggleRow}>
-                        <Text style={styles.toggleText}>Show GSTIN on Bill</Text>
+                        <Text style={styles.toggleLabel}>Show GSTIN on Bill</Text>
                         <Switch
                           value={config.showGstin}
                           onValueChange={(v) => setConfig((p) => ({ ...p, showGstin: v }))}
@@ -928,75 +525,71 @@ export default function InvoiceTemplateCustomizerScreen() {
                         />
                       </View>
                     </View>
-                  </View>
+                  </FadeInView>
                 )}
 
-                {/* ── SECTION 2: TITLE & NUMBERING ── */}
-                {activeSection === 'title' && (
-                  <View>
-                    <View style={styles.inspectorHeaderTitleRow}>
-                      <Ionicons name="document-text" size={18} color={colors.clayDeep} />
-                      <Text style={styles.inspectorSectionTitle}>Bill Title & Numbering</Text>
+                {/* ── 2. BILL TITLE & SERIES ── */}
+                {activeTab === 'title' && (
+                  <FadeInView delay={20} translateY={6}>
+                    <View style={styles.sectionHeaderBox}>
+                      <Text style={styles.sectionTitle}>2. Bill Title & Numbering Series</Text>
+                      <Text style={styles.sectionDesc}>பில்லின் தலைப்பு (வரி பில் / ரொக்க பில் / மதிப்பீடு) மற்றும் பில் எண் முன்னொட்டு</Text>
                     </View>
-                    <Text style={styles.inspectorSectionDesc}>
-                      {language === 'ta' ? 'பில்லின் தலைப்பு (Tax Invoice, Cash Bill) மற்றும் எண் வகை' : 'Customize document header title, bill numbering prefix, and due dates.'}
-                    </Text>
 
-                    <View style={styles.formCard}>
-                      <Text style={styles.inputLabel}>Invoice Title Text</Text>
+                    <View style={styles.inputCard}>
+                      <Text style={styles.inputLabel}>Invoice Document Title (பில் தலைப்பு)</Text>
                       <TextInput
                         style={styles.inputField}
                         value={config.invoiceTitle}
-                        onChangeText={(val) => setConfig((p) => ({ ...p, invoiceTitle: val }))}
+                        onChangeText={(v) => setConfig((p) => ({ ...p, invoiceTitle: v }))}
                         placeholder="e.g. TAX INVOICE, CASH BILL"
                         placeholderTextColor={colors.inkSoft}
                       />
 
-                      <View style={styles.quickTagsContainer}>
-                        <Text style={styles.quickTagsHeader}>Quick Suggestions:</Text>
-                        <View style={styles.chipRow}>
-                          {[
-                            'TAX INVOICE',
-                            'CASH BILL',
-                            'RETAIL INVOICE',
-                            'BILL OF SUPPLY',
-                            'ESTIMATE / QUOTE',
-                          ].map((tName) => (
-                            <Pressable
-                              key={tName}
+                      <Text style={[styles.inputLabel, { marginTop: 12 }]}>1-Tap Quick Suggestions:</Text>
+                      <View style={styles.chipRow}>
+                        {[
+                          'TAX INVOICE',
+                          'CASH BILL',
+                          'RETAIL INVOICE',
+                          'BILL OF SUPPLY',
+                          'ESTIMATE / QUOTE',
+                          'DELIVERY CHALLAN',
+                        ].map((tName) => (
+                          <Pressable
+                            key={tName}
+                            style={[
+                              styles.choiceChip,
+                              config.invoiceTitle === tName && styles.choiceChipActive,
+                            ]}
+                            onPress={() => setConfig((p) => ({ ...p, invoiceTitle: tName }))}
+                          >
+                            <Text
                               style={[
-                                styles.quickTagPill,
-                                config.invoiceTitle === tName && styles.quickTagPillActive,
+                                styles.choiceChipText,
+                                config.invoiceTitle === tName && styles.choiceChipTextActive,
                               ]}
-                              onPress={() => setConfig((p) => ({ ...p, invoiceTitle: tName }))}
                             >
-                              <Text
-                                style={[
-                                  styles.quickTagPillText,
-                                  config.invoiceTitle === tName && styles.quickTagPillTextActive,
-                                ]}
-                              >
-                                {tName}
-                              </Text>
-                            </Pressable>
-                          ))}
-                        </View>
+                              {tName}
+                            </Text>
+                          </Pressable>
+                        ))}
                       </View>
 
-                      <Text style={[styles.inputLabel, { marginTop: 14 }]}>Invoice Number Prefix</Text>
+                      <Text style={[styles.inputLabel, { marginTop: 14 }]}>Invoice Number Prefix (எண் முன்னொட்டு)</Text>
                       <TextInput
                         style={styles.inputField}
                         value={config.invoicePrefix}
-                        onChangeText={(val) => setConfig((p) => ({ ...p, invoicePrefix: val }))}
+                        onChangeText={(v) => setConfig((p) => ({ ...p, invoicePrefix: v }))}
                         placeholder="e.g. INV-, BILL-, ORD-"
                         placeholderTextColor={colors.inkSoft}
                       />
                     </View>
 
-                    <View style={styles.formCard}>
-                      <Text style={styles.cardHeaderSmall}>Date & Customer Info</Text>
+                    <View style={styles.inputCard}>
+                      <Text style={styles.cardHeaderSmall}>Date & Buyer Information</Text>
                       <View style={styles.toggleRow}>
-                        <Text style={styles.toggleText}>Show Due Date</Text>
+                        <Text style={styles.toggleLabel}>Show Due Date on Invoice</Text>
                         <Switch
                           value={config.showDueDate}
                           onValueChange={(v) => setConfig((p) => ({ ...p, showDueDate: v }))}
@@ -1005,7 +598,7 @@ export default function InvoiceTemplateCustomizerScreen() {
                         />
                       </View>
                       <View style={styles.toggleRow}>
-                        <Text style={styles.toggleText}>Show Customer Phone Number</Text>
+                        <Text style={styles.toggleLabel}>Show Customer Phone on Bill</Text>
                         <Switch
                           value={config.showCustomerPhone}
                           onValueChange={(v) => setConfig((p) => ({ ...p, showCustomerPhone: v }))}
@@ -1014,35 +607,32 @@ export default function InvoiceTemplateCustomizerScreen() {
                         />
                       </View>
                     </View>
-                  </View>
+                  </FadeInView>
                 )}
 
-                {/* ── SECTION 3: TABLE COLUMNS ── */}
-                {activeSection === 'columns' && (
-                  <View>
-                    <View style={styles.inspectorHeaderTitleRow}>
-                      <Ionicons name="grid" size={18} color={colors.clayDeep} />
-                      <Text style={styles.inspectorSectionTitle}>Bill Table Columns</Text>
+                {/* ── 3. TABLE COLUMNS ── */}
+                {activeTab === 'columns' && (
+                  <FadeInView delay={20} translateY={6}>
+                    <View style={styles.sectionHeaderBox}>
+                      <Text style={styles.sectionTitle}>3. Product Table Columns</Text>
+                      <Text style={styles.sectionDesc}>பில் அட்டவணையில் எந்தெந்த காலம்கள் தோன்ற வேண்டும் என்பதை தேர்வு செய்யவும்</Text>
                     </View>
-                    <Text style={styles.inspectorSectionDesc}>
-                      {language === 'ta' ? 'பில் அட்டவணையில் எந்தெந்த காலம்கள் தோன்ற வேண்டும் என்பதை தேர்வு செய்யவும்' : 'Toggle item table columns to match your business type and bill size.'}
-                    </Text>
 
-                    <View style={styles.formCard}>
+                    <View style={styles.inputCard}>
                       {[
-                        { key: 'showRate', title: 'Unit Price / Rate (விலை)', desc: 'Displays unit price for each item' },
-                        { key: 'showUnit', title: 'Unit of Measure (அளவு/எடை)', desc: 'Displays kg, pcs, box, liters, etc.' },
-                        { key: 'showGSTRate', title: 'GST Tax % (வரி விகிதம்)', desc: 'Displays 5%, 12%, 18% tax breakdown per item' },
-                        { key: 'showDiscount', title: 'Item Discount (தள்ளுபடி)', desc: 'Displays discounted rupees per item' },
-                        { key: 'showHsn', title: 'HSN / SAC Code', desc: 'Displays HSN code for GST compliance' },
-                        { key: 'showItemSerialNo', title: 'Serial Number (#)', desc: 'Numbered item rows (1, 2, 3...)' },
+                        { key: 'showRate', title: 'Rate / Price (விலை)', desc: 'பொருளின் யூனிட் விலை காலம்' },
+                        { key: 'showUnit', title: 'Unit of Measure (அளவு/எடை)', desc: 'kg, pcs, box, liters அலகு காலம்' },
+                        { key: 'showGSTRate', title: 'GST Tax % (வரி விகிதம்)', desc: '5%, 12%, 18% ஜிஎஸ்டி வரி விகிதம்' },
+                        { key: 'showDiscount', title: 'Discount (தள்ளுபடி தொகை)', desc: 'ஒவ்வொரு பொருளுக்கும் தள்ளுபடி கழிவு' },
+                        { key: 'showHsn', title: 'HSN / SAC Code', desc: 'ஜிஎஸ்டி தணிக்கைக்கான HSN குறியீடு' },
+                        { key: 'showItemSerialNo', title: 'Serial Number (வ.எண்)', desc: 'வரிசை எண் (1, 2, 3...)' },
                       ].map((col) => {
                         const isChecked = Boolean(config[col.key as keyof InvoiceTemplateConfig]);
                         return (
-                          <View key={col.key} style={styles.columnToggleItem}>
+                          <View key={col.key} style={styles.columnOptionRow}>
                             <View style={{ flex: 1, paddingRight: 8 }}>
-                              <Text style={styles.columnToggleTitle}>{col.title}</Text>
-                              <Text style={styles.columnToggleDesc}>{col.desc}</Text>
+                              <Text style={styles.columnOptionTitle}>{col.title}</Text>
+                              <Text style={styles.columnOptionDesc}>{col.desc}</Text>
                             </View>
                             <Switch
                               value={isChecked}
@@ -1056,24 +646,21 @@ export default function InvoiceTemplateCustomizerScreen() {
                         );
                       })}
                     </View>
-                  </View>
+                  </FadeInView>
                 )}
 
-                {/* ── SECTION 4: PAYMENTS & UPI QR ── */}
-                {activeSection === 'payments' && (
-                  <View>
-                    <View style={styles.inspectorHeaderTitleRow}>
-                      <Ionicons name="qr-code" size={18} color={colors.clayDeep} />
-                      <Text style={styles.inspectorSectionTitle}>UPI QR Code & Bank Info</Text>
+                {/* ── 4. BANK & UPI QR ── */}
+                {activeTab === 'payments' && (
+                  <FadeInView delay={20} translateY={6}>
+                    <View style={styles.sectionHeaderBox}>
+                      <Text style={styles.sectionTitle}>4. UPI Dynamic QR Code & Bank Details</Text>
+                      <Text style={styles.sectionDesc}>வாடிக்கையாளர் பில்லில் உள்ள QR ஸ்கேன் செய்து கூகுள்பே/போன்பே மூலம் உடனடியாக பணம் செலுத்த</Text>
                     </View>
-                    <Text style={styles.inspectorSectionDesc}>
-                      {language === 'ta' ? 'வாடிக்கையாளர் பில்லில் உள்ள QR ஸ்கேன் செய்து உடனடியாக பணம் செலுத்த' : 'Enable automated UPI payment QR codes on every invoice for instant collections.'}
-                    </Text>
 
-                    <View style={styles.formCard}>
+                    <View style={styles.inputCard}>
                       <View style={styles.toggleRow}>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.toggleText}>Show Dynamic UPI QR Code</Text>
+                          <Text style={styles.toggleLabel}>Show Dynamic UPI QR Code</Text>
                           <Text style={styles.toggleSub}>Calculates exact balance due in QR</Text>
                         </View>
                         <Switch
@@ -1094,7 +681,7 @@ export default function InvoiceTemplateCustomizerScreen() {
                               setConfig((p) => ({ ...p, upiId: val }));
                               setBizProfile((p) => ({ ...p, upiId: val }));
                             }}
-                            placeholder="e.g. yourstore@okhdfcbank"
+                            placeholder="e.g. srimurugan@okhdfcbank"
                             placeholderTextColor={colors.inkSoft}
                             autoCapitalize="none"
                           />
@@ -1102,9 +689,9 @@ export default function InvoiceTemplateCustomizerScreen() {
                       )}
                     </View>
 
-                    <View style={styles.formCard}>
+                    <View style={styles.inputCard}>
                       <View style={styles.toggleRow}>
-                        <Text style={styles.toggleText}>Show Bank Account Details</Text>
+                        <Text style={styles.toggleLabel}>Show Bank Account Transfer Info</Text>
                         <Switch
                           value={config.showBankDetails}
                           onValueChange={(v) => setConfig((p) => ({ ...p, showBankDetails: v }))}
@@ -1115,7 +702,7 @@ export default function InvoiceTemplateCustomizerScreen() {
 
                       {config.showBankDetails && (
                         <View style={{ marginTop: 12 }}>
-                          <Text style={styles.inputLabel}>Bank Details (வங்கி விபரம்)</Text>
+                          <Text style={styles.inputLabel}>Bank Account Details (வங்கி கணக்கு விவரம்)</Text>
                           <TextInput
                             style={[styles.inputField, { height: 75 }]}
                             value={config.bankDetailsCustom || bizProfile.bankDetails}
@@ -1130,23 +717,20 @@ export default function InvoiceTemplateCustomizerScreen() {
                         </View>
                       )}
                     </View>
-                  </View>
+                  </FadeInView>
                 )}
 
-                {/* ── SECTION 5: TERMS & SIGNATURE ── */}
-                {activeSection === 'terms' && (
-                  <View>
-                    <View style={styles.inspectorHeaderTitleRow}>
-                      <Ionicons name="document-text" size={18} color={colors.clayDeep} />
-                      <Text style={styles.inspectorSectionTitle}>Terms, Notes & Signature</Text>
+                {/* ── 5. TERMS & SIGNATURE ── */}
+                {activeTab === 'terms' && (
+                  <FadeInView delay={20} translateY={6}>
+                    <View style={styles.sectionHeaderBox}>
+                      <Text style={styles.sectionTitle}>5. Terms, Notes & Authorized Signature</Text>
+                      <Text style={styles.sectionDesc}>பில்லின் அடியில் வரக்கூடிய விதிகள், நன்றி செய்தி மற்றும் கையொப்ப முத்திரை</Text>
                     </View>
-                    <Text style={styles.inspectorSectionDesc}>
-                      {language === 'ta' ? 'பில்லின் அடியில் வரக்கூடிய விதிகள், நன்றி செய்தி மற்றும் கையொப்பம்' : 'Customize return policy terms, footer message, and authorized signatory seal.'}
-                    </Text>
 
-                    <View style={styles.formCard}>
+                    <View style={styles.inputCard}>
                       <View style={styles.toggleRow}>
-                        <Text style={styles.toggleText}>Show Terms & Conditions</Text>
+                        <Text style={styles.toggleLabel}>Show Terms & Conditions (விதிமுறைகள்)</Text>
                         <Switch
                           value={config.showTerms}
                           onValueChange={(v) => setConfig((p) => ({ ...p, showTerms: v }))}
@@ -1162,7 +746,7 @@ export default function InvoiceTemplateCustomizerScreen() {
                             style={[styles.inputField, { height: 70 }]}
                             value={config.termsAndConditions}
                             onChangeText={(val) => setConfig((p) => ({ ...p, termsAndConditions: val }))}
-                            placeholder="1. Goods once sold cannot be returned.\n2. 18% interest on overdue bills."
+                            placeholder="1. சரக்கு திரும்ப பெறப்பட மாட்டாது.\n2. Goods once sold will not be taken back."
                             placeholderTextColor={colors.inkSoft}
                             multiline
                           />
@@ -1170,9 +754,9 @@ export default function InvoiceTemplateCustomizerScreen() {
                       )}
                     </View>
 
-                    <View style={styles.formCard}>
+                    <View style={styles.inputCard}>
                       <View style={styles.toggleRow}>
-                        <Text style={styles.toggleText}>Show Authorized Signatory Box</Text>
+                        <Text style={styles.toggleLabel}>Show Authorized Signatory Box (கையொப்பம்)</Text>
                         <Switch
                           value={config.showSignatory}
                           onValueChange={(v) => setConfig((p) => ({ ...p, showSignatory: v }))}
@@ -1183,61 +767,58 @@ export default function InvoiceTemplateCustomizerScreen() {
 
                       {config.showSignatory && (
                         <View style={{ marginTop: 12 }}>
-                          <Text style={styles.inputLabel}>Signatory Label</Text>
+                          <Text style={styles.inputLabel}>Signatory Title Label</Text>
                           <TextInput
                             style={styles.inputField}
                             value={config.signatoryTitle}
                             onChangeText={(val) => setConfig((p) => ({ ...p, signatoryTitle: val }))}
-                            placeholder="e.g. Authorized Signatory / Manager"
+                            placeholder="Authorized Signatory / மேலாளர்"
                             placeholderTextColor={colors.inkSoft}
                           />
                         </View>
                       )}
 
-                      <Text style={[styles.inputLabel, { marginTop: 14 }]}>Footer Thank You Note</Text>
+                      <Text style={[styles.inputLabel, { marginTop: 14 }]}>Footer Thank You Note (நன்றி செய்தி)</Text>
                       <TextInput
                         style={styles.inputField}
                         value={config.footerMessage}
                         onChangeText={(val) => setConfig((p) => ({ ...p, footerMessage: val }))}
-                        placeholder="e.g. Thank you for your business! Visit Again."
+                        placeholder="நன்றி! மீண்டும் வருக! / Thank you for your business!"
                         placeholderTextColor={colors.inkSoft}
                       />
                     </View>
-                  </View>
+                  </FadeInView>
                 )}
 
-                {/* ── SECTION 6: COLORS & PAPER SIZE ── */}
-                {activeSection === 'theme' && (
-                  <View>
-                    <View style={styles.inspectorHeaderTitleRow}>
-                      <Ionicons name="color-palette" size={18} color={colors.clayDeep} />
-                      <Text style={styles.inspectorSectionTitle}>Color Themes & Paper Size</Text>
+                {/* ── 6. COLORS & PAPER SIZE ── */}
+                {activeTab === 'theme' && (
+                  <FadeInView delay={20} translateY={6}>
+                    <View style={styles.sectionHeaderBox}>
+                      <Text style={styles.sectionTitle}>6. Color Palette & Printer Paper Size</Text>
+                      <Text style={styles.sectionDesc}>பில்லின் கலர் தீம் மற்றும் பிரிண்ட் பேப்பர் அளவை தேர்வு செய்யவும்</Text>
                     </View>
-                    <Text style={styles.inspectorSectionDesc}>
-                      {language === 'ta' ? 'பில்லின் கலர் தீம் மற்றும் பிரிண்ட் பேப்பர் அளவை மாற்றலாம்' : 'Select print paper format and custom color accents.'}
-                    </Text>
 
-                    <View style={styles.formCard}>
-                      <Text style={styles.cardHeaderSmall}>Paper Sizing</Text>
+                    <View style={styles.inputCard}>
+                      <Text style={styles.inputLabel}>Paper Sizing (பிரிண்டர் தாள் அளவு)</Text>
                       <View style={styles.chipRow}>
                         {[
-                          { id: 'a4', label: 'A4 Full Page' },
-                          { id: 'a5', label: 'A5 Half Page' },
-                          { id: 'thermal_80mm', label: '80mm POS Thermal' },
-                          { id: 'thermal_58mm', label: '58mm POS Thermal' },
+                          { id: 'a4', label: '📄 A4 Full Page' },
+                          { id: 'a5', label: '📑 A5 Half Page' },
+                          { id: 'thermal_80mm', label: '🧾 80mm POS Thermal (3-inch)' },
+                          { id: 'thermal_58mm', label: '🧾 58mm Thermal (2-inch)' },
                         ].map((p) => (
                           <Pressable
                             key={p.id}
                             style={[
-                              styles.paperSizeChip,
-                              config.paperSize === p.id && styles.paperSizeChipActive,
+                              styles.choiceChip,
+                              config.paperSize === p.id && styles.choiceChipActive,
                             ]}
                             onPress={() => setConfig((prev) => ({ ...prev, paperSize: p.id as PaperSize }))}
                           >
                             <Text
                               style={[
-                                styles.paperSizeChipText,
-                                config.paperSize === p.id && styles.paperSizeChipTextActive,
+                                styles.choiceChipText,
+                                config.paperSize === p.id && styles.choiceChipTextActive,
                               ]}
                             >
                               {p.label}
@@ -1246,10 +827,10 @@ export default function InvoiceTemplateCustomizerScreen() {
                         ))}
                       </View>
 
-                      <View style={[styles.toggleRow, { marginTop: 12 }]}>
+                      <View style={[styles.toggleRow, { marginTop: 14 }]}>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.toggleText}>Compact Spacing Mode</Text>
-                          <Text style={styles.toggleSub}>Reduces bill height for thermal printers</Text>
+                          <Text style={styles.toggleLabel}>Compact Margins (Space Saver)</Text>
+                          <Text style={styles.toggleSub}>Tighter layout for thermal and small slips</Text>
                         </View>
                         <Switch
                           value={config.compactMode}
@@ -1260,18 +841,286 @@ export default function InvoiceTemplateCustomizerScreen() {
                       </View>
                     </View>
 
-                    <View style={styles.formCard}>
-                      <Text style={styles.cardHeaderSmall}>Reset Settings</Text>
+                    <View style={styles.inputCard}>
+                      <Text style={styles.cardHeaderSmall}>Reset Configuration</Text>
                       <Pressable
                         style={({ pressed }) => [styles.resetBtn, pressed && { opacity: 0.8 }]}
                         onPress={handleReset}
                       >
                         <Ionicons name="refresh-outline" size={15} color={colors.danger} />
-                        <Text style={styles.resetBtnText}>Restore Default Bill Template</Text>
+                        <Text style={styles.resetBtnText}>Restore Standard Indian Bill Template</Text>
                       </Pressable>
                     </View>
-                  </View>
+                  </FadeInView>
                 )}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* ════ RIGHT COLUMN: Live Authentic Indian Bill Preview ════ */}
+          {(isDesktop || mobileMode === 'preview') && (
+            <View style={[styles.previewColumn, isDesktop && { width: '52%' }]}>
+              <View style={styles.previewHeaderStrip}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="eye" size={16} color={colors.clayDeep} />
+                  <Text style={styles.previewTitle}>Live Bill View (நேரடி பில் தோற்றம்)</Text>
+                </View>
+                <Text style={styles.previewBadge}>{config.paperSize.toUpperCase()}</Text>
+              </View>
+
+              <ScrollView
+                style={styles.previewScroll}
+                contentContainerStyle={styles.previewContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <FadeInView delay={60} translateY={8}>
+                  {/* The Authentic Indian Invoice Sheet */}
+                  <View
+                    style={[
+                      styles.invoiceSheet,
+                      {
+                        borderColor: config.cardBorderColor || '#CBD5E1',
+                      },
+                    ]}
+                  >
+                    {/* Header Banner */}
+                    <View
+                      style={[
+                        styles.invoiceHeaderBanner,
+                        {
+                          backgroundColor: config.headerBgColor || '#F8FAFC',
+                          borderBottomColor: config.primaryColor,
+                        },
+                      ]}
+                    >
+                      <View style={{ flex: 1.5 }}>
+                        <Text style={[styles.invoiceStoreTitle, { color: config.headerTextColor || config.primaryColor }]}>
+                          {bizProfile.businessName || 'MY BUSINESS NAME'}
+                        </Text>
+                        {config.showTagline && bizProfile.tagline ? (
+                          <Text style={styles.invoiceTagline}>{bizProfile.tagline}</Text>
+                        ) : null}
+
+                        {config.showBusinessAddress && bizProfile.address ? (
+                          <Text style={styles.invoiceAddress} numberOfLines={2}>
+                            {bizProfile.address}
+                          </Text>
+                        ) : null}
+
+                        <View style={styles.invoiceMetaInlineRow}>
+                          {config.showBusinessPhone && bizProfile.phone ? (
+                            <Text style={styles.invoiceContactText}>Ph: {bizProfile.phone}</Text>
+                          ) : null}
+                          {config.showGstin && bizProfile.gstin ? (
+                            <Text style={[styles.invoiceContactText, styles.gstinText]}>
+                              GSTIN: {bizProfile.gstin}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+
+                      {/* Right Meta Column */}
+                      <View style={styles.invoiceRightMeta}>
+                        <View style={[styles.invoiceTitleBadge, { backgroundColor: config.primaryColor }]}>
+                          <Text style={styles.invoiceTitleBadgeText}>{config.invoiceTitle || 'TAX INVOICE'}</Text>
+                        </View>
+                        <Text style={styles.invoiceMetaDetail}>
+                          <Text style={{ fontFamily: fonts.bodyBold }}>Bill #:</Text> {SAMPLE_ORDER.orderNumber}
+                        </Text>
+                        <Text style={styles.invoiceMetaDetail}>
+                          <Text style={{ fontFamily: fonts.bodyBold }}>Date:</Text> {formatDate(SAMPLE_ORDER.orderDate)}
+                        </Text>
+                        <Text style={styles.invoiceMetaDetail}>
+                          <Text style={{ fontFamily: fonts.bodyBold }}>State:</Text> Tamil Nadu (33)
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Buyer / Customer Details Strip */}
+                    <View style={styles.invoiceBuyerRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.buyerLabel}>BUYER / CUSTOMER (வாங்குபவர் விபரம்):</Text>
+                        <Text style={styles.buyerName}>{SAMPLE_ORDER.customerName}</Text>
+                        {config.showCustomerPhone && (
+                          <Text style={styles.buyerMeta}>Mobile: {SAMPLE_ORDER.phoneNumber}</Text>
+                        )}
+                      </View>
+                      <View style={styles.statusPillSmall}>
+                        <Ionicons name="checkmark-circle" size={12} color="#15803D" />
+                        <Text style={styles.statusPillSmallText}>Partially Paid</Text>
+                      </View>
+                    </View>
+
+                    {/* Products Table */}
+                    <View style={styles.invoiceTable}>
+                      {/* Table Header */}
+                      <View style={[styles.tableHeaderRow, { backgroundColor: config.primaryColor }]}>
+                        {config.showItemSerialNo && (
+                          <Text style={[styles.thCell, { width: 28 }]}>#</Text>
+                        )}
+                        <Text style={[styles.thCell, { flex: 2.2 }]}>Item Description (பொருட்கள்)</Text>
+                        {config.showHsn && (
+                          <Text style={[styles.thCell, { width: 44, textAlign: 'center' }]}>HSN</Text>
+                        )}
+                        <Text style={[styles.thCell, { width: 36, textAlign: 'center' }]}>Qty</Text>
+                        {config.showUnit && (
+                          <Text style={[styles.thCell, { width: 36, textAlign: 'center' }]}>Unit</Text>
+                        )}
+                        {config.showRate && (
+                          <Text style={[styles.thCell, { width: 55, textAlign: 'right' }]}>Rate (₹)</Text>
+                        )}
+                        {config.showGSTRate && (
+                          <Text style={[styles.thCell, { width: 44, textAlign: 'center' }]}>GST</Text>
+                        )}
+                        {config.showDiscount && (
+                          <Text style={[styles.thCell, { width: 45, textAlign: 'right' }]}>Disc</Text>
+                        )}
+                        <Text style={[styles.thCell, { width: 65, textAlign: 'right' }]}>Amount (₹)</Text>
+                      </View>
+
+                      {/* Item Rows */}
+                      {SAMPLE_ORDER.items.map((it, idx) => (
+                        <View
+                          key={it.id}
+                          style={[
+                            styles.tableBodyRow,
+                            idx % 2 === 1 && { backgroundColor: '#F8FAFC' },
+                          ]}
+                        >
+                          {config.showItemSerialNo && (
+                            <Text style={[styles.tdCell, { width: 28, color: colors.inkSoft }]}>{idx + 1}</Text>
+                          )}
+                          <Text style={[styles.tdCell, { flex: 2.2, fontFamily: fonts.bodyBold }]}>
+                            {it.name}
+                          </Text>
+                          {config.showHsn && (
+                            <Text style={[styles.tdCell, { width: 44, textAlign: 'center', fontSize: 10, color: colors.inkSoft }]}>
+                              {it.hsnCode || '-'}
+                            </Text>
+                          )}
+                          <Text style={[styles.tdCell, { width: 36, textAlign: 'center' }]}>{it.qty}</Text>
+                          {config.showUnit && (
+                            <Text style={[styles.tdCell, { width: 36, textAlign: 'center', color: colors.inkSoft }]}>
+                              {it.unit || '-'}
+                            </Text>
+                          )}
+                          {config.showRate && (
+                            <Text style={[styles.tdCell, { width: 55, textAlign: 'right' }]}>
+                              {formatCurrency(it.price)}
+                            </Text>
+                          )}
+                          {config.showGSTRate && (
+                            <Text style={[styles.tdCell, { width: 44, textAlign: 'center', fontSize: 10 }]}>
+                              {it.taxRate ? `${it.taxRate}%` : '0%'}
+                            </Text>
+                          )}
+                          {config.showDiscount && (
+                            <Text style={[styles.tdCell, { width: 45, textAlign: 'right', color: colors.inflow, fontSize: 10 }]}>
+                              {it.discount ? `-₹${it.discount}` : '-'}
+                            </Text>
+                          )}
+                          <Text style={[styles.tdCell, { width: 65, textAlign: 'right', fontFamily: fonts.bodyBold }]}>
+                            {formatCurrency(it.qty * it.price - (it.discount || 0))}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    {/* Calculation Totals & GST Summary Box */}
+                    <View style={styles.invoiceSummaryRow}>
+                      <View style={{ flex: 1, paddingRight: 10 }}>
+                        <Text style={styles.amountWordsLabel}>Amount in Words (எழுத்தால்):</Text>
+                        <Text style={styles.amountWordsText}>One Thousand Four Hundred and Forty Rupees Only</Text>
+                      </View>
+
+                      <View style={styles.totalsTableBox}>
+                        <View style={styles.summaryLine}>
+                          <Text style={styles.summaryLineLabel}>Subtotal (மொத்த விலை):</Text>
+                          <Text style={styles.summaryLineVal}>{formatCurrency(subtotalAmount)}</Text>
+                        </View>
+                        {discountAmount > 0 && (
+                          <View style={styles.summaryLine}>
+                            <Text style={[styles.summaryLineLabel, { color: colors.inflow }]}>Discount (தள்ளுபடி):</Text>
+                            <Text style={[styles.summaryLineVal, { color: colors.inflow }]}>-{formatCurrency(discountAmount)}</Text>
+                          </View>
+                        )}
+                        {config.showGSTRate && (
+                          <>
+                            <View style={styles.summaryLine}>
+                              <Text style={styles.summaryLineLabel}>CGST (2.5%):</Text>
+                              <Text style={styles.summaryLineVal}>+{formatCurrency(cgstAmount)}</Text>
+                            </View>
+                            <View style={styles.summaryLine}>
+                              <Text style={styles.summaryLineLabel}>SGST (2.5%):</Text>
+                              <Text style={styles.summaryLineVal}>+{formatCurrency(sgstAmount)}</Text>
+                            </View>
+                          </>
+                        )}
+                        <View style={styles.summaryLineTotal}>
+                          <Text style={styles.summaryLineTotalLabel}>Grand Total (நிகர மொத்தம்):</Text>
+                          <Text style={styles.summaryLineTotalVal}>{formatCurrency(grandTotal)}</Text>
+                        </View>
+                        <View style={styles.summaryLine}>
+                          <Text style={[styles.summaryLineLabel, { color: colors.inflow }]}>Advance Paid (முன்பணம்):</Text>
+                          <Text style={[styles.summaryLineVal, { color: colors.inflow }]}>{formatCurrency(advancePaid)}</Text>
+                        </View>
+                        <View style={styles.summaryLineBalance}>
+                          <Text style={styles.summaryLineBalanceLabel}>Balance Due (மீதி தொகை):</Text>
+                          <Text style={styles.summaryLineBalanceVal}>{formatCurrency(balanceDue)}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Bank & UPI QR Payment Box */}
+                    {(config.showUpiQr || config.showBankDetails) && (
+                      <View style={styles.invoicePaymentBox}>
+                        {config.showUpiQr && (
+                          <View style={styles.invoiceQrCard}>
+                            <View style={styles.qrIconWrap}>
+                              <Ionicons name="qr-code" size={44} color={config.primaryColor} />
+                            </View>
+                            <Text style={styles.qrCaption}>Scan to Pay via UPI</Text>
+                            <Text style={styles.qrVpa}>{config.upiId || bizProfile.upiId || 'store@upi'}</Text>
+                          </View>
+                        )}
+
+                        {config.showBankDetails && (
+                          <View style={styles.invoiceBankCard}>
+                            <Text style={styles.bankCardTitle}>🏦 Bank Account Details (வங்கி விபரம்):</Text>
+                            <Text style={styles.bankCardBody}>
+                              {config.bankDetailsCustom || bizProfile.bankDetails || 'State Bank of India\nA/C: 9876543210123\nIFSC: SBIN0001234'}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    {/* Terms & Conditions and Signature Strip */}
+                    <View style={styles.invoiceFooterRow}>
+                      <View style={{ flex: 1.4 }}>
+                        {config.showTerms && (
+                          <View style={{ marginBottom: 6 }}>
+                            <Text style={styles.termsTitle}>{config.termsHeading || 'Terms & Conditions (விதிமுறைகள்)'}:</Text>
+                            <Text style={styles.termsText}>
+                              {config.termsAndConditions || '1. சரக்கு திரும்ப பெறப்பட மாட்டாது.\n2. Goods once sold will not be taken back.'}
+                            </Text>
+                          </View>
+                        )}
+                        <Text style={styles.footerGreeting}>
+                          {config.footerMessage || 'நன்றி! மீண்டும் வருக! / Thank you for your business!'}
+                        </Text>
+                      </View>
+
+                      {config.showSignatory && (
+                        <View style={styles.signatoryCard}>
+                          <View style={styles.signDivider} />
+                          <Text style={styles.signBusinessName}>For {bizProfile.businessName || 'Store'}</Text>
+                          <Text style={styles.signDesignation}>{config.signatoryTitle || 'Authorized Signatory'}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </FadeInView>
               </ScrollView>
             </View>
           )}
@@ -1322,37 +1171,30 @@ const styles = StyleSheet.create({
     color: colors.inkSoft,
     marginTop: 1,
   },
-  liveTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#E8F5E9',
+  countryBadge: {
+    backgroundColor: '#FEF3C7',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
   },
-  liveTagDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#16A34A',
-  },
-  liveTagText: {
+  countryBadgeText: {
     fontFamily: fonts.bodyBold,
     fontSize: 10,
-    color: '#15803D',
+    color: '#92400E',
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   testPrintBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: colors.paperCard,
-    paddingHorizontal: 10,
+    paddingHorizontal: 11,
     paddingVertical: 7,
     borderRadius: radius.sm,
     borderWidth: 1,
@@ -1360,7 +1202,7 @@ const styles = StyleSheet.create({
   },
   testPrintBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 11,
+    fontSize: 11.5,
     color: colors.ink,
   },
   saveBtn: {
@@ -1368,7 +1210,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     backgroundColor: colors.clayDeep,
-    paddingHorizontal: 13,
+    paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: radius.sm,
     ...shadow.card,
@@ -1410,536 +1252,131 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     color: colors.clayDeep,
   },
-  studioContainer: {
+  presetsToolbar: {
+    backgroundColor: colors.paperCard,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  presetsScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  presetToolbarLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.inkSoft,
+    marginRight: 2,
+  },
+  presetPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+  },
+  presetPillActive: {
+    backgroundColor: '#FAF5EE',
+    borderColor: colors.clayDeep,
+  },
+  presetPillTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.ink,
+  },
+  presetPillTitleActive: {
+    color: colors.clayDeep,
+  },
+  presetPillSub: {
+    fontFamily: fonts.body,
+    fontSize: 9.5,
+    color: colors.inkSoft,
+  },
+  presetPillSubActive: {
+    color: colors.clayDeep,
+  },
+  studioBody: {
     flex: 1,
     flexDirection: 'row',
     overflow: 'hidden',
   },
-  canvasPane: {
+
+  /* ════ LEFT EDITOR PANE ════ */
+  editorColumn: {
     flex: 1,
     height: '100%',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.paper,
     borderRightWidth: 1,
     borderRightColor: colors.line,
   },
-  quickPresetBar: {
+  tabsHeader: {
     backgroundColor: colors.paperCard,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     paddingVertical: 6,
-    paddingHorizontal: 10,
   },
-  quickPresetScroll: {
+  tabsScroll: {
+    paddingHorizontal: 12,
+    gap: 6,
+    flexDirection: 'row',
+  },
+  tabButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  presetBarLabel: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    color: colors.inkSoft,
-    marginRight: 4,
-  },
-  quickThemeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: colors.paper,
-    borderWidth: 1,
-  },
-  quickThemeChipActive: {
-    backgroundColor: '#FAF5EE',
-  },
-  quickThemeDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  quickThemeText: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.inkSoft,
-  },
-  canvasScroll: {
-    flex: 1,
-  },
-  canvasContent: {
-    padding: 16,
-    alignItems: 'center',
-    paddingBottom: 60,
-  },
-  interactivePaper: {
-    width: '100%',
-    maxWidth: 580,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    borderWidth: 1.5,
-    ...shadow.card,
-    elevation: 4,
-    overflow: 'hidden',
-  },
-  billSectionWrap: {
-    padding: 14,
-    position: 'relative',
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  billSectionActive: {
-    borderColor: colors.clayDeep,
-    backgroundColor: 'rgba(194, 93, 44, 0.03)',
-  },
-  sectionEditHint: {
-    position: 'absolute',
-    top: 4,
-    right: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    zIndex: 10,
-  },
-  sectionEditHintText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 9,
-    color: colors.clayDeep,
-  },
-  billHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  mockLogoBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
-  },
-  mockLogoText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    letterSpacing: 1,
-  },
-  billStoreName: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    letterSpacing: 0.5,
-  },
-  billStoreTagline: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.inkSoft,
-    marginTop: 1,
-  },
-  billContactBlock: {
-    marginTop: 6,
-    gap: 1,
-  },
-  billContactLine: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.ink,
-  },
-  gstinHighlight: {
-    fontFamily: fonts.bodyBold,
-    color: colors.clayDeep,
-  },
-  billTitleBox: {
-    alignItems: 'flex-end',
-    minWidth: 130,
-  },
-  billTitlePill: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.sm,
-    marginBottom: 6,
-  },
-  billTitleText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    color: colors.white,
-    letterSpacing: 0.8,
-  },
-  billMetaLine: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.ink,
-    marginTop: 1,
-  },
-  quickTitleStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#F8FAFC',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  quickStripLabel: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    color: colors.inkSoft,
-  },
-  quickTitleChip: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-  },
-  quickTitleChipActive: {
-    backgroundColor: colors.clayLight,
-    borderColor: colors.clayDeep,
-  },
-  quickTitleChipText: {
-    fontFamily: fonts.body,
-    fontSize: 9.5,
-    color: colors.ink,
-  },
-  quickTitleChipTextActive: {
-    fontFamily: fonts.bodyBold,
-    color: colors.clayDeep,
-  },
-  billCustomerStrip: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#FAFAFA',
-  },
-  billCustomerLabel: {
-    fontFamily: fonts.body,
-    fontSize: 10,
-    color: colors.inkSoft,
-  },
-  billCustomerName: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.ink,
-  },
-  billCustomerSub: {
-    fontFamily: fonts.body,
-    fontSize: 10.5,
-    color: colors.inkSoft,
-  },
-  statusPaidPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  statusPaidText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    color: '#15803D',
-  },
-  columnsToolbarWrap: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  columnsToolbarHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
-  },
-  columnsToolbarTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10.5,
-    color: colors.ink,
-  },
-  columnsChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-  },
-  colToggleChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 4,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-  },
-  colToggleChipActive: {
-    backgroundColor: colors.clayDeep,
-    borderColor: colors.clayDeep,
-  },
-  colToggleChipText: {
-    fontFamily: fonts.body,
-    fontSize: 10,
-    color: colors.ink,
-  },
-  colToggleChipTextActive: {
-    fontFamily: fonts.bodyBold,
-    color: colors.white,
-  },
-  billTableHead: {
-    flexDirection: 'row',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 4,
-    marginBottom: 4,
-  },
-  billTh: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10.5,
-  },
-  billTableRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 8,
     paddingVertical: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    alignItems: 'center',
-  },
-  billTd: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.ink,
-  },
-  billSummaryBlock: {
-    flexDirection: 'row',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  billTotalsCard: {
-    width: 210,
-    gap: 3,
-  },
-  billTotalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  billTotalLabel: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.ink,
-  },
-  billTotalVal: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    color: colors.ink,
-  },
-  balanceDueHighlight: {
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingTop: 3,
-    marginTop: 2,
-  },
-  paymentSectionBox: {
-    backgroundColor: '#FAFCFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  paymentSectionInner: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 4,
-  },
-  qrMockCard: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    minWidth: 110,
-  },
-  qrPlaceholder: {
-    width: 50,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  qrText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 9,
-    color: colors.ink,
-    marginTop: 2,
-  },
-  qrVpaText: {
-    fontFamily: fonts.body,
-    fontSize: 8.5,
-    color: colors.clayDeep,
-  },
-  bankMockCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    padding: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    justifyContent: 'center',
-    minWidth: 140,
-  },
-  bankMockTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    color: colors.ink,
-    marginBottom: 2,
-  },
-  bankMockText: {
-    fontFamily: fonts.body,
-    fontSize: 9.5,
-    color: colors.inkSoft,
-    lineHeight: 14,
-  },
-  emptyPaymentNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-  },
-  emptyPaymentText: {
-    fontFamily: fonts.body,
-    fontSize: 10.5,
-    color: colors.inkSoft,
-  },
-  termsSectionBox: {
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  termsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginTop: 6,
-  },
-  termsHeading: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    color: colors.ink,
-  },
-  termsBody: {
-    fontFamily: fonts.body,
-    fontSize: 9,
-    color: colors.inkSoft,
-    lineHeight: 13,
-  },
-  footerNote: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 9.5,
-    color: colors.clayDeep,
-    marginTop: 4,
-  },
-  signatureBox: {
-    width: 130,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  signLine: {
-    width: '100%',
-    height: 1,
-    backgroundColor: '#94A3B8',
-    marginBottom: 4,
-  },
-  signTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 9.5,
-    color: colors.ink,
-    textAlign: 'center',
-  },
-  signSub: {
-    fontFamily: fonts.body,
-    fontSize: 8.5,
-    color: colors.inkSoft,
-    textAlign: 'center',
-  },
-
-  /* ════ RIGHT INSPECTOR PANE ════ */
-  inspectorPane: {
-    flex: 1,
-    height: '100%',
-    backgroundColor: colors.paper,
-  },
-  inspectorTabsHeader: {
-    backgroundColor: colors.paperCard,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    paddingVertical: 6,
-  },
-  inspectorTabsScroll: {
-    paddingHorizontal: 12,
-    gap: 6,
-    flexDirection: 'row',
-  },
-  inspectorTab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    height: 30,
-    borderRadius: 15,
+    borderRadius: radius.sm,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
   },
-  inspectorTabActive: {
+  tabButtonActive: {
     backgroundColor: colors.clayDeep,
     borderColor: colors.clayDeep,
   },
-  inspectorTabText: {
-    fontFamily: fonts.body,
+  tabButtonText: {
+    fontFamily: fonts.bodyBold,
     fontSize: 11,
     color: colors.ink,
   },
-  inspectorTabTextActive: {
-    fontFamily: fonts.bodyBold,
+  tabButtonTextActive: {
     color: colors.white,
   },
-  inspectorScroll: {
+  tabButtonSub: {
+    fontFamily: fonts.body,
+    fontSize: 9,
+    color: colors.inkSoft,
+  },
+  tabButtonSubActive: {
+    color: 'rgba(255,255,255,0.85)',
+  },
+  formScroll: {
     flex: 1,
   },
-  inspectorContent: {
+  formContent: {
     padding: 16,
     paddingBottom: 60,
   },
-  inspectorHeaderTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 3,
-  },
-  inspectorSectionTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 15,
-    color: colors.ink,
-  },
-  inspectorSectionDesc: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
+  sectionHeaderBox: {
     marginBottom: 12,
   },
-  formCard: {
+  sectionTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14.5,
+    color: colors.ink,
+  },
+  sectionDesc: {
+    fontFamily: fonts.body,
+    fontSize: 11.5,
+    color: colors.inkSoft,
+    marginTop: 2,
+  },
+  inputCard: {
     backgroundColor: colors.paperCard,
     borderRadius: radius.md,
     borderWidth: 1,
@@ -1977,7 +1414,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
   },
-  toggleText: {
+  toggleLabel: {
     fontFamily: fonts.body,
     fontSize: 12.5,
     color: colors.ink,
@@ -1993,58 +1430,28 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 4,
   },
-  sizeChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  choiceChip: {
+    paddingHorizontal: 9,
+    paddingVertical: 5,
     borderRadius: radius.sm,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
   },
-  sizeChipActive: {
+  choiceChipActive: {
     backgroundColor: colors.clayLight,
     borderColor: colors.clayDeep,
   },
-  sizeChipText: {
+  choiceChipText: {
     fontFamily: fonts.body,
     fontSize: 11,
     color: colors.ink,
   },
-  sizeChipTextActive: {
+  choiceChipTextActive: {
     fontFamily: fonts.bodyBold,
     color: colors.clayDeep,
   },
-  quickTagsContainer: {
-    marginTop: 10,
-  },
-  quickTagsHeader: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.inkSoft,
-    marginBottom: 4,
-  },
-  quickTagPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: radius.sm,
-    backgroundColor: colors.paper,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  quickTagPillActive: {
-    backgroundColor: colors.clayLight,
-    borderColor: colors.clayDeep,
-  },
-  quickTagPillText: {
-    fontFamily: fonts.body,
-    fontSize: 10.5,
-    color: colors.ink,
-  },
-  quickTagPillTextActive: {
-    fontFamily: fonts.bodyBold,
-    color: colors.clayDeep,
-  },
-  columnToggleItem: {
+  columnOptionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -2052,44 +1459,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
-  columnToggleTitle: {
+  columnOptionTitle: {
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     color: colors.ink,
   },
-  columnToggleDesc: {
+  columnOptionDesc: {
     fontFamily: fonts.body,
     fontSize: 10.5,
     color: colors.inkSoft,
     marginTop: 1,
-  },
-  paperSizeChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: radius.sm,
-    backgroundColor: colors.paper,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  paperSizeChipActive: {
-    backgroundColor: colors.clayLight,
-    borderColor: colors.clayDeep,
-  },
-  paperSizeChipText: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.ink,
-  },
-  paperSizeChipTextActive: {
-    fontFamily: fonts.bodyBold,
-    color: colors.clayDeep,
   },
   resetBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.danger,
@@ -2097,7 +1483,371 @@ const styles = StyleSheet.create({
   },
   resetBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 12,
+    fontSize: 11.5,
     color: colors.danger,
+  },
+
+  /* ════ RIGHT PREVIEW PANE ════ */
+  previewColumn: {
+    flex: 1,
+    height: '100%',
+    backgroundColor: '#F1F5F9',
+  },
+  previewHeaderStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: colors.paperCard,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  previewTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  previewBadge: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    backgroundColor: '#E2E8F0',
+    color: colors.ink,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  previewScroll: {
+    flex: 1,
+  },
+  previewContent: {
+    padding: 16,
+    alignItems: 'center',
+    paddingBottom: 60,
+  },
+
+  /* 🇮🇳 REALISTIC INDIAN BILL SHEET STYLES */
+  invoiceSheet: {
+    width: '100%',
+    maxWidth: 580,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1.5,
+    ...shadow.card,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  invoiceHeaderBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderBottomWidth: 2,
+    gap: 12,
+  },
+  invoiceStoreTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    letterSpacing: 0.5,
+  },
+  invoiceTagline: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
+  invoiceAddress: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: colors.ink,
+    marginTop: 4,
+    lineHeight: 14,
+  },
+  invoiceMetaInlineRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  invoiceContactText: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: colors.ink,
+  },
+  gstinText: {
+    fontFamily: fonts.bodyBold,
+    color: colors.clayDeep,
+  },
+  invoiceRightMeta: {
+    alignItems: 'flex-end',
+    minWidth: 130,
+  },
+  invoiceTitleBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  invoiceTitleBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10.5,
+    color: colors.white,
+    letterSpacing: 0.8,
+  },
+  invoiceMetaDetail: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: colors.ink,
+    marginTop: 1,
+  },
+  invoiceBuyerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  buyerLabel: {
+    fontFamily: fonts.body,
+    fontSize: 9.5,
+    color: colors.inkSoft,
+  },
+  buyerName: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  buyerMeta: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.inkSoft,
+  },
+  statusPillSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  statusPillSmallText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9.5,
+    color: '#15803D',
+  },
+  invoiceTable: {
+    padding: 10,
+  },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  thCell: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    color: colors.white,
+  },
+  tableBodyRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    alignItems: 'center',
+  },
+  tdCell: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: colors.ink,
+  },
+  invoiceSummaryRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    backgroundColor: '#FAFAFA',
+  },
+  amountWordsLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9.5,
+    color: colors.inkSoft,
+  },
+  amountWordsText: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.ink,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  totalsTableBox: {
+    width: 220,
+    gap: 2,
+  },
+  summaryLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  summaryLineLabel: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: colors.ink,
+  },
+  summaryLineVal: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10.5,
+    color: colors.ink,
+  },
+  summaryLineTotal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 1.5,
+    borderTopColor: '#CBD5E1',
+    paddingTop: 4,
+    marginTop: 2,
+  },
+  summaryLineTotalLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11.5,
+    color: colors.ink,
+  },
+  summaryLineTotalVal: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  summaryLineBalance: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  summaryLineBalanceLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10.5,
+    color: colors.danger,
+  },
+  summaryLineBalanceVal: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.danger,
+  },
+  invoicePaymentBox: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  invoiceQrCard: {
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    minWidth: 100,
+  },
+  qrIconWrap: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrCaption: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 8.5,
+    color: colors.ink,
+    marginTop: 2,
+  },
+  qrVpa: {
+    fontFamily: fonts.body,
+    fontSize: 8,
+    color: colors.clayDeep,
+  },
+  invoiceBankCard: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    padding: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    minWidth: 140,
+  },
+  bankCardTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9.5,
+    color: colors.ink,
+    marginBottom: 2,
+  },
+  bankCardBody: {
+    fontFamily: fonts.body,
+    fontSize: 9,
+    color: colors.inkSoft,
+    lineHeight: 13,
+  },
+  invoiceFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    gap: 12,
+  },
+  termsTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9.5,
+    color: colors.ink,
+  },
+  termsText: {
+    fontFamily: fonts.body,
+    fontSize: 8.5,
+    color: colors.inkSoft,
+    lineHeight: 12,
+  },
+  footerGreeting: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9.5,
+    color: colors.clayDeep,
+    marginTop: 4,
+  },
+  signatoryCard: {
+    width: 130,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  signDivider: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#94A3B8',
+    marginBottom: 4,
+  },
+  signBusinessName: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9,
+    color: colors.ink,
+    textAlign: 'center',
+  },
+  signDesignation: {
+    fontFamily: fonts.body,
+    fontSize: 8,
+    color: colors.inkSoft,
+    textAlign: 'center',
   },
 });

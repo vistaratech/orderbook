@@ -8,53 +8,75 @@ import { Platform } from 'react-native';
 
 export const firebaseConfig = {
   apiKey:
-    process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
+    process.env.EXPO_PUBLIC_FIREBASE_API_KEY || 'AIzaSyBjSi9tfH3s3cEbS1p2xSY4LE45yp9PReE',
   authDomain:
-    process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+    process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || 'orderbook-0.firebaseapp.com',
   projectId:
-    process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
+    process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || 'orderbook-0',
   storageBucket:
-    process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+    process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || 'orderbook-0.firebasestorage.app',
   messagingSenderId:
-    process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+    process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '79850824559',
   appId:
-    process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
+    process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '1:79850824559:android:6d7399a394a75ca1dabe9a',
 };
 
-if (!firebaseConfig.apiKey) {
-  if (__DEV__) {
-    console.warn('[Firebase] Missing EXPO_PUBLIC_FIREBASE_API_KEY. Please verify your .env file.');
+// Safe Firebase App initialization
+let appInstance: FirebaseApp;
+try {
+  appInstance = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+} catch (e) {
+  console.warn('[Firebase] initializeApp error, attempting getApp:', e);
+  try {
+    appInstance = getApp();
+  } catch (err) {
+    appInstance = initializeApp(firebaseConfig, 'kadai-app');
   }
 }
+export const app: FirebaseApp = appInstance;
 
-// Initialize Firebase App (prevent re-initializing on hot reload)
-export const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-
-// Initialize Auth with React Native AsyncStorage persistence on mobile
+// Safe Auth initialization with React Native AsyncStorage persistence
 let authInstance: Auth;
-if (Platform.OS === 'web') {
-  authInstance = getAuth(app);
-} else {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { getReactNativePersistence } = require('firebase/auth');
-    if (getReactNativePersistence) {
-      authInstance = initializeAuth(app, {
-        persistence: getReactNativePersistence(AsyncStorage),
-      });
-    } else {
+try {
+  if (Platform.OS === 'web') {
+    authInstance = getAuth(app);
+  } else {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { getReactNativePersistence } = require('firebase/auth');
+      if (getReactNativePersistence && AsyncStorage) {
+        authInstance = initializeAuth(app, {
+          persistence: getReactNativePersistence(AsyncStorage),
+        });
+      } else {
+        authInstance = getAuth(app);
+      }
+    } catch {
       authInstance = getAuth(app);
     }
-  } catch {
-    authInstance = getAuth(app);
   }
+} catch {
+  authInstance = getAuth(app);
 }
 
 export const auth: Auth = authInstance;
 
-// Initialize Cloud Firestore & Storage
-export const db: Firestore = getFirestore(app);
-export const storage: FirebaseStorage = getStorage(app);
+// Safe Cloud Firestore & Storage initialization
+let dbInstance: Firestore;
+try {
+  dbInstance = getFirestore(app);
+} catch {
+  dbInstance = {} as Firestore;
+}
+export const db: Firestore = dbInstance;
+
+let storageInstance: FirebaseStorage;
+try {
+  storageInstance = getStorage(app);
+} catch {
+  storageInstance = {} as FirebaseStorage;
+}
+export const storage: FirebaseStorage = storageInstance;
 
 // Safe Analytics initialization (only runs in supported browser environments)
 export let analytics: Analytics | null = null;

@@ -28,7 +28,7 @@ const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=in.kadaibo
 const APP_STORE_URL = 'https://apps.apple.com/app/kadaibook/id6743072498';
 
 type SelectedTier = 'free' | 'basic' | 'pro';
-type BillingCycle = 'monthly' | 'yearly';
+type BillingPeriod = 'yearly' | 'monthly';
 
 export default function PaywallScreen() {
   const navigation = useNavigation();
@@ -41,7 +41,7 @@ export default function PaywallScreen() {
   const [isPro, setIsPro] = useState(false);
   const [isBasic, setIsBasic] = useState(false);
   const [selectedTier, setSelectedTier] = useState<SelectedTier>('pro');
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('yearly');
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('yearly');
 
   useEffect(() => {
     loadData();
@@ -74,46 +74,6 @@ export default function PaywallScreen() {
     }
   };
 
-  const proAnnualPkg = packages.find((p) =>
-    (p.identifier.toLowerCase().includes('annual') ||
-     p.identifier.toLowerCase().includes('year') ||
-     p.packageType === 'ANNUAL' ||
-     p.product.identifier.toLowerCase().includes('annual') ||
-     p.product.identifier.toLowerCase().includes('year') ||
-     p.product.identifier.toLowerCase().includes('1499') ||
-     p.product.identifier.toLowerCase().includes('1500')) &&
-    !p.identifier.toLowerCase().includes('basic')
-  );
-
-  const proMonthlyPkg = packages.find((p) =>
-    (p.identifier.toLowerCase().includes('month') ||
-     p.packageType === 'MONTHLY' ||
-     p.product.identifier.toLowerCase().includes('month') ||
-     p.product.identifier.toLowerCase().includes('249')) &&
-    !p.identifier.toLowerCase().includes('basic') &&
-    !p.identifier.toLowerCase().includes('annual') &&
-    !p.identifier.toLowerCase().includes('year') &&
-    p.packageType !== 'ANNUAL'
-  ) || packages.find((p) =>
-    p.identifier.toLowerCase().includes('pro') ||
-    p.product.identifier.toLowerCase().includes('pro')
-  );
-
-  const basicMonthlyPkg = packages.find((p) =>
-    p.identifier.toLowerCase().includes('basic') &&
-    (p.identifier.toLowerCase().includes('month') || p.packageType === 'MONTHLY')
-  ) || packages.find((p) => p.identifier.toLowerCase().includes('basic'));
-
-  const basicAnnualPkg = packages.find((p) =>
-    p.identifier.toLowerCase().includes('basic') &&
-    (p.identifier.toLowerCase().includes('annual') || p.identifier.toLowerCase().includes('year') || p.packageType === 'ANNUAL')
-  );
-
-  const proYearlyPriceText = proAnnualPkg?.product?.priceString || '₹1,499 / year';
-  const proMonthlyPriceText = proMonthlyPkg?.product?.priceString || '₹249 / month';
-  const basicMonthlyPriceText = basicMonthlyPkg?.product?.priceString || '₹99 / month';
-  const basicYearlyPriceText = basicAnnualPkg?.product?.priceString || '₹899 / year';
-
   const handlePurchase = async (pkgToBuy?: any) => {
     if (Platform.OS === 'web') {
       Alert.alert(
@@ -126,16 +86,28 @@ export default function PaywallScreen() {
     let targetPkg = pkgToBuy;
     if (!targetPkg && packages.length > 0) {
       if (selectedTier === 'basic') {
-        if (billingCycle === 'yearly') {
-          targetPkg = basicAnnualPkg || basicMonthlyPkg || packages[0];
+        if (billingPeriod === 'yearly') {
+          targetPkg = packages.find((p) =>
+            (p.identifier.toLowerCase().includes('basic') || p.product.identifier.toLowerCase().includes('basic')) &&
+            (p.packageType === 'ANNUAL' || p.identifier.toLowerCase().includes('year') || p.product.identifier.toLowerCase().includes('annual'))
+          ) || packages.find((p) => p.identifier.toLowerCase().includes('basic')) || packages[0];
         } else {
-          targetPkg = basicMonthlyPkg || packages[0];
+          targetPkg = packages.find((p) =>
+            (p.identifier.toLowerCase().includes('basic') || p.product.identifier.toLowerCase().includes('basic')) &&
+            (p.packageType === 'MONTHLY' || p.identifier.toLowerCase().includes('month'))
+          ) || packages.find((p) => p.identifier.toLowerCase().includes('basic')) || packages[0];
         }
-      } else if (selectedTier === 'pro') {
-        if (billingCycle === 'yearly') {
-          targetPkg = proAnnualPkg || proMonthlyPkg || packages[0];
+      } else {
+        if (billingPeriod === 'yearly') {
+          targetPkg = packages.find((p) =>
+            (p.identifier.toLowerCase().includes('pro') || p.product.identifier.toLowerCase().includes('pro')) &&
+            (p.packageType === 'ANNUAL' || p.identifier.toLowerCase().includes('year') || p.product.identifier.toLowerCase().includes('annual'))
+          ) || packages.find((p) => p.identifier.toLowerCase().includes('pro')) || packages[0];
         } else {
-          targetPkg = proMonthlyPkg || proAnnualPkg || packages[0];
+          targetPkg = packages.find((p) =>
+            (p.identifier.toLowerCase().includes('pro') || p.product.identifier.toLowerCase().includes('pro')) &&
+            (p.packageType === 'MONTHLY' || p.identifier.toLowerCase().includes('month'))
+          ) || packages.find((p) => p.identifier.toLowerCase().includes('pro')) || packages[0];
         }
       }
     }
@@ -177,6 +149,9 @@ export default function PaywallScreen() {
     );
   }
 
+  const basicPriceText = billingPeriod === 'yearly' ? '₹899 / yr' : '₹99 / mo';
+  const proPriceText = billingPeriod === 'yearly' ? '₹1,499 / yr' : '₹249 / mo';
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       {/* ── Top Header ── */}
@@ -185,7 +160,7 @@ export default function PaywallScreen() {
           <GlassBackButton label="Back" />
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.topHeaderTitle}>Subscription Plans</Text>
-            <Text style={styles.topHeaderSub}>Choose the right plan for your business</Text>
+            <Text style={styles.topHeaderSub}>Choose the right plan for your shop</Text>
           </View>
           <View style={styles.statusPill}>
             <Text style={styles.statusPillText}>
@@ -207,66 +182,76 @@ export default function PaywallScreen() {
               <Text style={styles.heroBadgeText}>ELEVATE YOUR BUSINESS</Text>
             </View>
             <Text style={styles.heroTitle}>
-              Unlock Unlimited Power{'\n'}with KadaiBook Pro
+              Unlock the Full Power{'\n'}of KadaiBook
             </Text>
             <Text style={styles.heroSubtitle}>
-              Scale without limits. Unlimited orders, automated payment reminders, custom bills, and deep profit insights.
+              Grow without limits. Manage unlimited orders, automated reminders, custom invoices, and deep business insights.
             </Text>
           </View>
 
-          {/* ── Billing Cycle Selector (Monthly vs Yearly - Save 50%) ── */}
-          <View style={styles.billingToggleSection}>
-            <Text style={styles.billingToggleLabel}>Billing Period</Text>
-            <View style={styles.billingToggle}>
+          {/* ── Billing Cycle Toggle (Monthly vs Yearly) ── */}
+          <View style={styles.billingToggleWrapper}>
+            <View style={styles.billingToggleContainer}>
               <Pressable
                 style={[
-                  styles.billingTab,
-                  billingCycle === 'monthly' && styles.billingTabActive,
+                  styles.billingToggleBtn,
+                  billingPeriod === 'monthly' && styles.billingToggleBtnActive,
                 ]}
-                onPress={() => setBillingCycle('monthly')}
+                onPress={() => setBillingPeriod('monthly')}
               >
                 <Text
                   style={[
-                    styles.billingTabText,
-                    billingCycle === 'monthly' && styles.billingTabTextActive,
+                    styles.billingToggleText,
+                    billingPeriod === 'monthly' && styles.billingToggleTextActive,
                   ]}
                 >
-                  Monthly
+                  Monthly Billing
                 </Text>
               </Pressable>
 
               <Pressable
                 style={[
-                  styles.billingTab,
-                  billingCycle === 'yearly' && styles.billingTabActive,
+                  styles.billingToggleBtn,
+                  billingPeriod === 'yearly' && styles.billingToggleBtnActiveYearly,
                 ]}
-                onPress={() => setBillingCycle('yearly')}
+                onPress={() => setBillingPeriod('yearly')}
               >
-                <Text
-                  style={[
-                    styles.billingTabText,
-                    billingCycle === 'yearly' && styles.billingTabTextActive,
-                  ]}
-                >
-                  Yearly
-                </Text>
-                <View style={styles.saveBadge}>
-                  <Text style={styles.saveBadgeText}>SAVE 50% 🔥</Text>
+                <View style={styles.yearlyToggleRow}>
+                  <Text
+                    style={[
+                      styles.billingToggleText,
+                      billingPeriod === 'yearly' && styles.billingToggleTextActiveYearly,
+                    ]}
+                  >
+                    👑 Yearly Plan
+                  </Text>
+                  <View style={styles.discountPill}>
+                    <Text style={styles.discountPillText}>SAVE 50%</Text>
+                  </View>
                 </View>
               </Pressable>
             </View>
           </View>
 
-          {/* ── Interactive Plan Cards ── */}
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionHeading}>Select Your Plan</Text>
-            {billingCycle === 'yearly' && (
-              <View style={styles.yearlyDealPill}>
-                <Ionicons name="gift" size={13} color="#854D0E" />
-                <Text style={styles.yearlyDealPillText}>Pro Annual is only ₹125/month!</Text>
+          {/* ── Best Value Callout Banner ── */}
+          {billingPeriod === 'yearly' && (
+            <View style={styles.bestValueBanner}>
+              <View style={styles.bestValueBannerIconWrap}>
+                <Ionicons name="gift" size={20} color="#CA8A04" />
               </View>
-            )}
-          </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.bestValueBannerTitle}>
+                  🔥 Best Value Offer: Pro Yearly @ ₹1,499/year
+                </Text>
+                <Text style={styles.bestValueBannerSub}>
+                  Equivalent to just ₹125/month! Get 100% UNLIMITED access to all orders, customers, and premium features.
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* ── Interactive Plan Cards (Side-by-side on Desktop, Stacked on Mobile) ── */}
+          <Text style={styles.sectionHeading}>Select a Plan</Text>
 
           <View style={[styles.plansContainer, isDesktop && styles.plansContainerDesktop]}>
             {/* FREE TIER CARD */}
@@ -318,7 +303,7 @@ export default function PaywallScreen() {
                 </View>
                 <View style={styles.planFeatureItem}>
                   <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
-                  <Text style={styles.planFeatureText}>1 Standard Bill Template</Text>
+                  <Text style={styles.planFeatureText}>1 Default Template</Text>
                 </View>
                 <View style={styles.planFeatureItem}>
                   <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
@@ -347,11 +332,14 @@ export default function PaywallScreen() {
                       </View>
                     )}
                   </View>
-                  <Text style={styles.planPrice}>
-                    {billingCycle === 'yearly' ? basicYearlyPriceText : basicMonthlyPriceText}
-                  </Text>
-                  {billingCycle === 'yearly' && (
-                    <Text style={styles.equivalentRateText}>Just ₹75 / month</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                    <Text style={styles.planPrice}>{basicPriceText}</Text>
+                    {billingPeriod === 'yearly' && (
+                      <Text style={styles.strikePrice}>₹1,188</Text>
+                    )}
+                  </View>
+                  {billingPeriod === 'yearly' && (
+                    <Text style={styles.planPeriodSub}>₹75/mo • Save 25%</Text>
                   )}
                 </View>
                 <View
@@ -388,7 +376,7 @@ export default function PaywallScreen() {
               </View>
             </Pressable>
 
-            {/* PRO TIER CARD (STANDOUT HIGHLIGHT - BEST VALUE) */}
+            {/* PRO TIER CARD (HIGHLIGHTED - BEST PLAN) */}
             <Pressable
               style={({ pressed }) => [
                 styles.planCard,
@@ -402,44 +390,38 @@ export default function PaywallScreen() {
               <View style={styles.proRibbon}>
                 <Ionicons name="star" size={13} color="#FFFFFF" />
                 <Text style={styles.proRibbonText}>
-                  {billingCycle === 'yearly'
-                    ? '👑 BEST VALUE • SAVE 50% • UNLIMITED'
-                    : 'MOST POPULAR • UNLIMITED EVERYTHING'}
+                  {billingPeriod === 'yearly'
+                    ? '👑 BEST VALUE • SAVE 50% • EVERYTHING UNLIMITED'
+                    : '⭐ MOST POPULAR • EVERYTHING UNLIMITED'}
                 </Text>
               </View>
-
               <View style={styles.planCardHeader}>
                 <View>
                   <View style={styles.planTitleRow}>
-                    <Text style={[styles.planName, styles.proPlanName]}>
-                      {billingCycle === 'yearly' ? 'Pro Annual' : 'Pro Monthly'}
-                    </Text>
+                    <Text style={[styles.planName, styles.proPlanName]}>Pro Unlimited</Text>
                     {isPro && (
                       <View style={styles.currentBadge}>
                         <Text style={styles.currentBadgeText}>Active</Text>
                       </View>
                     )}
-                  </View>
-
-                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-                    <Text style={[styles.planPrice, styles.proPlanPrice]}>
-                      {billingCycle === 'yearly' ? proYearlyPriceText : proMonthlyPriceText}
-                    </Text>
-                    {billingCycle === 'yearly' && (
-                      <Text style={styles.strikePriceText}>₹2,988</Text>
+                    {billingPeriod === 'yearly' && (
+                      <View style={styles.bestPlanTag}>
+                        <Text style={styles.bestPlanTagText}>Best Plan</Text>
+                      </View>
                     )}
                   </View>
-
-                  {billingCycle === 'yearly' ? (
-                    <View style={styles.savingsRow}>
-                      <Text style={styles.savingsPill}>Just ₹125 / mo</Text>
-                      <Text style={styles.savingsTag}>Save ₹1,489/yr</Text>
-                    </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                    <Text style={[styles.planPrice, styles.proPlanPrice]}>{proPriceText}</Text>
+                    {billingPeriod === 'yearly' && (
+                      <Text style={styles.strikePrice}>₹2,999</Text>
+                    )}
+                  </View>
+                  {billingPeriod === 'yearly' ? (
+                    <Text style={styles.proPeriodSub}>✨ Just ₹125/month • Save ₹1,500/year</Text>
                   ) : (
-                    <Text style={styles.equivalentRateText}>Billed monthly • Cancel anytime</Text>
+                    <Text style={styles.proPeriodSub}>Full access with monthly flexibility</Text>
                   )}
                 </View>
-
                 <View
                   style={[
                     styles.radioOuter,
@@ -450,44 +432,48 @@ export default function PaywallScreen() {
                   {selectedTier === 'pro' && <View style={styles.proRadioInner} />}
                 </View>
               </View>
-
               <View style={[styles.planDivider, styles.proPlanDivider]} />
-
               <View style={styles.planFeatureList}>
                 <View style={styles.planFeatureItem}>
-                  <Ionicons name="infinite" size={16} color="#CA8A04" />
-                  <Text style={[styles.planFeatureText, styles.proFeatureText, styles.boldFeature]}>
-                    Unlimited Orders & Invoices
+                  <Ionicons name="infinite" size={17} color="#CA8A04" />
+                  <Text style={[styles.planFeatureText, styles.proFeatureText, { fontWeight: '700' }]}>
+                    Unlimited Orders (No monthly limit)
                   </Text>
                 </View>
                 <View style={styles.planFeatureItem}>
-                  <Ionicons name="infinite" size={16} color="#CA8A04" />
-                  <Text style={[styles.planFeatureText, styles.proFeatureText, styles.boldFeature]}>
+                  <Ionicons name="infinite" size={17} color="#CA8A04" />
+                  <Text style={[styles.planFeatureText, styles.proFeatureText, { fontWeight: '700' }]}>
                     Unlimited Customers & Products
                   </Text>
                 </View>
                 <View style={styles.planFeatureItem}>
                   <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
                   <Text style={[styles.planFeatureText, styles.proFeatureText]}>
-                    All 6+ Premium Bill Templates & Logo
+                    All 6+ Premium Templates & Custom Logo
                   </Text>
                 </View>
                 <View style={styles.planFeatureItem}>
                   <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
                   <Text style={[styles.planFeatureText, styles.proFeatureText]}>
-                    Automated WhatsApp Payment Reminders
+                    PDF & Excel Export + GST Reports
                   </Text>
                 </View>
                 <View style={styles.planFeatureItem}>
                   <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
                   <Text style={[styles.planFeatureText, styles.proFeatureText]}>
-                    PDF & Excel Export Reports (GST & P&L)
+                    Automated Payment Reminders (WhatsApp/SMS)
                   </Text>
                 </View>
                 <View style={styles.planFeatureItem}>
                   <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
                   <Text style={[styles.planFeatureText, styles.proFeatureText]}>
-                    Priority 24/7 Customer Support
+                    Advanced Profit & Loss Analytics
+                  </Text>
+                </View>
+                <View style={styles.planFeatureItem}>
+                  <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+                  <Text style={[styles.planFeatureText, styles.proFeatureText]}>
+                    24/7 Priority VIP Customer Support
                   </Text>
                 </View>
               </View>
@@ -497,7 +483,7 @@ export default function PaywallScreen() {
           {/* ── Detailed Comparison Matrix ── */}
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionHeading}>Plan Comparison</Text>
-            <Text style={styles.sectionSub}>All features breakdown</Text>
+            <Text style={styles.sectionSub}>Detailed breakdown</Text>
           </View>
 
           <View style={styles.comparisonTable}>
@@ -515,14 +501,13 @@ export default function PaywallScreen() {
             {[
               { name: 'Monthly Orders Limit', free: '10', basic: '150', pro: 'Unlimited', icon: 'receipt-outline' },
               { name: 'Customer Contacts Limit', free: '10', basic: '60', pro: 'Unlimited', icon: 'people-outline' },
-              { name: 'Products Catalog Limit', free: '20', basic: '20', pro: 'Unlimited', icon: 'cube-outline' },
-              { name: 'Invoice Templates', free: '1 Default', basic: '1 Default', pro: 'All 6+ Premium', icon: 'document-text-outline' },
+              { name: 'Invoice Templates', free: '1 Default', basic: '1 Default', pro: 'All Premium', icon: 'document-text-outline' },
               { name: 'Custom Logo & Branding', free: '—', basic: '—', pro: '✓', icon: 'color-palette-outline' },
-              { name: 'WhatsApp Reminders', free: '—', basic: '—', pro: '✓', icon: 'logo-whatsapp' },
               { name: 'PDF & Excel Export', free: '—', basic: '—', pro: '✓', icon: 'download-outline' },
-              { name: 'Financial & Tax Reports', free: 'Basic', basic: 'Basic', pro: 'Advanced (GST)', icon: 'bar-chart-outline' },
+              { name: 'Business Reports', free: 'Basic', basic: 'Basic', pro: 'Advanced', icon: 'bar-chart-outline' },
+              { name: 'WhatsApp Invoicing', free: '✓', basic: '✓', pro: '✓', icon: 'logo-whatsapp' },
               { name: 'Cloud Multi-Device Sync', free: '✓', basic: '✓', pro: '✓', icon: 'cloud-done-outline' },
-              { name: 'Priority VIP Support', free: '—', basic: '—', pro: '✓', icon: 'headset-outline' },
+              { name: 'Priority Support', free: '—', basic: '—', pro: '✓', icon: 'headset-outline' },
             ].map((item, index) => (
               <View
                 key={index}
@@ -557,7 +542,7 @@ export default function PaywallScreen() {
               </View>
               <Text style={styles.benefitTitle}>Scale Without Limits</Text>
               <Text style={styles.benefitDesc}>
-                Never hit a ceiling. Create unlimited orders, invoices, and register unlimited customer contacts.
+                Never hit a ceiling. Add unlimited orders, products, and customer contacts as your sales surge.
               </Text>
             </View>
 
@@ -565,9 +550,9 @@ export default function PaywallScreen() {
               <View style={[styles.benefitIconWrap, { backgroundColor: '#E0F2FE' }]}>
                 <Ionicons name="brush-outline" size={22} color="#0284C7" />
               </View>
-              <Text style={styles.benefitTitle}>Professional Invoices & Logo</Text>
+              <Text style={styles.benefitTitle}>Professional Invoices</Text>
               <Text style={styles.benefitDesc}>
-                Make your shop stand out with 6+ premium invoice templates, your custom shop logo, and instant PDF sharing.
+                Make your brand stand out with customizable premium invoice designs and instant PDF downloads.
               </Text>
             </View>
 
@@ -575,9 +560,9 @@ export default function PaywallScreen() {
               <View style={[styles.benefitIconWrap, { backgroundColor: '#DCFCE7' }]}>
                 <Ionicons name="trending-up-outline" size={22} color="#16A34A" />
               </View>
-              <Text style={styles.benefitTitle}>Deep Profit & GST Insights</Text>
+              <Text style={styles.benefitTitle}>Deep Profit Insights</Text>
               <Text style={styles.benefitDesc}>
-                Track unpaid balances, daily sales margins, and export 1-click Excel sheets for your CA and GST filings.
+                Understand margins, track unpaid customer balances, and optimize expense categories effortlessly.
               </Text>
             </View>
 
@@ -585,9 +570,9 @@ export default function PaywallScreen() {
               <View style={[styles.benefitIconWrap, { backgroundColor: '#F3E8FF' }]}>
                 <Ionicons name="shield-checkmark-outline" size={22} color="#9333EA" />
               </View>
-              <Text style={styles.benefitTitle}>WhatsApp Automated Reminders</Text>
+              <Text style={styles.benefitTitle}>Secure & Tax-Ready</Text>
               <Text style={styles.benefitDesc}>
-                Collect pending payments 3x faster with 1-click friendly payment reminder messages sent directly to customers.
+                Export tax-compliant Excel sheets in 1-click for your CA or accounting software.
               </Text>
             </View>
           </View>
@@ -601,7 +586,7 @@ export default function PaywallScreen() {
               <Text style={styles.webCtaTitle}>Upgrade on KadaiBook Mobile</Text>
               <Text style={styles.webCtaDesc}>
                 Subscriptions are managed securely via Google Play and Apple App Store.
-                Install the mobile app to upgrade to Pro (Annual ₹1,499 / mo ₹249) and enjoy unlimited access across both mobile and web dashboard!
+                Install the mobile app to upgrade to Pro and access all features across your web dashboard!
               </Text>
 
               <View style={styles.storeButtonsRow}>
@@ -641,7 +626,7 @@ export default function PaywallScreen() {
               {selectedTier === 'free' ? (
                 <View style={styles.freeActiveNotice}>
                   <Text style={styles.freeActiveNoticeText}>
-                    You are viewing the Free plan. Select Pro above to enjoy unlimited access!
+                    You are viewing the Free plan. Select Basic or Pro above to upgrade!
                   </Text>
                 </View>
               ) : (
@@ -666,12 +651,8 @@ export default function PaywallScreen() {
                       />
                       <Text style={styles.upgradeButtonText}>
                         {selectedTier === 'pro'
-                          ? billingCycle === 'yearly'
-                            ? `👑 Upgrade to Pro Yearly • ${proYearlyPriceText}`
-                            : `✨ Upgrade to Pro Monthly • ${proMonthlyPriceText}`
-                          : billingCycle === 'yearly'
-                          ? `Upgrade to Basic Yearly • ${basicYearlyPriceText}`
-                          : `Upgrade to Basic Monthly • ${basicMonthlyPriceText}`}
+                          ? `Upgrade to Pro • ${proPriceText}`
+                          : `Upgrade to Basic • ${basicPriceText}`}
                       </Text>
                     </>
                   )}
@@ -820,94 +801,121 @@ const styles = StyleSheet.create({
     maxWidth: 420,
   },
 
-  /* ── Billing Cycle Toggle ── */
-  billingToggleSection: {
+  /* ── Billing Toggle ── */
+  billingToggleWrapper: {
     alignItems: 'center',
     marginBottom: 20,
   },
-  billingToggleLabel: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.inkSoft,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 8,
-  },
-  billingToggle: {
+  billingToggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#EBE5D8',
+    backgroundColor: '#F3EFE6',
     borderRadius: radius.pill,
     padding: 4,
-    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.line,
   },
-  billingTab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
+  billingToggleBtn: {
+    paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: radius.pill,
   },
-  billingTabActive: {
-    backgroundColor: colors.white,
+  billingToggleBtnActive: {
+    backgroundColor: colors.paperCard,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
     elevation: 2,
   },
-  billingTabText: {
+  billingToggleBtnActiveYearly: {
+    backgroundColor: '#FEF08A',
+    shadowColor: '#CA8A04',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  billingToggleText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.inkSoft,
   },
-  billingTabTextActive: {
+  billingToggleTextActive: {
     fontFamily: fonts.bodyBold,
     color: colors.ink,
   },
-  saveBadge: {
-    backgroundColor: '#FEF3C7',
+  billingToggleTextActiveYearly: {
+    fontFamily: fonts.bodyBold,
+    color: '#854D0E',
+  },
+  yearlyToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  discountPill: {
+    backgroundColor: '#16A34A',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
   },
-  saveBadgeText: {
+  discountPillText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    color: '#92400E',
+    fontSize: 9,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
-  yearlyDealPill: {
+
+  /* ── Best Value Callout Banner ── */
+  bestValueBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
+    gap: 12,
+    backgroundColor: '#FEFCE8',
+    borderWidth: 1.5,
+    borderColor: '#FDE047',
+    borderRadius: radius.md,
+    padding: 14,
+    marginBottom: 24,
+    shadowColor: '#CA8A04',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  yearlyDealPillText: {
+  bestValueBannerIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#FEF08A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bestValueBannerTitle: {
     fontFamily: fonts.bodyBold,
-    fontSize: 12,
+    fontSize: 14,
     color: '#854D0E',
+    marginBottom: 2,
+  },
+  bestValueBannerSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: '#A16207',
+    lineHeight: 17,
   },
 
   sectionHeading: {
     fontFamily: fonts.bodyBold,
     fontSize: 18,
     color: colors.ink,
+    marginBottom: 14,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
+    alignItems: 'baseline',
+    marginTop: 16,
     marginBottom: 14,
-    flexWrap: 'wrap',
-    gap: 8,
   },
   sectionSub: {
     fontFamily: fonts.body,
@@ -970,11 +978,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 5,
+    paddingVertical: 4,
   },
   proRibbonText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 11,
+    fontSize: 10,
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
@@ -987,7 +995,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   planName: {
     fontFamily: fonts.bodyBold,
@@ -1008,53 +1016,49 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#0284C7',
   },
+  bestPlanTag: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+  },
+  bestPlanTagText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    color: '#15803D',
+  },
   planPrice: {
     fontFamily: fonts.bodyBold,
-    fontSize: 20,
+    fontSize: 18,
     color: colors.ink,
   },
-  proPlanPrice: {
-    color: '#92400E',
-  },
-  strikePriceText: {
+  strikePrice: {
     fontFamily: fonts.body,
     fontSize: 13,
     color: colors.inkSoft,
     textDecorationLine: 'line-through',
   },
-  savingsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 3,
-  },
-  savingsPill: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: '#15803D',
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  savingsTag: {
+  planPeriodSub: {
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
-    color: '#B45309',
-  },
-  equivalentRateText: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
+    color: '#15803D',
     marginTop: 2,
+  },
+  proPeriodSub: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: '#A16207',
+    marginTop: 2,
+  },
+  proPlanPrice: {
+    color: '#92400E',
   },
   planPeriod: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.inkSoft,
-  },
-  boldFeature: {
-    fontFamily: fonts.bodyBold,
   },
   radioOuter: {
     width: 22,

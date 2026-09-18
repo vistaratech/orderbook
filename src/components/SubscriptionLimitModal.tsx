@@ -137,11 +137,11 @@ export default function SubscriptionLimitModal({
             </View>
           </View>
 
-          {/* Best Deal Badge */}
-          <View style={styles.dealBadgeRow}>
-            <Ionicons name="sparkles" size={12} color="#854D0E" />
-            <Text style={styles.dealBadgeText}>
-              Best Deal: <Text style={styles.dealBadgeBold}>₹1,499/year</Text> (Just ₹125/mo • Save 50%)
+          {/* Special Pro Yearly Highlight Offer */}
+          <View style={styles.modalOfferCard}>
+            <Ionicons name="sparkles" size={14} color="#CA8A04" />
+            <Text style={styles.modalOfferText}>
+              <Text style={styles.modalOfferBold}>Pro Yearly @ ₹1,499/yr</Text> (Just ₹125/mo • Save 50%)
             </Text>
           </View>
 
@@ -155,7 +155,7 @@ export default function SubscriptionLimitModal({
               onPress={handleUpgradePress}
             >
               <Ionicons name="sparkles" size={18} color={colors.white} />
-              <Text style={styles.upgradeBtnText}>Upgrade to Pro</Text>
+              <Text style={styles.upgradeBtnText}>Upgrade to Pro • ₹1,499/yr</Text>
               <Ionicons name="arrow-forward" size={16} color={colors.white} />
             </Pressable>
 
@@ -186,29 +186,6 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFill,
-  },
-  dealBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    marginBottom: 16,
-    width: '100%',
-    justifyContent: 'center',
-  },
-  dealBadgeText: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: '#854D0E',
-  },
-  dealBadgeBold: {
-    fontFamily: fonts.bodyBold,
-    color: '#713F12',
   },
   card: {
     width: '100%',
@@ -331,6 +308,29 @@ const styles = StyleSheet.create({
   featureBold: {
     fontFamily: fonts.bodyBold,
     color: colors.ink,
+  },
+  modalOfferCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FEFCE8',
+    borderWidth: 1,
+    borderColor: '#FDE047',
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 16,
+    width: '100%',
+  },
+  modalOfferText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: '#854D0E',
+  },
+  modalOfferBold: {
+    fontFamily: fonts.bodyBold,
+    color: '#713F12',
   },
   buttonGroup: {
     width: '100%',

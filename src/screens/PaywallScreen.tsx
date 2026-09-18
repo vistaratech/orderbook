@@ -86,30 +86,76 @@ export default function PaywallScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.card}>
-          <Ionicons name="star" size={40} color="#EAB308" style={{ alignSelf: 'center', marginBottom: 16 }} />
-          <Text style={styles.title}>KadaiBook Subscriptions</Text>
-          <Text style={styles.subtitle}>Take your business to the next level.</Text>
-          
-          <View style={styles.featureList}>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-              <Text style={styles.featureText}>Basic: 150 Orders, 60 Customers</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-              <Text style={styles.featureText}>Pro: Unlimited Orders & Customers</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-              <Text style={styles.featureText}>Pro: Premium Invoice Templates</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-              <Text style={styles.featureText}>Pro: Advanced PDF & Excel Exports</Text>
-            </View>
+        {/* ── Hero Section ── */}
+        <View style={styles.heroSection}>
+          <View style={styles.heroIconWrap}>
+            <Ionicons name="sparkles" size={32} color="#EAB308" />
           </View>
+          <Text style={styles.title}>Unlock the Full Power{'\n'}of KadaiBook</Text>
+          <Text style={styles.subtitle}>
+            Choose the plan that fits your business. Upgrade anytime.
+          </Text>
         </View>
+
+        {/* ── Plan Comparison ── */}
+        <View style={styles.comparisonCard}>
+          <Text style={styles.comparisonTitle}>Plan Comparison</Text>
+
+          {/* Table Header */}
+          <View style={styles.tableHeader}>
+            <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Feature</Text>
+            <Text style={[styles.tableHeaderCell, styles.tableHeaderCellCenter]}>Free</Text>
+            <Text style={[styles.tableHeaderCell, styles.tableHeaderCellCenter]}>Basic</Text>
+            <Text style={[styles.tableHeaderCell, styles.tableHeaderCellCenter, styles.tableHeaderPro]}>Pro</Text>
+          </View>
+
+          {/* Rows */}
+          {[
+            { feature: 'Orders', free: '50', basic: '150', pro: 'Unlimited', icon: 'receipt-outline' },
+            { feature: 'Customers', free: '20', basic: '60', pro: 'Unlimited', icon: 'people-outline' },
+            { feature: 'Invoice Templates', free: '1 Default', basic: '1 Default', pro: 'All Premium', icon: 'document-text-outline' },
+            { feature: 'PDF / Excel Export', free: '—', basic: '—', pro: '✓', icon: 'download-outline' },
+            { feature: 'Share Reports', free: '—', basic: '—', pro: '✓', icon: 'share-social-outline' },
+            { feature: 'Business Analytics', free: 'Basic', basic: 'Basic', pro: 'Advanced', icon: 'bar-chart-outline' },
+            { feature: 'Priority Support', free: '—', basic: '—', pro: '✓', icon: 'headset-outline' },
+          ].map((row, idx) => (
+            <View key={idx} style={[styles.tableRow, idx % 2 === 0 && styles.tableRowAlt]}>
+              <View style={[styles.tableCell, { flex: 2, flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
+                <Ionicons name={row.icon as any} size={16} color={colors.inkSoft} />
+                <Text style={styles.tableCellText}>{row.feature}</Text>
+              </View>
+              <Text style={[styles.tableCell, styles.tableCellCenter, styles.tableCellTextMuted]}>
+                {row.free}
+              </Text>
+              <Text style={[styles.tableCell, styles.tableCellCenter, styles.tableCellTextMuted]}>
+                {row.basic}
+              </Text>
+              <Text style={[styles.tableCell, styles.tableCellCenter, styles.tableCellTextPro]}>
+                {row.pro}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* ── Pro Highlights ── */}
+        <View style={styles.highlightsCard}>
+          <Text style={styles.highlightsTitle}>Why Go Pro?</Text>
+          {[
+            { icon: 'infinite-outline', text: 'Create unlimited orders & manage unlimited customers' },
+            { icon: 'color-palette-outline', text: 'Access all premium invoice templates with custom branding' },
+            { icon: 'analytics-outline', text: 'Advanced business analytics & financial reports' },
+            { icon: 'cloud-download-outline', text: 'Export orders as PDF & Excel for accounting' },
+            { icon: 'share-social-outline', text: 'Share business reports via WhatsApp & email' },
+          ].map((item, idx) => (
+            <View key={idx} style={styles.highlightRow}>
+              <View style={styles.highlightIconWrap}>
+                <Ionicons name={item.icon as any} size={18} color="#CA8A04" />
+              </View>
+              <Text style={styles.highlightText}>{item.text}</Text>
+            </View>
+          ))}
+        </View>
+
 
         {Platform.OS === 'web' ? (
           /* ── Web: Download App CTA ── */
@@ -246,41 +292,145 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingBottom: 32,
   },
-  card: {
-    backgroundColor: colors.paperCard,
-    padding: 24,
-    borderRadius: radius.md,
+  /* ── Hero ── */
+  heroSection: {
+    alignItems: 'center',
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#EAB30840',
+    paddingTop: 8,
+  },
+  heroIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    backgroundColor: '#FEF9C3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   title: {
     fontFamily: fonts.bodyBold,
-    fontSize: 24,
+    fontSize: 22,
     color: colors.ink,
     textAlign: 'center',
     marginBottom: 8,
+    lineHeight: 30,
   },
   subtitle: {
     fontFamily: fonts.body,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.inkSoft,
     textAlign: 'center',
+    lineHeight: 22,
+    maxWidth: 320,
+  },
+  /* ── Comparison Table ── */
+  comparisonCard: {
+    backgroundColor: colors.paperCard,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  comparisonTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    color: colors.ink,
+    padding: 16,
+    paddingBottom: 0,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    marginTop: 12,
+    backgroundColor: '#F8F5EE',
+  },
+  tableHeaderCell: {
+    flex: 1,
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.inkSoft,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  tableHeaderCellCenter: {
+    textAlign: 'center',
+  },
+  tableHeaderPro: {
+    color: '#CA8A04',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  tableRowAlt: {
+    backgroundColor: '#FAFAF5',
+  },
+  tableCell: {
+    flex: 1,
+  },
+  tableCellCenter: {
+    textAlign: 'center',
+  },
+  tableCellText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.ink,
+    flexShrink: 1,
+  },
+  tableCellTextMuted: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+  },
+  tableCellTextPro: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: '#854D0E',
+  },
+  /* ── Highlights ── */
+  highlightsCard: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: radius.md,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
     marginBottom: 24,
   },
-  featureList: {
-    gap: 12,
+  highlightsTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    color: '#92400E',
+    marginBottom: 14,
   },
-  featureRow: {
+  highlightRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
+    marginBottom: 12,
   },
-  featureText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 15,
-    color: colors.ink,
+  highlightIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  highlightText: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: '#78350F',
+    lineHeight: 20,
+    flex: 1,
+    paddingTop: 6,
   },
   packageCard: {
     backgroundColor: colors.clayDeep,

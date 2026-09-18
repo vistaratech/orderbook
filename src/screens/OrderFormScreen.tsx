@@ -69,6 +69,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
   const [status, setStatus] = useState<OrderStatus>('Placed');
   const [saving, setSaving] = useState(false);
   const [defaultUnit, setDefaultUnit] = useState('Pcs');
+  const [upgradeNudge, setUpgradeNudge] = useState<string | null>(null);
 
   // Autocomplete data
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
@@ -129,6 +130,8 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                 }}
               ]
             );
+          } else if (orders.length >= 120) {
+            setUpgradeNudge(`You've used ${orders.length} of 150 orders on Basic. Upgrade to Pro for unlimited orders.`);
           }
         } else {
           if (orders.length >= 50) {
@@ -143,6 +146,8 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                 }}
               ]
             );
+          } else if (orders.length >= 35) {
+            setUpgradeNudge(`You've used ${orders.length} of 50 free orders. Upgrade to unlock more.`);
           }
         }
       })();
@@ -369,6 +374,30 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               {orderNumber ? <Text style={styles.topHeaderSub}>{orderNumber}</Text> : null}
             </View>
           </View>
+
+          {/* ── Upgrade Nudge Banner ── */}
+          {upgradeNudge && Platform.OS !== 'web' && (
+            <Pressable
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                backgroundColor: '#FFFBEB',
+                padding: 12,
+                borderRadius: radius.sm,
+                borderWidth: 1,
+                borderColor: '#FDE68A',
+                marginBottom: 16,
+              }}
+              onPress={() => (navigation as any).navigate('PaywallScreen')}
+            >
+              <Ionicons name="sparkles" size={18} color="#CA8A04" />
+              <Text style={{ flex: 1, fontFamily: fonts.body, fontSize: 12, color: '#92400E', lineHeight: 18 }}>
+                {upgradeNudge}
+              </Text>
+              <Text style={{ fontFamily: fonts.bodyBold, fontSize: 12, color: '#CA8A04' }}>Upgrade</Text>
+            </Pressable>
+          )}
 
           <Section title={t('orders.customerInfo')} icon="person-outline">
           <Field label={t('orders.customerName') + ' *'}>

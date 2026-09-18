@@ -33,6 +33,7 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [upgradeNudge, setUpgradeNudge] = useState<string | null>(null);
 
   useEffect(() => {
     navigation.setOptions({
@@ -72,6 +73,8 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
                 }}
               ]
             );
+          } else if (customers.length >= 45) {
+            setUpgradeNudge(`You've added ${customers.length} of 60 customers on Basic. Upgrade to Pro for unlimited.`);
           }
         } else {
           if (customers.length >= 20) {
@@ -86,6 +89,8 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
                 }}
               ]
             );
+          } else if (customers.length >= 14) {
+            setUpgradeNudge(`You've added ${customers.length} of 20 free customers. Upgrade to unlock more.`);
           }
         }
       })();
@@ -127,6 +132,30 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
               </Text>
             </View>
           </View>
+
+          {/* ── Upgrade Nudge Banner ── */}
+          {upgradeNudge && Platform.OS !== 'web' && (
+            <Pressable
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                backgroundColor: '#FFFBEB',
+                padding: 12,
+                borderRadius: radius.sm,
+                borderWidth: 1,
+                borderColor: '#FDE68A',
+                marginBottom: 16,
+              }}
+              onPress={() => (navigation as any).navigate('PaywallScreen')}
+            >
+              <Ionicons name="sparkles" size={18} color="#CA8A04" />
+              <Text style={{ flex: 1, fontFamily: fonts.body, fontSize: 12, color: '#92400E', lineHeight: 18 }}>
+                {upgradeNudge}
+              </Text>
+              <Text style={{ fontFamily: fonts.bodyBold, fontSize: 12, color: '#CA8A04' }}>Upgrade</Text>
+            </Pressable>
+          )}
 
           <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>

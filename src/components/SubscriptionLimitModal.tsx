@@ -137,6 +137,14 @@ export default function SubscriptionLimitModal({
             </View>
           </View>
 
+          {/* Best Deal Badge */}
+          <View style={styles.dealBadgeRow}>
+            <Ionicons name="sparkles" size={12} color="#854D0E" />
+            <Text style={styles.dealBadgeText}>
+              Best Deal: <Text style={styles.dealBadgeBold}>₹1,499/year</Text> (Just ₹125/mo • Save 50%)
+            </Text>
+          </View>
+
           {/* Action Buttons */}
           <View style={styles.buttonGroup}>
             <Pressable
@@ -178,6 +186,29 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFill,
+  },
+  dealBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    marginBottom: 16,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  dealBadgeText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: '#854D0E',
+  },
+  dealBadgeBold: {
+    fontFamily: fonts.bodyBold,
+    color: '#713F12',
   },
   card: {
     width: '100%',

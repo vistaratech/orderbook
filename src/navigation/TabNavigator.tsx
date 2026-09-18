@@ -26,6 +26,7 @@ import { hasCompletedTour } from '../storage/tourStorage';
 import TourTarget from '../components/tour/TourTarget';
 import AppTourOverlay from '../components/tour/AppTourOverlay';
 import { colors, fonts, radius, shadow } from '../theme/theme';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -96,7 +97,15 @@ function CentralOrderBottomBar({ state, navigation }: BottomTabBarProps) {
             styles.centralActionWrap,
             pressed && styles.centralActionWrapPressed,
           ]}
-          onPress={() => (navigation as any).navigate('OrderForm')}
+          onPress={async () => {
+            const allowed = await assertSubscriptionLimit({
+              type: 'order',
+              actionName: 'create a new order',
+              navigation,
+            });
+            if (!allowed) return;
+            (navigation as any).navigate('OrderForm');
+          }}
         >
           <View style={styles.centralFabCircle}>
             <Ionicons name="add" size={26} color={colors.white} />

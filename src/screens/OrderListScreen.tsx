@@ -27,6 +27,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { formatCurrency } from '../utils/format';
 import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -172,30 +173,13 @@ export default function OrderListScreen() {
   const hasActiveFilters =
     statusFilter !== 'All' || paymentFilter !== 'All' || sortBy !== 'newest';
 
-  const handleNewOrder = () => {
-    if (!isPro) {
-      if (isBasic && orders.length >= 150) {
-        Alert.alert(
-          'Order Limit Reached',
-          'You have reached 150 orders on the Basic plan. Upgrade to Pro for unlimited orders!',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Upgrade to Pro', onPress: () => navigation.navigate('PaywallScreen') },
-          ]
-        );
-        return;
-      } else if (!isBasic && orders.length >= 10) {
-        Alert.alert(
-          'Order Limit Reached',
-          'You have used all 10 free orders on the Free plan. Upgrade to Pro for unlimited orders!',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Upgrade to Pro', onPress: () => navigation.navigate('PaywallScreen') },
-          ]
-        );
-        return;
-      }
-    }
+  const handleNewOrder = async () => {
+    const allowed = await assertSubscriptionLimit({
+      type: 'order',
+      actionName: 'create a new order',
+      navigation,
+    });
+    if (!allowed) return;
     navigation.navigate('OrderForm', undefined);
   };
 

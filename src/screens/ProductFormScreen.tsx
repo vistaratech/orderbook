@@ -20,6 +20,7 @@ import { colors, fonts, radius, shadow } from '../theme/theme';
 import { getBusinessProfile } from '../storage/businessProfileStorage';
 import { getBusinessPreset } from '../config/businessTypes';
 import { useLanguage } from '../i18n/LanguageContext';
+import { confirmAction } from '../utils/dialog';
 import GlassBackButton from '../components/GlassBackButton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -76,17 +77,17 @@ export default function ProductFormScreen({ navigation, route }: Props) {
         if (!isPro) {
           const products = await getProducts();
           if (products.length >= 20) {
-            Alert.alert(
-              'Product Limit Reached',
-              'You can only add up to 20 products on the free plan. Please upgrade to Pro to add unlimited products.',
-              [
-                { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
-                { text: 'Upgrade', onPress: () => {
-                  navigation.goBack();
-                  (navigation as any).navigate('PaywallScreen');
-                }}
-              ]
-            );
+            confirmAction({
+              title: '🔒 Product Limit Reached',
+              message: 'You have reached your Free plan limit (20/20 products). Upgrade to Pro to add unlimited catalog products!',
+              confirmText: 'Upgrade to Pro',
+              cancelText: 'Cancel',
+              onConfirm: () => {
+                navigation.goBack();
+                (navigation as any).navigate('PaywallScreen');
+              },
+              onCancel: () => navigation.goBack(),
+            });
           }
         }
       })();
@@ -110,17 +111,13 @@ export default function ProductFormScreen({ navigation, route }: Props) {
         if (!isPro) {
           const prods = await getProducts();
           if (prods.length >= 20) {
-            Alert.alert(
-              'Product Limit Reached',
-              'You can only add up to 20 products on the free plan. Please upgrade to Pro to add unlimited products.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Upgrade to Pro',
-                  onPress: () => (navigation as any).navigate('PaywallScreen'),
-                },
-              ]
-            );
+            confirmAction({
+              title: '🔒 Product Limit Reached',
+              message: 'You have reached your Free plan limit (20/20 products). Upgrade to Pro to add unlimited products!',
+              confirmText: 'Upgrade to Pro',
+              cancelText: 'Cancel',
+              onConfirm: () => (navigation as any).navigate('PaywallScreen'),
+            });
             return;
           }
         }

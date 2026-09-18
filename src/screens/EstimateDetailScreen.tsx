@@ -26,6 +26,7 @@ import GlassBackButton from '../components/GlassBackButton';
 import { getBusinessProfile, BusinessProfile } from '../storage/businessProfileStorage';
 import { getInvoiceTemplateConfig } from '../storage/invoiceTemplateStorage';
 import { generateEstimateHtml } from '../utils/invoiceGenerator';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 import * as Print from 'expo-print';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EstimateDetail'>;
@@ -77,7 +78,14 @@ export default function EstimateDetailScreen({ navigation, route }: Props) {
     loadData();
   };
 
-  const handleConvertToOrder = () => {
+  const handleConvertToOrder = async () => {
+    const allowed = await assertSubscriptionLimit({
+      type: 'order',
+      actionName: 'convert estimate to order',
+      navigation,
+    });
+    if (!allowed) return;
+
     // Navigate to OrderForm with estimate data pre-filled
     navigation.navigate('OrderForm', {
       prefillCustomerName: estimate.customerName,

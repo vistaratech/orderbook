@@ -26,6 +26,9 @@ import { formatCurrency } from '../utils/format';
 import DesktopLayout from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
 
+import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
+
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 interface CustomerStats {
@@ -145,12 +148,21 @@ export default function CustomerListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isPro, setIsPro] = useState(false);
+  const [isBasic, setIsBasic] = useState(false);
 
   const loadData = useCallback(async (forceSync = false) => {
     try {
-      const [c, o] = await Promise.all([getCustomers(forceSync), getOrders(forceSync)]);
+      const [c, o, proStatus, basicStatus] = await Promise.all([
+        getCustomers(forceSync),
+        getOrders(forceSync),
+        checkProStatus(),
+        checkBasicStatus(),
+      ]);
       setCustomers(c);
       setOrders(o);
+      setIsPro(proStatus);
+      setIsBasic(basicStatus);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -175,6 +187,16 @@ export default function CustomerListScreen() {
     setRefreshing(true);
     loadData(true);
   }, [loadData]);
+
+  const handleAddCustomer = async () => {
+    const allowed = await assertSubscriptionLimit({
+      type: 'customer',
+      actionName: 'add new customers',
+      navigation,
+    });
+    if (!allowed) return;
+    navigation.navigate('CustomerForm', undefined);
+  };
 
   // Build customer stats map
   const customerStats = useMemo(() => {
@@ -215,6 +237,10 @@ export default function CustomerListScreen() {
     }
   };
 
+  const customerLimit = isBasic ? 60 : 10;
+  const isLimitReached = !isPro && customers.length >= customerLimit;
+  const isWarning = !isPro && !isLimitReached && customers.length >= (isBasic ? 45 : 7);
+
   return (
     <DesktopLayout currentTabName="CustomerList">
       <SafeAreaView style={styles.screen} edges={['top']}>
@@ -222,10 +248,78 @@ export default function CustomerListScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>{t('customers.title')}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={styles.title}>{t('customers.title')}</Text>
+                <View
+                  style={[
+                    styles.subBadge,
+                    isPro ? styles.subBadgePro : styles.subBadgeFree,
+                  ]}
+                >
+                  <Ionicons
+                    name={isPro ? 'sparkles' : 'star-outline'}
+                    size={11}
+                    color={isPro ? '#854D0E' : '#B45309'}
+                  />
+                  <Text
+                    style={[
+                      styles.subBadgeText,
+                      isPro
+                        ? styles.subBadgeTextPro
+                        : styles.subBadgeTextFree,
+                    ]}
+                  >
+                    {isPro ? 'Pro' : isBasic ? 'Basic' : 'Free'}
+                  </Text>
+                </View>
+              </View>
               <Text style={styles.subtitle}>{t('customers.subtitle')}</Text>
             </View>
           </View>
+
+          {/* Quota Reminder Banner for Free / Basic users */}
+          {!isPro && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.quotaBanner,
+                isLimitReached
+                  ? styles.quotaBannerDanger
+                  : isWarning
+                  ? styles.quotaBannerWarning
+                  : styles.quotaBannerNormal,
+                pressed && { opacity: 0.9 },
+              ]}
+              onPress={() => navigation.navigate('PaywallScreen')}
+            >
+              <Ionicons
+                name={isLimitReached ? 'alert-circle' : isWarning ? 'warning-outline' : 'people-outline'}
+                size={18}
+                color={isLimitReached ? colors.danger : isWarning ? '#B45309' : colors.clayDeep}
+              />
+              <Text
+                style={[
+                  styles.quotaBannerText,
+                  isLimitReached && { color: colors.danger, fontFamily: fonts.bodyBold },
+                  isWarning && { color: '#92400E' },
+                ]}
+              >
+                {isLimitReached
+                  ? `🚨 Free customer limit reached (${customers.length}/${customerLimit})! Upgrade to Pro.`
+                  : isWarning
+                  ? `⚠️ Only ${Math.max(0, customerLimit - customers.length)} free customers left! Upgrade to Pro.`
+                  : `${customers.length} of ${customerLimit} free customers used`}
+              </Text>
+              <Text
+                style={[
+                  styles.quotaBannerUpgrade,
+                  isLimitReached && { color: colors.danger },
+                  isWarning && { color: '#B45309' },
+                ]}
+              >
+                Upgrade →
+              </Text>
+            </Pressable>
+          )}
 
           {/* Search Bar */}
           <View style={styles.searchBar}>
@@ -290,7 +384,7 @@ export default function CustomerListScreen() {
           {/* Floating Add Customer Button */}
           <Pressable
             style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-            onPress={() => navigation.navigate('CustomerForm', undefined)}
+            onPress={handleAddCustomer}
           >
             <Ionicons name="person-add" size={20} color={colors.white} />
             <Text style={styles.fabText}>{t('customers.addCustomerBtn')}</Text>
@@ -515,5 +609,67 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.white,
+  },
+  subBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+  },
+  subBadgePro: {
+    backgroundColor: '#FEF08A',
+    borderWidth: 1,
+    borderColor: '#FACC15',
+  },
+  subBadgeFree: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  subBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+  },
+  subBadgeTextPro: {
+    color: '#854D0E',
+  },
+  subBadgeTextFree: {
+    color: '#B45309',
+  },
+  quotaBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 20,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.md,
+    borderWidth: 1,
+  },
+  quotaBannerNormal: {
+    backgroundColor: '#F8F9FA',
+    borderColor: colors.line,
+  },
+  quotaBannerWarning: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  quotaBannerDanger: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+  },
+  quotaBannerText: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.inkSoft,
+  },
+  quotaBannerUpgrade: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.clayDeep,
   },
 });

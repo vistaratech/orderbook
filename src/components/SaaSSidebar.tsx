@@ -25,6 +25,7 @@ import { addDataListener } from '../storage/firebaseSync';
 import { useLanguage } from '../i18n/LanguageContext';
 import { useTour } from '../context/TourContext';
 import TourTarget from './tour/TourTarget';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -206,30 +207,12 @@ export default function SaaSSidebar({
   ];
 
   const handleQuickNewOrder = async () => {
-    try {
-      const isPro = await checkProStatus();
-      if (!isPro) {
-        const isBasic = await checkBasicStatus();
-        const orders = await getOrders();
-        const limit = isBasic ? 150 : 10;
-        if (orders.length >= limit) {
-          Alert.alert(
-            'Order Limit Reached',
-            `You have used all ${limit} orders on the ${isBasic ? 'Basic' : 'Free'} plan. Upgrade to Pro for unlimited orders!`,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Upgrade to Pro',
-                onPress: () => navigation.navigate('PaywallScreen' as any),
-              },
-            ]
-          );
-          return;
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to verify subscription', e);
-    }
+    const allowed = await assertSubscriptionLimit({
+      type: 'order',
+      actionName: 'create a new order',
+      navigation,
+    });
+    if (!allowed) return;
     navigation.navigate('OrderForm');
   };
 

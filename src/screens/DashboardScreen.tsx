@@ -37,6 +37,7 @@ import AppLogo from '../components/AppLogo';
 import TourTarget from '../components/tour/TourTarget';
 import { useLanguage } from '../i18n/LanguageContext';
 import { checkProStatus } from '../storage/subscriptionStorage';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -110,6 +111,13 @@ export default function DashboardScreen() {
 
   // Status update handler for Pipeline
   const handleQuickStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    const allowed = await assertSubscriptionLimit({
+      type: 'order',
+      actionName: 'update order status',
+      navigation,
+    });
+    if (!allowed) return;
+
     setUpdatingOrderId(orderId);
     try {
       await setOrderStatus(orderId, newStatus);
@@ -119,6 +127,16 @@ export default function DashboardScreen() {
     } finally {
       setUpdatingOrderId(null);
     }
+  };
+
+  const handleNewOrder = async () => {
+    const allowed = await assertSubscriptionLimit({
+      type: 'order',
+      actionName: 'create new orders',
+      navigation,
+    });
+    if (!allowed) return;
+    navigation.navigate('OrderForm', undefined);
   };
 
   // Memoized Financial Calculations & Status Breakdown
@@ -560,7 +578,7 @@ export default function DashboardScreen() {
                   styles.actionBtnPrimary,
                   pressed && styles.actionBtnPressed,
                 ]}
-                onPress={() => navigation.navigate('OrderForm', undefined)}
+                onPress={handleNewOrder}
               >
                 <View style={styles.actionBtnIcon}>
                   <Ionicons name="cart" size={20} color={colors.white} />

@@ -17,6 +17,7 @@ import { getCustomer, saveCustomer, getCustomers } from '../storage/customerStor
 import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
 import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
+import { confirmAction } from '../utils/dialog';
 import GlassBackButton from '../components/GlassBackButton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -62,35 +63,35 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
 
         if (isBasic) {
           if (customers.length >= 60) {
-            Alert.alert(
-              'Customer Limit Reached',
-              'You can only add up to 60 customers on the Basic plan. Please upgrade to Pro for unlimited customers.',
-              [
-                { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
-                { text: 'Upgrade', onPress: () => {
-                  navigation.goBack();
-                  (navigation as any).navigate('PaywallScreen');
-                }}
-              ]
-            );
+            confirmAction({
+              title: '🔒 Customer Limit Reached',
+              message: 'You can only add up to 60 customers on the Basic plan. Upgrade to Pro for unlimited customers.',
+              confirmText: 'Upgrade to Pro',
+              cancelText: 'Cancel',
+              onConfirm: () => {
+                navigation.goBack();
+                (navigation as any).navigate('PaywallScreen');
+              },
+              onCancel: () => navigation.goBack(),
+            });
           } else if (customers.length >= 45) {
             setUpgradeNudge(`You've added ${customers.length} of 60 customers on Basic. Upgrade to Pro for unlimited.`);
           }
         } else {
           if (customers.length >= 10) {
-            Alert.alert(
-              'Customer Limit Reached',
-              'You can only add up to 10 customers on the free plan. Please upgrade to Basic or Pro to continue.',
-              [
-                { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
-                { text: 'Upgrade', onPress: () => {
-                  navigation.goBack();
-                  (navigation as any).navigate('PaywallScreen');
-                }}
-              ]
-            );
+            confirmAction({
+              title: '🔒 Customer Limit Reached',
+              message: 'You have reached your Free plan limit (10/10 customers). Upgrade to Pro for unlimited customer contacts!',
+              confirmText: 'Upgrade to Pro',
+              cancelText: 'Cancel',
+              onConfirm: () => {
+                navigation.goBack();
+                (navigation as any).navigate('PaywallScreen');
+              },
+              onCancel: () => navigation.goBack(),
+            });
           } else if (customers.length >= 7) {
-            setUpgradeNudge(`You've added ${customers.length} of 10 free customers. Upgrade to unlock more.`);
+            setUpgradeNudge(`⚠️ You've added ${customers.length} of 10 free customers. Upgrade to Pro for unlimited.`);
           }
         }
       })();
@@ -110,30 +111,22 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
           const isBasic = await checkBasicStatus();
           const currentCustomers = await getCustomers();
           if (isBasic && currentCustomers.length >= 60) {
-            Alert.alert(
-              'Customer Limit Reached',
-              'You can only add up to 60 customers on the Basic plan. Please upgrade to Pro for unlimited customers.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Upgrade to Pro',
-                  onPress: () => (navigation as any).navigate('PaywallScreen'),
-                },
-              ]
-            );
+            confirmAction({
+              title: '🔒 Customer Limit Reached',
+              message: 'You can only add up to 60 customers on the Basic plan. Upgrade to Pro for unlimited customers.',
+              confirmText: 'Upgrade to Pro',
+              cancelText: 'Cancel',
+              onConfirm: () => (navigation as any).navigate('PaywallScreen'),
+            });
             return;
           } else if (!isBasic && currentCustomers.length >= 10) {
-            Alert.alert(
-              'Customer Limit Reached',
-              'You have added 10 customers on the Free plan. Upgrade to Pro for unlimited customers!',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Upgrade to Pro',
-                  onPress: () => (navigation as any).navigate('PaywallScreen'),
-                },
-              ]
-            );
+            confirmAction({
+              title: '🔒 Customer Limit Reached',
+              message: 'You have added 10 customers on the Free plan. Upgrade to Pro for unlimited customer contacts!',
+              confirmText: 'Upgrade to Pro',
+              cancelText: 'Cancel',
+              onConfirm: () => (navigation as any).navigate('PaywallScreen'),
+            });
             return;
           }
         }

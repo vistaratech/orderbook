@@ -25,6 +25,7 @@ import OrderCard from '../components/OrderCard';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { confirmAction } from '../utils/dialog';
 import { formatCurrency, formatDate } from '../utils/format';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 import GlassBackButton from '../components/GlassBackButton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -176,6 +177,29 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
     }
   };
 
+  const handleNewOrder = async () => {
+    const allowed = await assertSubscriptionLimit({
+      type: 'order',
+      actionName: 'create a new order',
+      navigation,
+    });
+    if (!allowed) return;
+    navigation.navigate('OrderForm', {
+      prefillCustomerName: customer.name,
+      prefillPhone: customer.phone,
+    });
+  };
+
+  const handleEditCustomer = async () => {
+    const allowed = await assertSubscriptionLimit({
+      type: 'customer',
+      actionName: 'edit customer profile',
+      navigation,
+    });
+    if (!allowed) return;
+    navigation.navigate('CustomerForm', { customerId: customer.id });
+  };
+
   const handleDelete = () => {
     confirmAction({
       title: 'Delete Customer',
@@ -250,12 +274,7 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
 
             <Pressable
               style={({ pressed }) => [styles.actionBtn, { backgroundColor: colors.clayDeep }, pressed && { opacity: 0.8 }]}
-              onPress={() =>
-                navigation.navigate('OrderForm', {
-                  prefillCustomerName: customer.name,
-                  prefillPhone: customer.phone,
-                })
-              }
+              onPress={handleNewOrder}
             >
               <Ionicons name="add" size={16} color={colors.white} />
               <Text style={styles.actionBtnText}>Order</Text>
@@ -369,7 +388,7 @@ export default function CustomerDetailScreen({ navigation, route }: Props) {
         <View style={styles.footerRow}>
           <Pressable
             style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.8 }]}
-            onPress={() => navigation.navigate('CustomerForm', { customerId: customer.id })}
+            onPress={handleEditCustomer}
           >
             <Ionicons name="pencil" size={16} color={colors.ink} />
             <Text style={styles.editBtnText}>Edit Profile</Text>

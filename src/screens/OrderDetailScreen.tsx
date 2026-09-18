@@ -35,6 +35,7 @@ import { getBusinessProfile, BusinessProfile } from '../storage/businessProfileS
 import { addDataListener } from '../storage/firebaseSync';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
 import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 import { confirmAction } from '../utils/dialog';
 import { formatCurrency, formatDate, formatDateTime, todayIso } from '../utils/format';
 import {

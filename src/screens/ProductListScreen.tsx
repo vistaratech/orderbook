@@ -24,6 +24,8 @@ import { confirmAction } from '../utils/dialog';
 import { formatCurrency } from '../utils/format';
 import DesktopLayout from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
+import { checkProStatus } from '../storage/subscriptionStorage';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -125,11 +127,16 @@ export default function ProductListScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStock, setFilterStock] = useState<'all' | 'low'>('all');
+  const [isPro, setIsPro] = useState(false);
 
   const loadProducts = useCallback(async (forceSync = false) => {
     try {
-      const data = await getProducts(forceSync);
+      const [data, proStatus] = await Promise.all([
+        getProducts(forceSync),
+        checkProStatus(),
+      ]);
       setProducts(data);
+      setIsPro(proStatus);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -155,7 +162,23 @@ export default function ProductListScreen() {
     loadProducts(true);
   }, [loadProducts]);
 
-  const handleEdit = useCallback((id: string) => {
+  const handleAddProduct = useCallback(async () => {
+    const allowed = await assertSubscriptionLimit({
+      type: 'product',
+      actionName: 'add new products',
+      navigation,
+    });
+    if (!allowed) return;
+    navigation.navigate('ProductForm', undefined);
+  }, [navigation]);
+
+  const handleEdit = useCallback(async (id: string) => {
+    const allowed = await assertSubscriptionLimit({
+      type: 'product',
+      actionName: 'edit product details',
+      navigation,
+    });
+    if (!allowed) return;
     navigation.navigate('ProductForm', { productId: id });
   }, [navigation]);
 
@@ -197,6 +220,10 @@ export default function ProductListScreen() {
     ).length;
   }, [products]);
 
+  const productLimit = 20;
+  const isLimitReached = !isPro && products.length >= productLimit;
+  const isWarning = !isPro && !isLimitReached && products.length >= 15;
+
   return (
     <DesktopLayout currentTabName="ProductList">
       <SafeAreaView style={styles.screen} edges={['top']}>
@@ -204,17 +231,85 @@ export default function ProductListScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>{t('products.title')}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={styles.title}>{t('products.title')}</Text>
+                <View
+                  style={[
+                    styles.subBadge,
+                    isPro ? styles.subBadgePro : styles.subBadgeFree,
+                  ]}
+                >
+                  <Ionicons
+                    name={isPro ? 'sparkles' : 'star-outline'}
+                    size={11}
+                    color={isPro ? '#854D0E' : '#B45309'}
+                  />
+                  <Text
+                    style={[
+                      styles.subBadgeText,
+                      isPro
+                        ? styles.subBadgeTextPro
+                        : styles.subBadgeTextFree,
+                    ]}
+                  >
+                    {isPro ? 'Pro' : 'Free'}
+                  </Text>
+                </View>
+              </View>
               <Text style={styles.subtitle}>{t('products.subtitle')}</Text>
             </View>
             <Pressable
               style={({ pressed }) => [styles.newProductHeaderBtn, pressed && { opacity: 0.8 }]}
-              onPress={() => navigation.navigate('ProductForm', undefined)}
+              onPress={handleAddProduct}
             >
               <Ionicons name="add" size={20} color={colors.white} />
               <Text style={styles.newProductHeaderBtnText}>{t('common.save') === 'Save' ? 'Add' : t('dashboard.addProduct')}</Text>
             </Pressable>
           </View>
+
+          {/* Quota Reminder Banner for Free users */}
+          {!isPro && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.quotaBanner,
+                isLimitReached
+                  ? styles.quotaBannerDanger
+                  : isWarning
+                  ? styles.quotaBannerWarning
+                  : styles.quotaBannerNormal,
+                pressed && { opacity: 0.9 },
+              ]}
+              onPress={() => navigation.navigate('PaywallScreen')}
+            >
+              <Ionicons
+                name={isLimitReached ? 'alert-circle' : isWarning ? 'warning-outline' : 'cube-outline'}
+                size={18}
+                color={isLimitReached ? colors.danger : isWarning ? '#B45309' : colors.duskDeep}
+              />
+              <Text
+                style={[
+                  styles.quotaBannerText,
+                  isLimitReached && { color: colors.danger, fontFamily: fonts.bodyBold },
+                  isWarning && { color: '#92400E' },
+                ]}
+              >
+                {isLimitReached
+                  ? `🚨 Free product limit reached (${products.length}/${productLimit})! Upgrade to Pro.`
+                  : isWarning
+                  ? `⚠️ Only ${Math.max(0, productLimit - products.length)} free products left! Upgrade to Pro.`
+                  : `${products.length} of ${productLimit} free products used`}
+              </Text>
+              <Text
+                style={[
+                  styles.quotaBannerUpgrade,
+                  isLimitReached && { color: colors.danger },
+                  isWarning && { color: '#B45309' },
+                ]}
+              >
+                Upgrade →
+              </Text>
+            </Pressable>
+          )}
 
           {/* Search Bar */}
           <View style={styles.searchBar}>
@@ -517,5 +612,67 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.white,
+  },
+  subBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+  },
+  subBadgePro: {
+    backgroundColor: '#FEF08A',
+    borderWidth: 1,
+    borderColor: '#FACC15',
+  },
+  subBadgeFree: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  subBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+  },
+  subBadgeTextPro: {
+    color: '#854D0E',
+  },
+  subBadgeTextFree: {
+    color: '#B45309',
+  },
+  quotaBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 20,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.md,
+    borderWidth: 1,
+  },
+  quotaBannerNormal: {
+    backgroundColor: '#F8F9FA',
+    borderColor: colors.line,
+  },
+  quotaBannerWarning: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  quotaBannerDanger: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+  },
+  quotaBannerText: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.inkSoft,
+  },
+  quotaBannerUpgrade: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.duskDeep,
   },
 });

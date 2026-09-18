@@ -56,6 +56,7 @@ import {
 import { initRevenueCat } from './src/storage/subscriptionStorage';
 import { colors, fonts } from './src/theme/theme';
 import { LanguageProvider } from './src/i18n/LanguageContext';
+import { TourProvider } from './src/context/TourContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -220,7 +221,8 @@ export default function App() {
   return (
     <SafeAreaProvider style={{ flex: 1, backgroundColor: colors.paper }}>
       <LanguageProvider>
-        <View style={[{ flex: 1, backgroundColor: colors.paper }, isWeb ? styles.webOuterContainer : styles.mobileContainer]}>
+        <TourProvider>
+          <View style={[{ flex: 1, backgroundColor: colors.paper }, isWeb ? styles.webOuterContainer : styles.mobileContainer]}>
           <View style={[{ flex: 1, backgroundColor: colors.paper }, isWeb ? styles.webInnerFrame : styles.mobileContainer]}>
             <NavigationContainer theme={navTheme}>
               <StatusBar style="dark" />
@@ -363,6 +365,7 @@ export default function App() {
             </NavigationContainer>
           </View>
         </View>
+        </TourProvider>
       </LanguageProvider>
     </SafeAreaProvider>
   );

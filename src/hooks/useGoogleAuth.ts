@@ -1,26 +1,40 @@
 /**
- * Google Auth Hook — Native Implementation
+ * Google Auth Hook — Native Implementation with Expo Go Fallback
  *
  * Uses @react-native-google-signin/google-signin which reads SHA-1 fingerprints
  * directly from google-services.json, fixing the 401 Unauthorized error in
  * signed production builds.
  *
  * - Web: Firebase signInWithPopup (unchanged)
- * - Mobile: GoogleSignin.signIn() native flow
+ * - Mobile (dev build): GoogleSignin.signIn() native flow
+ * - Mobile (Expo Go): Falls back to Firebase signInWithPopup since native
+ *   modules are not available in Expo Go
  */
 
 import { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { GoogleAuthProvider } from 'firebase/auth';
 import { loginWithGoogle, loginWithGoogleCredential } from '../storage/authStorage';
 import { GOOGLE_WEB_CLIENT_ID } from '../config/google';
 
-// Configure once at module load — safe to call multiple times
-GoogleSignin.configure({
-  webClientId: GOOGLE_WEB_CLIENT_ID,
-  offlineAccess: false,
-});
+// Try to import and configure native Google Sign-In.
+// This will fail gracefully in Expo Go where the native module isn't available.
+let GoogleSignin: any = null;
+let isNativeGoogleAvailable = false;
+
+if (Platform.OS !== 'web') {
+  try {
+    const nativeModule = require('@react-native-google-signin/google-signin');
+    GoogleSignin = nativeModule.GoogleSignin;
+    GoogleSignin.configure({
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      offlineAccess: false,
+    });
+    isNativeGoogleAvailable = true;
+  } catch (e) {
+    console.log('[GoogleAuth] Native module not available (Expo Go). Using Firebase web auth fallback.');
+  }
+}
 
 interface UseGoogleAuthOptions {
   onSuccess?: () => void;
@@ -36,8 +50,8 @@ export function useGoogleAuth(options?: UseGoogleAuthOptions) {
     setError(null);
     setLoading(true);
 
-    // Web: use Firebase popup directly
-    if (Platform.OS === 'web') {
+    // Web or Expo Go fallback: use Firebase popup directly
+    if (Platform.OS === 'web' || !isNativeGoogleAvailable) {
       try {
         const result = await loginWithGoogle();
         setLoading(false);

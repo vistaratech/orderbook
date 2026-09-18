@@ -11,10 +11,13 @@ import {
   verifyPasswordResetCode,
   confirmPasswordReset,
   updateProfile,
+  deleteUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
   User as FirebaseUser,
   AuthCredential,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import { generateId } from '../utils/id';
 import { todayIso } from '../utils/format';
@@ -564,5 +567,106 @@ export async function confirmNewPassword(
       msg = 'This password reset link is invalid or has already been used.';
     }
     return { success: false, error: msg };
+  }
+}
+
+/**
+ * Permanently delete the user's account and all associated data.
+ * Required by Google Play Store & Apple App Store policies (2022+).
+ *
+ * Steps:
+ * 1. Re-authenticate user (required by Firebase before account deletion)
+ * 2. Delete all Firestore data under users/{uid}/
+ * 3. Delete Firebase Auth account
+ * 4. Clear all local AsyncStorage data
+ */
+export async function deleteAccount(
+  password?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const fbUser = auth.currentUser;
+    if (!fbUser) {
+      return { success: false, error: 'No authenticated user found. Please log in again.' };
+    }
+
+    const uid = fbUser.uid;
+
+    // Step 1: Re-authenticate if password provided (required for email/password users)
+    if (password && fbUser.email) {
+      try {
+        const credential = EmailAuthProvider.credential(fbUser.email, password);
+        await reauthenticateWithCredential(fbUser, credential);
+      } catch (reauthErr: any) {
+        const code = reauthErr?.code;
+        if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+          return { success: false, error: 'Incorrect password. Please enter your current password to confirm account deletion.' };
+        } else if (code === 'auth/too-many-requests') {
+          return { success: false, error: 'Too many attempts. Please wait a moment and try again.' };
+        }
+        return { success: false, error: 'Re-authentication failed. Please log out and log in again, then try deleting your account.' };
+      }
+    }
+
+    // Step 2: Delete all Firestore data under users/{uid}/
+    const subCollections = [
+      'orders', 'customers', 'expenses', 'products',
+      'payments', 'purchases', 'estimates', 'business_profile',
+    ];
+
+    for (const colName of subCollections) {
+      try {
+        const colRef = collection(db, 'users', uid, colName);
+        const snapshot = await getDocs(colRef);
+        for (const docSnap of snapshot.docs) {
+          await deleteDoc(docSnap.ref);
+        }
+      } catch (err) {
+        if (__DEV__) console.warn(`[deleteAccount] Failed to delete ${colName}:`, err);
+      }
+    }
+
+    // Delete settings and profile documents
+    try {
+      await deleteDoc(doc(db, 'users', uid, 'settings', 'app'));
+    } catch {}
+    try {
+      await deleteDoc(doc(db, 'users', uid, 'profile', 'info'));
+    } catch {}
+
+    // Step 3: Stop sync and delete the Firebase Auth account
+    stopRealtimeSync();
+    await deleteUser(fbUser);
+
+    // Step 4: Clear all local data
+    clearInMemoryStore();
+    setCurrentUidCache(null);
+    await AsyncStorage.multiRemove([
+      ...USER_DATA_KEYS,
+      AUTH_USER_KEY,
+      AUTH_SESSION_KEY,
+      AUTH_PIN_KEY,
+      ONBOARDED_KEY,
+      'order_book:business_profile',
+      'order_book:order_seq',
+      'order_book:purchases',
+      'order_book:estimates',
+    ]);
+    notifyDataListeners();
+
+    return { success: true };
+  } catch (err: any) {
+    if (__DEV__) console.error('[deleteAccount] Error:', err);
+
+    const code = err?.code;
+    if (code === 'auth/requires-recent-login') {
+      return {
+        success: false,
+        error: 'For security, please log out and log back in, then try deleting your account again.',
+      };
+    }
+    return {
+      success: false,
+      error: 'Failed to delete account. Please try again or contact support.',
+    };
   }
 }

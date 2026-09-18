@@ -7,8 +7,12 @@ export const ENTITLEMENT_PRO = 'pro';
 
 let isConfiguredState = false;
 
+// Expo Go includes the RevenueCat native module but rejects production API keys.
+// We detect this on the first configure() attempt and skip all subsequent calls.
+let isExpoGo = false;
+
 export async function initRevenueCat(uid?: string) {
-  if (Platform.OS === 'web') return;
+  if (Platform.OS === 'web' || isExpoGo) return;
   
   try {
     const alreadyConfigured = isConfiguredState || (await Purchases.isConfigured());
@@ -25,13 +29,21 @@ export async function initRevenueCat(uid?: string) {
       await Purchases.logIn(uid);
       console.log('[RevenueCat] Logged in user:', uid);
     }
-  } catch (error) {
-    console.warn('[RevenueCat] Init Error:', error);
+  } catch (error: any) {
+    const msg = error?.message || '';
+    if (msg.includes('Expo Go') || msg.includes('Invalid API key') || msg.includes('Test Store')) {
+      // Expo Go detected — disable all RevenueCat calls for this session
+      isExpoGo = true;
+      console.log('[RevenueCat] Expo Go detected. Skipping RevenueCat (native store unavailable).');
+    } else {
+      console.warn('[RevenueCat] Init Error:', error);
+    }
   }
 }
 
+
 export async function checkProStatus(): Promise<boolean> {
-  if (Platform.OS === 'web') return true;
+  if (Platform.OS === 'web' || isExpoGo) return true;
   
   try {
     const configured = isConfiguredState || (await Purchases.isConfigured());
@@ -47,7 +59,7 @@ export async function checkProStatus(): Promise<boolean> {
 }
 
 export async function checkBasicStatus(): Promise<boolean> {
-  if (Platform.OS === 'web') return true;
+  if (Platform.OS === 'web' || isExpoGo) return true;
   
   try {
     const configured = isConfiguredState || (await Purchases.isConfigured());
@@ -81,7 +93,7 @@ export async function purchaseProPackage(packageToBuy: PurchasesPackage): Promis
 }
 
 export async function restorePurchases(): Promise<boolean> {
-  if (Platform.OS === 'web') return false;
+  if (Platform.OS === 'web' || isExpoGo) return false;
   try {
     const customerInfo = await Purchases.restorePurchases();
     return (
@@ -95,7 +107,7 @@ export async function restorePurchases(): Promise<boolean> {
 }
 
 export async function getAvailablePackages(): Promise<PurchasesPackage[]> {
-  if (Platform.OS === 'web') return [];
+  if (Platform.OS === 'web' || isExpoGo) return [];
   
   try {
     const configured = isConfiguredState || (await Purchases.isConfigured());

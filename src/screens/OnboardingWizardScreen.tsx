@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Animated,
+  Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -18,6 +20,7 @@ import { RootStackParamList } from '../navigation/types';
 import { registerUser, loginAsGuest } from '../storage/authStorage';
 import { saveBusinessProfile } from '../storage/businessProfileStorage';
 import AppLogo from '../components/AppLogo';
+import Onboarding3DStage from '../components/Onboarding3DStage';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import {
   BusinessType,
@@ -27,32 +30,112 @@ import {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingWizard'>;
 
-const SLIDES = [
+interface ValueBullet {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  desc: string;
+  color: string;
+}
+
+interface TourSlide {
+  title: string;
+  badge: string;
+  subtitle: string;
+  bgColor: string;
+  themeColor: string;
+  accent: string;
+  bullets: ValueBullet[];
+}
+
+const SLIDES: TourSlide[] = [
   {
     title: 'Your Digital KadaiBook',
-    subtitle: 'Digitize your notebook orders with fulfillment tracking, status stamps, and WhatsApp receipts.',
-    icon: 'book-outline' as const,
-    color: colors.clayDeep,
+    badge: 'ORDER DISCIPLINE & KHATA',
+    subtitle: 'Digitize notebook orders with instant WhatsApp receipts, fulfillment tracking, and zero paper chaos.',
+    bgColor: '#F6F1E7', // Warm Kraft
+    themeColor: colors.clayDeep,
     accent: colors.clayLight,
+    bullets: [
+      {
+        icon: 'logo-whatsapp',
+        label: '1-Tap WhatsApp Receipts',
+        desc: 'Send itemized bills with payment QR codes directly to customer chat.',
+        color: '#25D366',
+      },
+      {
+        icon: 'pricetags-outline',
+        label: 'Visual Fulfillment Stages',
+        desc: 'Move orders across Placed → Packed → Dispatched → Delivered.',
+        color: colors.statusDispatched,
+      },
+      {
+        icon: 'flash-outline',
+        label: 'Quick Khata Logging',
+        desc: 'Log customer requests, items, and advance deposits in 5 seconds.',
+        color: colors.pending,
+      },
+    ],
   },
   {
     title: 'Master Business Outflow',
-    subtitle: 'Track raw materials, courier, packaging, rent, and overheads. Know your true net profit at all times.',
-    icon: 'trending-up-outline' as const,
-    color: colors.duskDeep,
+    badge: 'EXPENSE CONTROL & CASHFLOW',
+    subtitle: 'Track raw materials, couriers, packaging, and rent. Know your true take-home profit on every sale.',
+    bgColor: '#F1F5F7', // Soft Dusk
+    themeColor: colors.duskDeep,
     accent: colors.duskLight,
+    bullets: [
+      {
+        icon: 'pie-chart-outline',
+        label: 'Categorized Cost Tracking',
+        desc: 'Tag fabric, courier, packaging, and overheads to spot cost spikes.',
+        color: colors.clayDeep,
+      },
+      {
+        icon: 'pulse-outline',
+        label: 'Live Net Margin Radar',
+        desc: 'Automatic cost deduction reveals your true take-home cash.',
+        color: colors.inflow,
+      },
+      {
+        icon: 'shield-checkmark-outline',
+        label: 'Zero Cashflow Leaks',
+        desc: 'Catch shipping overages and supplier price hikes before they hurt reserves.',
+        color: colors.duskDeep,
+      },
+    ],
   },
   {
     title: 'Instant P&L & Analytics',
-    subtitle: 'Get automated financial statements, best-selling product reports, and customer spend insights.',
-    icon: 'bar-chart-outline' as const,
-    color: colors.statusPlaced,
+    badge: 'AUTOMATED INTELLIGENCE',
+    subtitle: 'Get automated monthly financial statements, best-selling product reports, and customer spend insights.',
+    bgColor: '#FAF6ED', // Golden Cream
+    themeColor: colors.statusPlaced,
     accent: '#F9ECD2',
+    bullets: [
+      {
+        icon: 'document-text-outline',
+        label: 'Automated Monthly P&L',
+        desc: 'Tax-ready financial statements generated without an accountant.',
+        color: colors.statusPlaced,
+      },
+      {
+        icon: 'star-outline',
+        label: 'Star Products Detector',
+        desc: 'Spot high-margin catalog items driving 80% of store revenue.',
+        color: '#D48827',
+      },
+      {
+        icon: 'people-outline',
+        label: 'VIP Buyer Khata Insights',
+        desc: 'Track repeat customer history, lifetime value, and credit dues.',
+        color: colors.duskDeep,
+      },
+    ],
   },
 ];
 
 export default function OnboardingWizardScreen({ navigation }: Props) {
-  const [currentStep, setCurrentStep] = useState(0); // 0, 1, 2 = tour slides, 3 = store setup
+  const [currentStep, setCurrentStep] = useState(0); // 0, 1, 2 = 3D tour slides, 3 = store setup
 
   // Form states for Step 3
   const [businessName, setBusinessName] = useState('');
@@ -64,9 +147,43 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
   const [saving, setSaving] = useState(false);
   const [selectedBusinessType, setSelectedBusinessType] = useState<BusinessType>('general');
 
+  // Animation values
+  const slideFadeAnim = useRef(new Animated.Value(1)).current;
+  const slideTranslateAnim = useRef(new Animated.Value(0)).current;
+  const nextBtnScale = useRef(new Animated.Value(1)).current;
+
+  // Trigger animation on step transition
+  const animateStepTransition = (nextStepIdx: number) => {
+    slideFadeAnim.setValue(0);
+    slideTranslateAnim.setValue(18);
+
+    Animated.parallel([
+      Animated.timing(slideFadeAnim, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideTranslateAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 55,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handleStepJump = (idx: number) => {
+    if (idx === currentStep) return;
+    setCurrentStep(idx);
+    animateStepTransition(idx);
+  };
+
   const handleNext = () => {
     if (currentStep < 2) {
-      setCurrentStep(currentStep + 1);
+      const nextIdx = currentStep + 1;
+      setCurrentStep(nextIdx);
+      animateStepTransition(nextIdx);
     } else {
       setCurrentStep(3); // Go to setup form
     }
@@ -74,8 +191,30 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
 
   const handleBack = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      const prevIdx = currentStep - 1;
+      setCurrentStep(prevIdx);
+      if (prevIdx < 3) {
+        animateStepTransition(prevIdx);
+      }
     }
+  };
+
+  const pressIn = (anim: Animated.Value) => {
+    Animated.spring(anim, {
+      toValue: 0.96,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const pressOut = (anim: Animated.Value) => {
+    Animated.spring(anim, {
+      toValue: 1,
+      friction: 5,
+      tension: 80,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleFinishSetup = async () => {
@@ -146,95 +285,140 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
     navigation.navigate('Login');
   };
 
+  const currentSlide = SLIDES[currentStep] || SLIDES[0];
+
   return (
-    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={[
+        styles.screen,
+        { backgroundColor: currentStep < 3 ? currentSlide.bgColor : colors.paper },
+      ]}
+      edges={['top', 'bottom']}
+    >
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Top Header / Skip Bar */}
+        {/* ── Stories-Style Top Navigation Bar ── */}
         <View style={styles.topBar}>
           {currentStep > 0 ? (
-            <Pressable onPress={handleBack} style={styles.topBtn}>
+            <Pressable onPress={handleBack} style={styles.topBackBtn}>
               <Ionicons name="arrow-back" size={20} color={colors.ink} />
             </Pressable>
           ) : (
             <View style={{ width: 36 }} />
           )}
 
-          {/* Dots Indicator */}
-          <View style={styles.dotsRow}>
-            {[0, 1, 2, 3].map((idx) => (
-              <View
-                key={idx}
-                style={[
-                  styles.dot,
-                  currentStep === idx && styles.dotActive,
-                  currentStep === idx && {
-                    backgroundColor:
-                      idx < 3 ? SLIDES[idx].color : colors.clayDeep,
-                  },
-                ]}
-              />
-            ))}
+          {/* ── Segmented Story Progress Bar ── */}
+          <View style={styles.segmentedBar}>
+            {[0, 1, 2].map((idx) => {
+              const isPast = currentStep > idx;
+              const isCurrent = currentStep === idx;
+              return (
+                <Pressable
+                  key={idx}
+                  style={styles.segmentTrack}
+                  onPress={() => handleStepJump(idx)}
+                >
+                  <View
+                    style={[
+                      styles.segmentFill,
+                      (isPast || isCurrent) && {
+                        backgroundColor:
+                          idx < 3 ? SLIDES[idx].themeColor : colors.clayDeep,
+                        width: isCurrent ? '100%' : '100%',
+                        opacity: isPast ? 0.6 : isCurrent ? 1 : 0,
+                      },
+                    ]}
+                  />
+                </Pressable>
+              );
+            })}
           </View>
 
-          <Pressable onPress={handleExplorePublic} style={styles.topBtn}>
-            <Text style={styles.skipText}>Visitor Mode</Text>
+          <Pressable onPress={handleExplorePublic} style={styles.visitorBtn}>
+            <Text style={[styles.visitorText, { color: currentSlide.themeColor }]}>
+              Visitor Mode
+            </Text>
           </Pressable>
         </View>
 
-        {/* Content Body */}
+        {/* Content Body: 3D Tour Slides */}
         {currentStep < 3 ? (
-          <View style={styles.slideContainer}>
-            {/* Icon Graphic Box */}
-            <View
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={styles.slideScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Animated.View
               style={[
-                styles.iconGraphicWrap,
-                { backgroundColor: SLIDES[currentStep].accent },
+                styles.slideAnimatedContainer,
+                {
+                  opacity: slideFadeAnim,
+                  transform: [{ translateY: slideTranslateAnim }],
+                },
               ]}
             >
-              {currentStep === 0 ? (
-                <AppLogo size={90} variant="icon" />
-              ) : (
-                <Ionicons
-                  name={SLIDES[currentStep].icon}
-                  size={70}
-                  color={SLIDES[currentStep].color}
-                />
-              )}
-            </View>
-
-            <Text style={styles.slideTitle}>{SLIDES[currentStep].title}</Text>
-            <Text style={styles.slideSubtitle}>
-              {SLIDES[currentStep].subtitle}
-            </Text>
-
-            <View style={styles.slideSpacer} />
-
-            {/* Bottom Actions */}
-            <View style={styles.bottomActions}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.nextBtn,
-                  { backgroundColor: SLIDES[currentStep].color },
-                  pressed && { opacity: 0.85 },
-                ]}
-                onPress={handleNext}
-              >
-                <Text style={styles.nextBtnText}>
-                  {currentStep === 2 ? 'Start Store Setup' : 'Next Step'}
+              {/* Category Badge */}
+              <View style={styles.badgePill}>
+                <Text style={[styles.badgeText, { color: currentSlide.themeColor }]}>
+                  {currentSlide.badge}
                 </Text>
-                <Ionicons name="arrow-forward" size={18} color={colors.white} />
-              </Pressable>
+              </View>
 
-              <Pressable style={styles.loginLinkBtn} onPress={handleGoToLogin}>
-                <Text style={styles.loginLinkText}>
-                  Already have an account? <Text style={styles.boldUnderline}>Log In</Text>
-                </Text>
-              </Pressable>
-            </View>
-          </View>
+              {/* Title & Subtitle */}
+              <Text style={styles.slideTitle}>{currentSlide.title}</Text>
+              <Text style={styles.slideSubtitle}>{currentSlide.subtitle}</Text>
+
+              {/* ── Central Hero 3D Diorama Stage with Live Micro-Playground ── */}
+              <Onboarding3DStage step={currentStep} />
+
+              {/* ── Bite-Sized Superpower Points ── */}
+              <View style={styles.bulletsSection}>
+                {currentSlide.bullets.map((b, idx) => (
+                  <View key={idx} style={styles.bulletCard}>
+                    <View style={[styles.bulletIconBox, { backgroundColor: b.color + '18' }]}>
+                      <Ionicons name={b.icon} size={18} color={b.color} />
+                    </View>
+                    <View style={styles.bulletTextWrap}>
+                      <Text style={styles.bulletTitle}>{b.label}</Text>
+                      <Text style={styles.bulletDesc}>{b.desc}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              {/* Bottom Actions */}
+              <View style={styles.bottomActions}>
+                <Animated.View style={{ transform: [{ scale: nextBtnScale }] }}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.nextBtn,
+                      { backgroundColor: currentSlide.themeColor },
+                      pressed && { opacity: 0.9 },
+                    ]}
+                    onPressIn={() => pressIn(nextBtnScale)}
+                    onPressOut={() => pressOut(nextBtnScale)}
+                    onPress={handleNext}
+                  >
+                    <Text style={styles.nextBtnText}>
+                      {currentStep === 2 ? 'Start Store Setup' : 'Next Step'}
+                    </Text>
+                    <Ionicons name="arrow-forward" size={18} color={colors.white} />
+                  </Pressable>
+                </Animated.View>
+
+                <Pressable style={styles.loginLinkBtn} onPress={handleGoToLogin}>
+                  <Text style={styles.loginLinkText}>
+                    Already have an account?{' '}
+                    <Text style={[styles.boldUnderline, { color: currentSlide.themeColor }]}>
+                      Log In
+                    </Text>
+                  </Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+          </ScrollView>
         ) : (
           /* Step 3: Fast Store & Owner Setup Form */
           <ScrollView
@@ -396,99 +580,162 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Top Bar
+  // ── Stories-Style Top Navigation Bar ──
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 12,
   },
-  topBtn: {
+  topBackBtn: {
     paddingVertical: 6,
     paddingHorizontal: 8,
+    borderRadius: 8,
   },
-  skipText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    color: colors.clayDeep,
-  },
-  dotsRow: {
+  segmentedBar: {
+    flex: 1,
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
     alignItems: 'center',
+    maxWidth: 240,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.line,
+  segmentTrack: {
+    flex: 1,
+    height: 4.5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(46, 42, 36, 0.12)',
+    overflow: 'hidden',
   },
-  dotActive: {
-    width: 24,
-    height: 8,
-    borderRadius: 4,
+  segmentFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  visitorBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  visitorText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11.5,
   },
 
   // Slide Body
-  slideContainer: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 30,
-    alignItems: 'center',
+  slideScrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 18,
+    paddingTop: 4,
+    paddingBottom: 28,
+  },
+  slideAnimatedContainer: {
     width: '100%',
-    maxWidth: 520,
+    maxWidth: 480,
     alignSelf: 'center',
-  },
-  iconGraphicWrap: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-    ...shadow.card,
   },
+
+  badgePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+    marginBottom: 8,
+  },
+  badgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 0.8,
+  },
+
   slideTitle: {
     fontFamily: fonts.display,
-    fontSize: 20,
+    fontSize: 22,
     color: colors.ink,
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 4,
+    letterSpacing: 0.2,
   },
   slideSubtitle: {
     fontFamily: fonts.body,
-    fontSize: 14,
+    fontSize: 12.5,
     color: colors.inkSoft,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 18,
     paddingHorizontal: 10,
+    marginBottom: 6,
   },
-  slideSpacer: {
+
+  // Bullets Section
+  bulletsSection: {
+    width: '100%',
+    gap: 7,
+    marginVertical: 10,
+  },
+  bulletCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.paperCard,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    ...shadow.card,
+  },
+  bulletIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bulletTextWrap: {
     flex: 1,
+    gap: 1,
   },
+  bulletTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12.5,
+    color: colors.ink,
+  },
+  bulletDesc: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+    lineHeight: 15,
+  },
+
+  // Bottom Actions
   bottomActions: {
     width: '100%',
-    gap: 14,
+    gap: 10,
+    marginTop: 6,
   },
   nextBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderRadius: radius.md,
     ...shadow.card,
   },
   nextBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.white,
   },
   loginLinkBtn: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   loginLinkText: {
     fontFamily: fonts.body,
@@ -497,10 +744,9 @@ const styles = StyleSheet.create({
   },
   boldUnderline: {
     fontFamily: fonts.bodyBold,
-    color: colors.clayDeep,
   },
 
-  // Setup Form Step
+  // Setup Form Step (Step 3)
   formScrollContent: {
     paddingHorizontal: 20,
     paddingTop: 10,

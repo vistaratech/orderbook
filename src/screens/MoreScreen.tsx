@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
 import AppLogo from '../components/AppLogo';
+import TourTarget from '../components/tour/TourTarget';
 import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
@@ -115,27 +116,29 @@ export default function MoreScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.menuList}>
-          {menuItems.map((item) => (
-            <Pressable
-              key={item.title}
-              style={({ pressed }) => [
-                styles.menuCard,
-                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-              ]}
-              onPress={item.action}
-            >
-              <View style={[styles.iconBox, { backgroundColor: item.bg }]}>
-                <Ionicons name={item.icon} size={22} color={item.color} />
-              </View>
-              <View style={styles.menuInfo}>
-                <Text style={styles.menuTitle}>{item.title}</Text>
-                <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.inkSoft} />
-            </Pressable>
-          ))}
-        </View>
+        <TourTarget targetKey="more-menu-hub">
+          <View style={styles.menuList}>
+            {menuItems.map((item) => (
+              <Pressable
+                key={item.title}
+                style={({ pressed }) => [
+                  styles.menuCard,
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+                ]}
+                onPress={item.action}
+              >
+                <View style={[styles.iconBox, { backgroundColor: item.bg }]}>
+                  <Ionicons name={item.icon} size={22} color={item.color} />
+                </View>
+                <View style={styles.menuInfo}>
+                  <Text style={styles.menuTitle}>{item.title}</Text>
+                  <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.inkSoft} />
+              </Pressable>
+            ))}
+          </View>
+        </TourTarget>
 
         {/* Business Guide Note */}
         <View style={styles.infoCard}>

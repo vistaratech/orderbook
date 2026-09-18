@@ -9,6 +9,8 @@ import {
   Alert,
   Share,
   ActivityIndicator,
+  Linking,
+  Modal,
   Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,7 +28,7 @@ import {
   backupToFirebaseCloud,
   restoreFromFirebaseCloud,
 } from '../storage/backupStorage';
-import { getAuthState, logout, setPinCode, UserAccount } from '../storage/authStorage';
+import { getAuthState, logout, setPinCode, deleteAccount, UserAccount } from '../storage/authStorage';
 import {
   getBusinessProfile,
   saveBusinessProfile,
@@ -38,6 +40,8 @@ import AppLogo from '../components/AppLogo';
 import GlassBackButton from '../components/GlassBackButton';
 import DesktopLayout from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
+import { useTour } from '../context/TourContext';
+import { resetTour } from '../storage/tourStorage';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -45,6 +49,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const { language, setLanguage, t, currentLangOption, availableLanguages } = useLanguage();
+  const { startTour } = useTour();
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [newPin, setNewPin] = useState('');
   const [profile, setProfile] = useState<BusinessProfile>({
@@ -63,6 +68,12 @@ export default function SettingsScreen() {
   const [cloudSyncing, setCloudSyncing] = useState(false);
   const [showImportBox, setShowImportBox] = useState(false);
   const [importJsonText, setImportJsonText] = useState('');
+
+  // Delete Account State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Accordion Expand/Collapse States
   const [showBusinessProfile, setShowBusinessProfile] = useState(false);
@@ -107,7 +118,7 @@ export default function SettingsScreen() {
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -173,6 +184,14 @@ export default function SettingsScreen() {
 
   const handleRelaunchWizard = () => {
     navigation.navigate('OnboardingWizard');
+  };
+
+  const handleStartAppTour = async () => {
+    await resetTour();
+    navigation.navigate('MainTabs');
+    setTimeout(() => {
+      startTour(0);
+    }, 350);
   };
 
   const handleExport = async () => {
@@ -274,6 +293,43 @@ export default function SettingsScreen() {
         await loadSettings();
       },
     });
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteError(null);
+    setDeleteLoading(true);
+    try {
+      const result = await deleteAccount(deletePassword || undefined);
+      if (result.success) {
+        setShowDeleteModal(false);
+        setDeletePassword('');
+        Alert.alert(
+          'Account Deleted',
+          'Your account and all data have been permanently deleted.',
+          [
+            {
+              text: 'OK',
+              onPress: () =>
+                navigation.reset({ index: 0, routes: [{ name: 'Login' }] }),
+            },
+          ]
+        );
+      } else {
+        setDeleteError(result.error || 'Failed to delete account.');
+      }
+    } catch {
+      setDeleteError('An unexpected error occurred. Please try again.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const openPrivacyPolicy = () => {
+    Linking.openURL('https://kadaibook.in/privacy');
+  };
+
+  const openTermsOfService = () => {
+    Linking.openURL('https://kadaibook.in/terms');
   };
 
   if (loading) {
@@ -420,6 +476,26 @@ export default function SettingsScreen() {
                 </Pressable>
               </View>
             </View>
+
+            {/* Interactive App Tour */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.tourSettingCard,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+              ]}
+              onPress={handleStartAppTour}
+            >
+              <View style={styles.tourSettingIconWrap}>
+                <Ionicons name="compass" size={20} color={colors.clayDeep} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.tourSettingTitle}>Interactive App Tour</Text>
+                <Text style={styles.tourSettingSub}>
+                  Take a guided screen-by-screen tour of features & workflows
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.clayDeep} />
+            </Pressable>
 
             {/* Onboarding Wizard shortcut */}
             <Pressable
@@ -842,7 +918,7 @@ export default function SettingsScreen() {
             </Pressable>
 
             {showDangerZone && (
-              <View style={{ marginTop: 14 }}>
+              <View style={{ marginTop: 14, gap: 10 }}>
                 <Pressable
                   style={({ pressed }) => [styles.clearBtn, pressed && { opacity: 0.85 }]}
                   onPress={handleClearAll}
@@ -850,12 +926,46 @@ export default function SettingsScreen() {
                   <Ionicons name="trash" size={16} color={colors.danger} />
                   <Text style={styles.clearBtnText}>Reset / Clear All Records</Text>
                 </Pressable>
+
+                {/* Delete Account — Required by Play Store & App Store */}
+                {currentUser?.role !== 'guest' && (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.clearBtn,
+                      { backgroundColor: '#FFF0F0', borderColor: '#CC3333' },
+                      pressed && { opacity: 0.85 },
+                    ]}
+                    onPress={() => {
+                      setDeleteError(null);
+                      setDeletePassword('');
+                      setShowDeleteModal(true);
+                    }}
+                  >
+                    <Ionicons name="person-remove" size={16} color="#CC3333" />
+                    <Text style={[styles.clearBtnText, { color: '#CC3333' }]}>
+                      Delete My Account Permanently
+                    </Text>
+                  </Pressable>
+                )}
               </View>
             )}
           </View>
 
+          {/* ─── Privacy Policy & Terms of Service ─── */}
+          <View style={styles.legalLinksSection}>
+            <Pressable onPress={openPrivacyPolicy} style={styles.legalLink}>
+              <Ionicons name="shield-checkmark-outline" size={14} color={colors.inkSoft} />
+              <Text style={styles.legalLinkText}>Privacy Policy</Text>
+            </Pressable>
+            <Text style={{ color: colors.inkSoft, fontSize: 10 }}>•</Text>
+            <Pressable onPress={openTermsOfService} style={styles.legalLink}>
+              <Ionicons name="document-text-outline" size={14} color={colors.inkSoft} />
+              <Text style={styles.legalLinkText}>Terms of Service</Text>
+            </Pressable>
+          </View>
+
           {/* Brand Footer */}
-          <View style={{ alignItems: 'center', marginTop: 16, marginBottom: 20 }}>
+          <View style={{ alignItems: 'center', marginTop: 12, marginBottom: 20 }}>
             <AppLogo
               size={50}
               variant="vertical"
@@ -864,6 +974,89 @@ export default function SettingsScreen() {
             />
           </View>
         </ScrollView>
+
+        {/* ─── Delete Account Confirmation Modal ─── */}
+        <Modal
+          visible={showDeleteModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDeleteModal(false)}
+        >
+          <View style={styles.deleteModalOverlay}>
+            <View style={styles.deleteModalCard}>
+              <View style={styles.deleteModalHeader}>
+                <View style={styles.deleteModalIconWrap}>
+                  <Ionicons name="warning" size={24} color={colors.danger} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.deleteModalTitle}>Delete Account</Text>
+                  <Text style={styles.deleteModalSub}>
+                    This will permanently delete your account, all orders, customers, products, and data. This action cannot be undone.
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => setShowDeleteModal(false)}
+                  style={{ padding: 6 }}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close" size={20} color={colors.inkSoft} />
+                </Pressable>
+              </View>
+
+              {deleteError ? (
+                <View style={styles.deleteErrorBox}>
+                  <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
+                  <Text style={styles.deleteErrorText}>{deleteError}</Text>
+                </View>
+              ) : null}
+
+              <View style={{ marginBottom: 14 }}>
+                <Text style={[styles.fieldLabel, { marginBottom: 6 }]}>Enter your password to confirm:</Text>
+                <TextInput
+                  style={[styles.input, { borderBottomWidth: 1, borderBottomColor: colors.danger, paddingVertical: 10 }]}
+                  value={deletePassword}
+                  onChangeText={(val) => {
+                    setDeletePassword(val);
+                    if (deleteError) setDeleteError(null);
+                  }}
+                  secureTextEntry
+                  placeholder="Your current password"
+                  placeholderTextColor={colors.inkSoft}
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.deleteConfirmBtn,
+                  deleteLoading && { opacity: 0.6 },
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={handleDeleteAccount}
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <>
+                    <Ionicons name="trash" size={16} color={colors.white} />
+                    <Text style={styles.deleteConfirmBtnText}>Delete My Account Forever</Text>
+                  </>
+                )}
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={() => setShowDeleteModal(false)}
+              >
+                <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.inkSoft }}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </DesktopLayout>
   );
@@ -1309,6 +1502,137 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 13,
     color: colors.danger,
+  },
+
+  // ── Legal Links (Privacy Policy & Terms) ──
+  legalLinksSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  legalLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  legalLinkText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.inkSoft,
+    textDecorationLine: 'underline',
+  },
+
+  // ── Delete Account Modal ──
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  deleteModalCard: {
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: colors.paperCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    padding: 24,
+    ...shadow.card,
+  },
+  deleteModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 16,
+  },
+  deleteModalIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFEBEE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteModalTitle: {
+    fontFamily: fonts.display,
+    fontSize: 20,
+    color: colors.danger,
+  },
+  deleteModalSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 4,
+    lineHeight: 17,
+  },
+  deleteErrorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFEBEE',
+    borderColor: colors.danger,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: 12,
+    marginBottom: 14,
+  },
+  deleteErrorText: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.danger,
+    lineHeight: 18,
+  },
+  deleteConfirmBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#CC3333',
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    ...shadow.card,
+  },
+  deleteConfirmBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.white,
+  },
+  tourSettingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    backgroundColor: '#F3D9D535',
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: '#B9665940',
+    marginBottom: 12,
+  },
+  tourSettingIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#F3D9D5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tourSettingTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.ink,
+    marginBottom: 2,
+  },
+  tourSettingSub: {
+    fontFamily: fonts.body,
+    fontSize: 11.5,
+    color: colors.inkSoft,
   },
 });
 

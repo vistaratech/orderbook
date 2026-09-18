@@ -21,6 +21,7 @@ import { getOrders } from '../storage/orderStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import OrderCard from '../components/OrderCard';
 import EmptyState from '../components/EmptyState';
+import TourTarget from '../components/tour/TourTarget';
 import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { formatCurrency } from '../utils/format';
@@ -177,96 +178,98 @@ export default function OrderListScreen() {
         </View>
 
         {/* Modern Search & Filter Toolbar */}
-        <View style={styles.searchToolbar}>
-          <View style={styles.searchInputWrap}>
-            <Ionicons name="search" size={18} color={colors.inkSoft} style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder={t('orders.searchPlaceholder')}
-              placeholderTextColor={colors.inkSoft}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery('')} style={styles.clearBtn}>
-                <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
-              </Pressable>
-            )}
+        <TourTarget targetKey="orders-search-filter">
+          <View style={styles.searchToolbar}>
+            <View style={styles.searchInputWrap}>
+              <Ionicons name="search" size={18} color={colors.inkSoft} style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder={t('orders.searchPlaceholder')}
+                placeholderTextColor={colors.inkSoft}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <Pressable onPress={() => setSearchQuery('')} style={styles.clearBtn}>
+                  <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
+                </Pressable>
+              )}
+            </View>
+
+            {/* Filter Toggle Button with Badge */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.filterIconButton,
+                hasActiveFilters && styles.filterIconButtonActive,
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={() => setShowFilters(!showFilters)}
+            >
+              <Ionicons
+                name={showFilters ? 'chevron-up' : 'options-outline'}
+                size={20}
+                color={hasActiveFilters ? colors.white : colors.ink}
+              />
+              {hasActiveFilters && <View style={styles.activeFilterDot} />}
+            </Pressable>
           </View>
 
-          {/* Filter Toggle Button with Badge */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.filterIconButton,
-              hasActiveFilters && styles.filterIconButtonActive,
-              pressed && { opacity: 0.8 },
-            ]}
-            onPress={() => setShowFilters(!showFilters)}
-          >
-            <Ionicons
-              name={showFilters ? 'chevron-up' : 'options-outline'}
-              size={20}
-              color={hasActiveFilters ? colors.white : colors.ink}
-            />
-            {hasActiveFilters && <View style={styles.activeFilterDot} />}
-          </Pressable>
-        </View>
+          {/* Quick Filter Horizontal Scrollbar */}
+          <View style={styles.quickFilterBar}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickFilterScroll}>
+              <Pressable
+                style={[styles.quickChip, paymentFilter === 'All' && statusFilter === 'All' && styles.quickChipActive]}
+                onPress={() => {
+                  setPaymentFilter('All');
+                  setStatusFilter('All');
+                }}
+              >
+                <Text style={[styles.quickChipText, paymentFilter === 'All' && statusFilter === 'All' && styles.quickChipTextActive]}>
+                  {t('orders.filterAll')} ({orderCounts.totalCount})
+                </Text>
+              </Pressable>
 
-        {/* Quick Filter Horizontal Scrollbar */}
-        <View style={styles.quickFilterBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickFilterScroll}>
-            <Pressable
-              style={[styles.quickChip, paymentFilter === 'All' && statusFilter === 'All' && styles.quickChipActive]}
-              onPress={() => {
-                setPaymentFilter('All');
-                setStatusFilter('All');
-              }}
-            >
-              <Text style={[styles.quickChipText, paymentFilter === 'All' && statusFilter === 'All' && styles.quickChipTextActive]}>
-                {t('orders.filterAll')} ({orderCounts.totalCount})
-              </Text>
-            </Pressable>
+              <Pressable
+                style={[styles.quickChip, paymentFilter === 'Pending' && styles.quickChipActive, { borderColor: colors.pending }]}
+                onPress={() => {
+                  setPaymentFilter('Pending');
+                  setStatusFilter('All');
+                  setSortBy('due');
+                }}
+              >
+                <Ionicons name="time" size={13} color={paymentFilter === 'Pending' ? colors.white : colors.pending} />
+                <Text style={[styles.quickChipText, paymentFilter === 'Pending' && styles.quickChipTextActive, { color: paymentFilter === 'Pending' ? colors.white : colors.pending }]}>
+                  {t('dashboard.pendingDues')} ({orderCounts.pendingCount})
+                </Text>
+              </Pressable>
 
-            <Pressable
-              style={[styles.quickChip, paymentFilter === 'Pending' && styles.quickChipActive, { borderColor: colors.pending }]}
-              onPress={() => {
-                setPaymentFilter('Pending');
-                setStatusFilter('All');
-                setSortBy('due');
-              }}
-            >
-              <Ionicons name="time" size={13} color={paymentFilter === 'Pending' ? colors.white : colors.pending} />
-              <Text style={[styles.quickChipText, paymentFilter === 'Pending' && styles.quickChipTextActive, { color: paymentFilter === 'Pending' ? colors.white : colors.pending }]}>
-                {t('dashboard.pendingDues')} ({orderCounts.pendingCount})
-              </Text>
-            </Pressable>
+              <Pressable
+                style={[styles.quickChip, paymentFilter === 'Paid' && styles.quickChipActive, { borderColor: colors.inflow }]}
+                onPress={() => {
+                  setPaymentFilter('Paid');
+                  setStatusFilter('All');
+                }}
+              >
+                <Ionicons name="checkmark-circle" size={13} color={paymentFilter === 'Paid' ? colors.white : colors.inflow} />
+                <Text style={[styles.quickChipText, paymentFilter === 'Paid' && styles.quickChipTextActive, { color: paymentFilter === 'Paid' ? colors.white : colors.inflow }]}>
+                  {t('orders.payPaid')} ({orderCounts.paidCount})
+                </Text>
+              </Pressable>
 
-            <Pressable
-              style={[styles.quickChip, paymentFilter === 'Paid' && styles.quickChipActive, { borderColor: colors.inflow }]}
-              onPress={() => {
-                setPaymentFilter('Paid');
-                setStatusFilter('All');
-              }}
-            >
-              <Ionicons name="checkmark-circle" size={13} color={paymentFilter === 'Paid' ? colors.white : colors.inflow} />
-              <Text style={[styles.quickChipText, paymentFilter === 'Paid' && styles.quickChipTextActive, { color: paymentFilter === 'Paid' ? colors.white : colors.inflow }]}>
-                {t('orders.payPaid')} ({orderCounts.paidCount})
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.quickChip, statusFilter === 'Delivered' && styles.quickChipActive]}
-              onPress={() => {
-                setStatusFilter('Delivered');
-                setPaymentFilter('All');
-              }}
-            >
-              <Text style={[styles.quickChipText, statusFilter === 'Delivered' && styles.quickChipTextActive]}>
-                {t('orders.statusDelivered')} ({orderCounts.deliveredCount})
-              </Text>
-            </Pressable>
-          </ScrollView>
-        </View>
+              <Pressable
+                style={[styles.quickChip, statusFilter === 'Delivered' && styles.quickChipActive]}
+                onPress={() => {
+                  setStatusFilter('Delivered');
+                  setPaymentFilter('All');
+                }}
+              >
+                <Text style={[styles.quickChipText, statusFilter === 'Delivered' && styles.quickChipTextActive]}>
+                  {t('orders.statusDelivered')} ({orderCounts.deliveredCount})
+                </Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </TourTarget>
 
         {/* Collapsible Advanced Filter Panel */}
         {showFilters && (
@@ -368,35 +371,37 @@ export default function OrderListScreen() {
         )}
 
         {/* Orders List */}
-        <FlatList
-          data={filteredOrders}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          initialNumToRender={8}
-          maxToRenderPerBatch={8}
-          windowSize={5}
-          updateCellsBatchingPeriod={40}
-          removeClippedSubviews={Platform.OS === 'android'}
-          scrollEventThrottle={16}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
-          }
-          renderItem={({ item }) => (
-            <OrderCard
-              order={item}
-              onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
-            />
-          )}
-          ListEmptyComponent={
-            !loading ? (
-              <EmptyState
-                title={t('orders.noOrdersFound')}
-                message={t('orders.subtitle')}
+        <TourTarget targetKey="orders-list-area" style={{ flex: 1 }}>
+          <FlatList
+            data={filteredOrders}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={5}
+            updateCellsBatchingPeriod={40}
+            removeClippedSubviews={Platform.OS === 'android'}
+            scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
+            }
+            renderItem={({ item }) => (
+              <OrderCard
+                order={item}
+                onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
               />
-            ) : null
-          }
-        />
+            )}
+            ListEmptyComponent={
+              !loading ? (
+                <EmptyState
+                  title={t('orders.noOrdersFound')}
+                  message={t('orders.subtitle')}
+                />
+              ) : null
+            }
+          />
+        </TourTarget>
 
         {/* Floating Action Button */}
         <Pressable

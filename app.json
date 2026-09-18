@@ -33,7 +33,8 @@
         "backgroundColor": "#F6F1E7"
       },
       "permissions": [
-        "com.android.vending.BILLING"
+        "com.android.vending.BILLING",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "androidStatusBar": {
@@ -49,16 +50,24 @@
       "bundler": "metro",
       "favicon": "./assets/icon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "e1c80afb-8af4-483c-89fe-8f6f624e4cd0"
-      }
-    },
     "plugins": [
       "expo-font",
       "expo-status-bar",
       "expo-sharing",
-      "expo-splash-screen"
-    ]
+      "expo-splash-screen",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "KadaiBook needs access to your photo library to set your business logo on invoices.",
+          "cameraPermission": "KadaiBook needs access to your camera to take photos for your business logo."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6a2b245a-0c91-4a8d-b8f1-6684808c204c"
+      }
+    },
+    "owner": "yohesh25"
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Platform, View, Text, Pressable, useWindowDimensions } from 'react-native';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +21,10 @@ import BusinessProfileScreen from '../screens/BusinessProfileScreen';
 import SaaSSidebar from '../components/SaaSSidebar';
 import { DesktopSidebarContext } from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
+import { useTour } from '../context/TourContext';
+import { hasCompletedTour } from '../storage/tourStorage';
+import TourTarget from '../components/tour/TourTarget';
+import AppTourOverlay from '../components/tour/AppTourOverlay';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -28,8 +32,15 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 function CentralOrderBottomBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
+  const { setTabSwitcher } = useTour();
   const currentRoute = state.routes[state.index]?.name;
   const isTabActive = (tabName: string) => currentRoute === tabName;
+
+  useEffect(() => {
+    setTabSwitcher((tabName: string) => {
+      navigation.navigate(tabName as any);
+    });
+  }, [navigation, setTabSwitcher]);
 
   return (
     <View
@@ -79,18 +90,20 @@ function CentralOrderBottomBar({ state, navigation }: BottomTabBarProps) {
       </Pressable>
 
       {/* Tab 3: Central "New Order" Elevated Action Button */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.centralActionWrap,
-          pressed && styles.centralActionWrapPressed,
-        ]}
-        onPress={() => (navigation as any).navigate('OrderForm')}
-      >
-        <View style={styles.centralFabCircle}>
-          <Ionicons name="add" size={26} color={colors.white} />
-        </View>
-        <Text style={styles.centralFabLabel}>New Order</Text>
-      </Pressable>
+      <TourTarget targetKey="new-order-fab">
+        <Pressable
+          style={({ pressed }) => [
+            styles.centralActionWrap,
+            pressed && styles.centralActionWrapPressed,
+          ]}
+          onPress={() => (navigation as any).navigate('OrderForm')}
+        >
+          <View style={styles.centralFabCircle}>
+            <Ionicons name="add" size={26} color={colors.white} />
+          </View>
+          <Text style={styles.centralFabLabel}>New Order</Text>
+        </Pressable>
+      </TourTarget>
 
       {/* Tab 4: Expenses */}
       <Pressable
@@ -113,24 +126,26 @@ function CentralOrderBottomBar({ state, navigation }: BottomTabBarProps) {
       </Pressable>
 
       {/* Tab 5: More */}
-      <Pressable
-        style={styles.tabItem}
-        onPress={() => navigation.navigate('MoreTab')}
-      >
-        <Ionicons
-          name={isTabActive('MoreTab') ? 'grid' : 'grid-outline'}
-          size={22}
-          color={isTabActive('MoreTab') ? colors.clayDeep : colors.inkSoft}
-        />
-        <Text
-          style={[
-            styles.tabItemLabel,
-            isTabActive('MoreTab') && styles.tabItemLabelActive,
-          ]}
+      <TourTarget targetKey="more-menu-hub">
+        <Pressable
+          style={styles.tabItem}
+          onPress={() => navigation.navigate('MoreTab')}
         >
-          {t('nav.more', 'More')}
-        </Text>
-      </Pressable>
+          <Ionicons
+            name={isTabActive('MoreTab') ? 'grid' : 'grid-outline'}
+            size={22}
+            color={isTabActive('MoreTab') ? colors.clayDeep : colors.inkSoft}
+          />
+          <Text
+            style={[
+              styles.tabItemLabel,
+              isTabActive('MoreTab') && styles.tabItemLabelActive,
+            ]}
+          >
+            {t('nav.more', 'More')}
+          </Text>
+        </Pressable>
+      </TourTarget>
     </View>
   );
 }
@@ -138,6 +153,7 @@ function CentralOrderBottomBar({ state, navigation }: BottomTabBarProps) {
 export default function TabNavigator() {
   const { t } = useLanguage();
   const { width } = useWindowDimensions();
+  const { setTabSwitcher, startTour } = useTour();
   const isDesktop = Platform.OS === 'web' && width >= 768;
   const [activeTab, setActiveTab] = useState<string>('DashboardTab');
   const [visitedTabs, setVisitedTabs] = useState<Record<string, boolean>>({ DashboardTab: true });
@@ -148,114 +164,141 @@ export default function TabNavigator() {
     setVisitedTabs((prev) => (prev[tab] ? prev : { ...prev, [tab]: true }));
   };
 
+  // Register desktop tab switcher
+  useEffect(() => {
+    if (isDesktop) {
+      setTabSwitcher((tabName: string) => {
+        handleSelectTab(tabName);
+      });
+    }
+  }, [isDesktop, setTabSwitcher]);
+
+  // First-time visitor check for interactive onboarding tour
+  useEffect(() => {
+    hasCompletedTour().then((completed) => {
+      if (!completed) {
+        const timer = setTimeout(() => {
+          startTour(0);
+        }, 800);
+        return () => clearTimeout(timer);
+      }
+    });
+  }, [startTour]);
+
   if (isDesktop) {
     return (
-      <DesktopSidebarContext.Provider value={true}>
-        <View style={styles.desktopLayout}>
-          <SaaSSidebar
-            currentTabName={activeTab}
-            onSelectTab={handleSelectTab}
-          />
-          <View style={styles.desktopMainContent}>
-            {visitedTabs['DashboardTab'] && (
-              <View style={[styles.tabContentContainer, activeTab !== 'DashboardTab' && styles.tabHidden]}>
-                <DashboardScreen />
-              </View>
-            )}
-            {visitedTabs['OrdersTab'] && (
-              <View style={[styles.tabContentContainer, activeTab !== 'OrdersTab' && styles.tabHidden]}>
-                <OrderListScreen />
-              </View>
-            )}
-            {visitedTabs['ExpensesTab'] && (
-              <View style={[styles.tabContentContainer, activeTab !== 'ExpensesTab' && styles.tabHidden]}>
-                <ExpensesScreen />
-              </View>
-            )}
-            {visitedTabs['ReportsTab'] && (
-              <View style={[styles.tabContentContainer, activeTab !== 'ReportsTab' && styles.tabHidden]}>
-                <ReportsScreen />
-              </View>
-            )}
-            {visitedTabs['CustomerList'] && (
-              <View style={[styles.tabContentContainer, activeTab !== 'CustomerList' && styles.tabHidden]}>
-                <CustomerListScreen />
-              </View>
-            )}
-            {visitedTabs['ProductList'] && (
-              <View style={[styles.tabContentContainer, activeTab !== 'ProductList' && styles.tabHidden]}>
-                <ProductListScreen />
-              </View>
-            )}
-            {visitedTabs['PurchaseList'] && (
-              <View style={[styles.tabContentContainer, activeTab !== 'PurchaseList' && styles.tabHidden]}>
-                <PurchaseListScreen />
-              </View>
-            )}
-            {visitedTabs['EstimateList'] && (
-              <View style={[styles.tabContentContainer, activeTab !== 'EstimateList' && styles.tabHidden]}>
-                <EstimateListScreen />
-              </View>
-            )}
-            {visitedTabs['History'] && (
-              <View style={[styles.tabContentContainer, activeTab !== 'History' && styles.tabHidden]}>
-                <HistoryScreen />
-              </View>
-            )}
-            {visitedTabs['Settings'] && (
-              <View style={[styles.tabContentContainer, activeTab !== 'Settings' && styles.tabHidden]}>
-                <SettingsScreen />
-              </View>
-            )}
-            {visitedTabs['InvoiceTemplateCustomizer'] && (
-              <View style={[styles.tabContentContainer, activeTab !== 'InvoiceTemplateCustomizer' && styles.tabHidden]}>
-                <InvoiceTemplateCustomizerScreen />
-              </View>
-            )}
-            {visitedTabs['BusinessProfile'] && (
-              <View style={[styles.tabContentContainer, activeTab !== 'BusinessProfile' && styles.tabHidden]}>
-                <BusinessProfileScreen />
-              </View>
-            )}
-            {visitedTabs['MoreTab'] && (
-              <View style={[styles.tabContentContainer, activeTab !== 'MoreTab' && styles.tabHidden]}>
-                <MoreScreen />
-              </View>
-            )}
+      <View style={{ flex: 1 }}>
+        <DesktopSidebarContext.Provider value={true}>
+          <View style={styles.desktopLayout}>
+            <SaaSSidebar
+              currentTabName={activeTab}
+              onSelectTab={handleSelectTab}
+            />
+            <View style={styles.desktopMainContent}>
+              {visitedTabs['DashboardTab'] && (
+                <View style={[styles.tabContentContainer, activeTab !== 'DashboardTab' && styles.tabHidden]}>
+                  <DashboardScreen />
+                </View>
+              )}
+              {visitedTabs['OrdersTab'] && (
+                <View style={[styles.tabContentContainer, activeTab !== 'OrdersTab' && styles.tabHidden]}>
+                  <OrderListScreen />
+                </View>
+              )}
+              {visitedTabs['ExpensesTab'] && (
+                <View style={[styles.tabContentContainer, activeTab !== 'ExpensesTab' && styles.tabHidden]}>
+                  <ExpensesScreen />
+                </View>
+              )}
+              {visitedTabs['ReportsTab'] && (
+                <View style={[styles.tabContentContainer, activeTab !== 'ReportsTab' && styles.tabHidden]}>
+                  <ReportsScreen />
+                </View>
+              )}
+              {visitedTabs['CustomerList'] && (
+                <View style={[styles.tabContentContainer, activeTab !== 'CustomerList' && styles.tabHidden]}>
+                  <CustomerListScreen />
+                </View>
+              )}
+              {visitedTabs['ProductList'] && (
+                <View style={[styles.tabContentContainer, activeTab !== 'ProductList' && styles.tabHidden]}>
+                  <ProductListScreen />
+                </View>
+              )}
+              {visitedTabs['PurchaseList'] && (
+                <View style={[styles.tabContentContainer, activeTab !== 'PurchaseList' && styles.tabHidden]}>
+                  <PurchaseListScreen />
+                </View>
+              )}
+              {visitedTabs['EstimateList'] && (
+                <View style={[styles.tabContentContainer, activeTab !== 'EstimateList' && styles.tabHidden]}>
+                  <EstimateListScreen />
+                </View>
+              )}
+              {visitedTabs['History'] && (
+                <View style={[styles.tabContentContainer, activeTab !== 'History' && styles.tabHidden]}>
+                  <HistoryScreen />
+                </View>
+              )}
+              {visitedTabs['Settings'] && (
+                <View style={[styles.tabContentContainer, activeTab !== 'Settings' && styles.tabHidden]}>
+                  <SettingsScreen />
+                </View>
+              )}
+              {visitedTabs['InvoiceTemplateCustomizer'] && (
+                <View style={[styles.tabContentContainer, activeTab !== 'InvoiceTemplateCustomizer' && styles.tabHidden]}>
+                  <InvoiceTemplateCustomizerScreen />
+                </View>
+              )}
+              {visitedTabs['BusinessProfile'] && (
+                <View style={[styles.tabContentContainer, activeTab !== 'BusinessProfile' && styles.tabHidden]}>
+                  <BusinessProfileScreen />
+                </View>
+              )}
+              {visitedTabs['MoreTab'] && (
+                <View style={[styles.tabContentContainer, activeTab !== 'MoreTab' && styles.tabHidden]}>
+                  <MoreScreen />
+                </View>
+              )}
+            </View>
           </View>
-        </View>
-      </DesktopSidebarContext.Provider>
+        </DesktopSidebarContext.Provider>
+        <AppTourOverlay />
+      </View>
     );
   }
 
   return (
-    <Tab.Navigator
-      tabBar={(props) => <CentralOrderBottomBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tab.Screen
-        name="DashboardTab"
-        component={DashboardScreen}
-      />
-      <Tab.Screen
-        name="OrdersTab"
-        component={OrderListScreen}
-      />
-      <Tab.Screen
-        name="ExpensesTab"
-        component={ExpensesScreen}
-      />
-      <Tab.Screen
-        name="ReportsTab"
-        component={ReportsScreen}
-      />
-      <Tab.Screen
-        name="MoreTab"
-        component={MoreScreen}
-      />
-    </Tab.Navigator>
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        tabBar={(props) => <CentralOrderBottomBar {...props} />}
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Tab.Screen
+          name="DashboardTab"
+          component={DashboardScreen}
+        />
+        <Tab.Screen
+          name="OrdersTab"
+          component={OrderListScreen}
+        />
+        <Tab.Screen
+          name="ExpensesTab"
+          component={ExpensesScreen}
+        />
+        <Tab.Screen
+          name="ReportsTab"
+          component={ReportsScreen}
+        />
+        <Tab.Screen
+          name="MoreTab"
+          component={MoreScreen}
+        />
+      </Tab.Navigator>
+      <AppTourOverlay />
+    </View>
   );
 }
 

@@ -19,6 +19,7 @@ import { Expense, ExpenseCategory, EXPENSE_CATEGORIES } from '../types/order';
 import { getExpenses, deleteExpense } from '../storage/expenseStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import EmptyState from '../components/EmptyState';
+import TourTarget from '../components/tour/TourTarget';
 import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow, categoryColor } from '../theme/theme';
 import { confirmAction } from '../utils/dialog';
@@ -176,67 +177,69 @@ export default function ExpensesScreen() {
           </View>
         </View>
 
-        {/* Outflow Hero Summary Card */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryTop}>
-            <Text style={styles.summaryLabel}>
-              {selectedCategory === 'All' ? t('expenses.totalExpenses') : selectedCategory}
-            </Text>
-            <Text style={styles.summaryCount}>{filteredExpenses.length}</Text>
+        {/* Outflow Hero Summary Card & Category Pills */}
+        <TourTarget targetKey="expenses-overview">
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryTop}>
+              <Text style={styles.summaryLabel}>
+                {selectedCategory === 'All' ? t('expenses.totalExpenses') : selectedCategory}
+              </Text>
+              <Text style={styles.summaryCount}>{filteredExpenses.length}</Text>
+            </View>
+            <Text style={styles.summaryAmount}>{formatCurrency(totalOutflow)}</Text>
           </View>
-          <Text style={styles.summaryAmount}>{formatCurrency(totalOutflow)}</Text>
-        </View>
 
-        {/* Search Input */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t('expenses.searchPlaceholder')}
-            placeholderTextColor={colors.inkSoft}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery('')} style={{ padding: 2 }}>
-              <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
-            </Pressable>
-          )}
-        </View>
+          {/* Search Input */}
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('expenses.searchPlaceholder')}
+              placeholderTextColor={colors.inkSoft}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} style={{ padding: 2 }}>
+                <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
+              </Pressable>
+            )}
+          </View>
 
-        {/* Category Pills Slider */}
-        <View style={styles.pillsWrapper}>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={['All', ...EXPENSE_CATEGORIES]}
-            keyExtractor={(item) => item}
-            contentContainerStyle={styles.pillsList}
-            renderItem={({ item }) => {
-              const isSelected = selectedCategory === item;
-              const catAmt = item !== 'All' ? categoryTotals[item] : null;
-              const label = item === 'All' ? t('common.all') : item;
-              return (
-                <Pressable
-                  style={[
-                    styles.pill,
-                    isSelected && styles.pillActive,
-                    item !== 'All' && isSelected && {
-                      backgroundColor: categoryColor[item as ExpenseCategory] || colors.duskDeep,
-                      borderColor: categoryColor[item as ExpenseCategory] || colors.duskDeep,
-                    },
-                  ]}
-                  onPress={() => setSelectedCategory(item as ExpenseCategory | 'All')}
-                >
-                  <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
-                    {label}
-                    {catAmt ? ` (${formatCurrency(catAmt)})` : ''}
-                  </Text>
-                </Pressable>
-              );
-            }}
-          />
-        </View>
+          {/* Category Pills Slider */}
+          <View style={styles.pillsWrapper}>
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={['All', ...EXPENSE_CATEGORIES]}
+              keyExtractor={(item) => item}
+              contentContainerStyle={styles.pillsList}
+              renderItem={({ item }) => {
+                const isSelected = selectedCategory === item;
+                const catAmt = item !== 'All' ? categoryTotals[item] : null;
+                const label = item === 'All' ? t('common.all') : item;
+                return (
+                  <Pressable
+                    style={[
+                      styles.pill,
+                      isSelected && styles.pillActive,
+                      item !== 'All' && isSelected && {
+                        backgroundColor: categoryColor[item as ExpenseCategory] || colors.duskDeep,
+                        borderColor: categoryColor[item as ExpenseCategory] || colors.duskDeep,
+                      },
+                    ]}
+                    onPress={() => setSelectedCategory(item as ExpenseCategory | 'All')}
+                  >
+                    <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
+                      {label}
+                      {catAmt ? ` (${formatCurrency(catAmt)})` : ''}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+            />
+          </View>
+        </TourTarget>
 
         {/* Expenses List */}
         <FlatList

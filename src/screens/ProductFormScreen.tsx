@@ -21,6 +21,7 @@ import { getBusinessProfile } from '../storage/businessProfileStorage';
 import { getBusinessPreset } from '../config/businessTypes';
 import { useLanguage } from '../i18n/LanguageContext';
 import { confirmAction } from '../utils/dialog';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 import GlassBackButton from '../components/GlassBackButton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -77,16 +78,10 @@ export default function ProductFormScreen({ navigation, route }: Props) {
         if (!isPro) {
           const products = await getProducts();
           if (products.length >= 20) {
-            confirmAction({
-              title: '🔒 Product Limit Reached',
-              message: 'You have reached your Free plan limit (20/20 products). Upgrade to Pro to add unlimited catalog products!',
-              confirmText: 'Upgrade to Pro',
-              cancelText: 'Cancel',
-              onConfirm: () => {
-                navigation.goBack();
-                (navigation as any).navigate('PaywallScreen');
-              },
-              onCancel: () => navigation.goBack(),
+            assertSubscriptionLimit({
+              type: 'product',
+              actionName: 'add new products',
+              navigation,
             });
           }
         }
@@ -106,23 +101,13 @@ export default function ProductFormScreen({ navigation, route }: Props) {
     }
 
     if (!isEditing) {
-      try {
-        const isPro = await checkProStatus();
-        if (!isPro) {
-          const prods = await getProducts();
-          if (prods.length >= 20) {
-            confirmAction({
-              title: '🔒 Product Limit Reached',
-              message: 'You have reached your Free plan limit (20/20 products). Upgrade to Pro to add unlimited products!',
-              confirmText: 'Upgrade to Pro',
-              cancelText: 'Cancel',
-              onConfirm: () => (navigation as any).navigate('PaywallScreen'),
-            });
-            return;
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to check product limit on save', e);
+      const allowed = await assertSubscriptionLimit({
+        type: 'product',
+        actionName: 'save this new product',
+        navigation,
+      });
+      if (!allowed) {
+        return;
       }
     }
 

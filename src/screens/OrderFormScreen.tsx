@@ -27,6 +27,7 @@ import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage
 import { getBusinessPreset } from '../config/businessTypes';
 import { useLanguage } from '../i18n/LanguageContext';
 import { confirmAction } from '../utils/dialog';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 import GlassBackButton from '../components/GlassBackButton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -117,39 +118,18 @@ export default function OrderFormScreen({ navigation, route }: Props) {
 
         const isBasic = await checkBasicStatus();
         const orders = await getOrders();
+        const limit = isBasic ? 150 : 10;
 
-        if (isBasic) {
-          if (orders.length >= 150) {
-            confirmAction({
-              title: '🔒 Order Limit Reached',
-              message: 'You have reached the limit of 150 orders on the Basic plan. Upgrade to Pro for unlimited orders!',
-              confirmText: 'Upgrade to Pro',
-              cancelText: 'Cancel',
-              onConfirm: () => {
-                navigation.goBack();
-                (navigation as any).navigate('PaywallScreen');
-              },
-              onCancel: () => navigation.goBack(),
-            });
-          } else if (orders.length >= 120) {
-            setUpgradeNudge(`You've used ${orders.length} of 150 orders on Basic. Upgrade to Pro for unlimited orders.`);
-          }
-        } else {
-          if (orders.length >= 10) {
-            confirmAction({
-              title: '🔒 Order Limit Reached',
-              message: 'You have reached your Free plan limit (10/10 orders). Upgrade to Pro for unlimited orders, invoices, and reports!',
-              confirmText: 'Upgrade to Pro',
-              cancelText: 'Cancel',
-              onConfirm: () => {
-                navigation.goBack();
-                (navigation as any).navigate('PaywallScreen');
-              },
-              onCancel: () => navigation.goBack(),
-            });
-          } else if (orders.length >= 7) {
-            setUpgradeNudge(`⚠️ Only ${10 - orders.length} free orders left (${orders.length}/10 used)! Upgrade to Pro.`);
-          }
+        if (orders.length >= limit) {
+          assertSubscriptionLimit({
+            type: 'order',
+            actionName: 'create new orders',
+            navigation,
+          });
+        } else if (orders.length >= (isBasic ? 120 : 7)) {
+          setUpgradeNudge(
+            `⚠️ Only ${Math.max(0, limit - orders.length)} free orders left (${orders.length}/${limit} used)! Upgrade to Pro.`
+          );
         }
       })();
     }
@@ -258,35 +238,14 @@ export default function OrderFormScreen({ navigation, route }: Props) {
 
     // Verify limit before saving a new order
     if (!isEditing) {
-      try {
-        const isPro = await checkProStatus();
-        if (!isPro) {
-          const isBasic = await checkBasicStatus();
-          const currentOrders = await getOrders();
-          if (isBasic && currentOrders.length >= 150) {
-            setSaving(false);
-            confirmAction({
-              title: '🔒 Order Limit Reached',
-              message: 'You have reached the limit of 150 orders on the Basic plan. Upgrade to Pro for unlimited orders!',
-              confirmText: 'Upgrade to Pro',
-              cancelText: 'Cancel',
-              onConfirm: () => (navigation as any).navigate('PaywallScreen'),
-            });
-            return;
-          } else if (!isBasic && currentOrders.length >= 10) {
-            setSaving(false);
-            confirmAction({
-              title: '🔒 Order Limit Reached',
-              message: 'You have used all 10 free orders on the Free plan. Upgrade to Pro for unlimited orders!',
-              confirmText: 'Upgrade to Pro',
-              cancelText: 'Cancel',
-              onConfirm: () => (navigation as any).navigate('PaywallScreen'),
-            });
-            return;
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to verify subscription on save', e);
+      const allowed = await assertSubscriptionLimit({
+        type: 'order',
+        actionName: 'save this new order',
+        navigation,
+      });
+      if (!allowed) {
+        setSaving(false);
+        return;
       }
     }
 

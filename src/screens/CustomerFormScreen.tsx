@@ -18,6 +18,7 @@ import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage
 import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { confirmAction } from '../utils/dialog';
+import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 import GlassBackButton from '../components/GlassBackButton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -60,39 +61,16 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
 
         const isBasic = await checkBasicStatus();
         const customers = await getCustomers();
+        const limit = isBasic ? 60 : 10;
 
-        if (isBasic) {
-          if (customers.length >= 60) {
-            confirmAction({
-              title: '🔒 Customer Limit Reached',
-              message: 'You can only add up to 60 customers on the Basic plan. Upgrade to Pro for unlimited customers.',
-              confirmText: 'Upgrade to Pro',
-              cancelText: 'Cancel',
-              onConfirm: () => {
-                navigation.goBack();
-                (navigation as any).navigate('PaywallScreen');
-              },
-              onCancel: () => navigation.goBack(),
-            });
-          } else if (customers.length >= 45) {
-            setUpgradeNudge(`You've added ${customers.length} of 60 customers on Basic. Upgrade to Pro for unlimited.`);
-          }
-        } else {
-          if (customers.length >= 10) {
-            confirmAction({
-              title: '🔒 Customer Limit Reached',
-              message: 'You have reached your Free plan limit (10/10 customers). Upgrade to Pro for unlimited customer contacts!',
-              confirmText: 'Upgrade to Pro',
-              cancelText: 'Cancel',
-              onConfirm: () => {
-                navigation.goBack();
-                (navigation as any).navigate('PaywallScreen');
-              },
-              onCancel: () => navigation.goBack(),
-            });
-          } else if (customers.length >= 7) {
-            setUpgradeNudge(`⚠️ You've added ${customers.length} of 10 free customers. Upgrade to Pro for unlimited.`);
-          }
+        if (customers.length >= limit) {
+          assertSubscriptionLimit({
+            type: 'customer',
+            actionName: 'add new customers',
+            navigation,
+          });
+        } else if (customers.length >= (isBasic ? 45 : 7)) {
+          setUpgradeNudge(`⚠️ You've added ${customers.length} of ${limit} free customers. Upgrade to Pro for unlimited.`);
         }
       })();
     }
@@ -105,33 +83,13 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
     }
 
     if (!isEditing) {
-      try {
-        const isPro = await checkProStatus();
-        if (!isPro) {
-          const isBasic = await checkBasicStatus();
-          const currentCustomers = await getCustomers();
-          if (isBasic && currentCustomers.length >= 60) {
-            confirmAction({
-              title: '🔒 Customer Limit Reached',
-              message: 'You can only add up to 60 customers on the Basic plan. Upgrade to Pro for unlimited customers.',
-              confirmText: 'Upgrade to Pro',
-              cancelText: 'Cancel',
-              onConfirm: () => (navigation as any).navigate('PaywallScreen'),
-            });
-            return;
-          } else if (!isBasic && currentCustomers.length >= 10) {
-            confirmAction({
-              title: '🔒 Customer Limit Reached',
-              message: 'You have added 10 customers on the Free plan. Upgrade to Pro for unlimited customer contacts!',
-              confirmText: 'Upgrade to Pro',
-              cancelText: 'Cancel',
-              onConfirm: () => (navigation as any).navigate('PaywallScreen'),
-            });
-            return;
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to check customer limits on save', e);
+      const allowed = await assertSubscriptionLimit({
+        type: 'customer',
+        actionName: 'save this new customer',
+        navigation,
+      });
+      if (!allowed) {
+        return;
       }
     }
 

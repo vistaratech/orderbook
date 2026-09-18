@@ -57,6 +57,8 @@ import { initRevenueCat } from './src/storage/subscriptionStorage';
 import { colors, fonts } from './src/theme/theme';
 import { LanguageProvider } from './src/i18n/LanguageContext';
 import { TourProvider } from './src/context/TourContext';
+import { SubscriptionModalProvider } from './src/context/SubscriptionModalContext';
+import { navigationRef } from './src/navigation/navigationRef';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -222,149 +224,151 @@ export default function App() {
     <SafeAreaProvider style={{ flex: 1, backgroundColor: colors.paper }}>
       <LanguageProvider>
         <TourProvider>
-          <View style={[{ flex: 1, backgroundColor: colors.paper }, isWeb ? styles.webOuterContainer : styles.mobileContainer]}>
-          <View style={[{ flex: 1, backgroundColor: colors.paper }, isWeb ? styles.webInnerFrame : styles.mobileContainer]}>
-            <NavigationContainer theme={navTheme}>
-              <StatusBar style="dark" />
-              <Stack.Navigator
-                initialRouteName={initialRoute}
-                screenOptions={{
-                  headerStyle: { backgroundColor: colors.paper },
-                  headerTitleStyle: { fontFamily: fonts.bodyBold, color: colors.ink },
-                  headerShadowVisible: false,
-                  headerTintColor: colors.clayDeep,
-                  contentStyle: { backgroundColor: colors.paper },
-                  animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
-                  gestureEnabled: true,
-                  fullScreenGestureEnabled: true,
-                  headerLeft: (props) =>
-                    props.canGoBack ? <GlassBackButton label="Back" /> : null,
-                }}
-              >
-                <Stack.Screen
-                  name="OnboardingWizard"
-                  component={OnboardingWizardScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="Login"
-                  component={LoginScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="Register"
-                  component={RegisterScreen}
-                  options={{ title: 'Create Account' }}
-                />
-                <Stack.Screen
-                  name="MainTabs"
-                  component={TabNavigator}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="OrderList"
-                  component={OrderListScreen}
-                  options={{ title: 'All Orders' }}
-                />
-                <Stack.Screen
-                  name="OrderForm"
-                  component={OrderFormScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="OrderDetail"
-                  component={OrderDetailScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="ExpenseForm"
-                  component={ExpenseFormScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="CustomerList"
-                  component={CustomerListScreen}
-                  options={{ title: 'Customers' }}
-                />
-                <Stack.Screen
-                  name="CustomerDetail"
-                  component={CustomerDetailScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="CustomerForm"
-                  component={CustomerFormScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="ProductList"
-                  component={ProductListScreen}
-                  options={{ title: 'Product Catalog' }}
-                />
-                <Stack.Screen
-                  name="ProductForm"
-                  component={ProductFormScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="Settings"
-                  component={SettingsScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="BusinessProfile"
-                  component={BusinessProfileScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="History"
-                  component={HistoryScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="ResetPassword"
-                  component={ResetPasswordScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="PurchaseList"
-                  component={PurchaseListScreen}
-                  options={{ title: 'Purchases' }}
-                />
-                <Stack.Screen
-                  name="PurchaseForm"
-                  component={PurchaseFormScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="EstimateList"
-                  component={EstimateListScreen}
-                  options={{ title: 'Estimates' }}
-                />
-                <Stack.Screen
-                  name="EstimateForm"
-                  component={EstimateFormScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="EstimateDetail"
-                  component={EstimateDetailScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="InvoiceTemplateCustomizer"
-                  component={InvoiceTemplateCustomizerScreen}
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="PaywallScreen"
-                  component={PaywallScreen}
-                  options={{ headerShown: false, presentation: 'modal' }}
-                />
-              </Stack.Navigator>
-            </NavigationContainer>
+          <SubscriptionModalProvider>
+            <View style={[{ flex: 1, backgroundColor: colors.paper }, isWeb ? styles.webOuterContainer : styles.mobileContainer]}>
+            <View style={[{ flex: 1, backgroundColor: colors.paper }, isWeb ? styles.webInnerFrame : styles.mobileContainer]}>
+              <NavigationContainer ref={navigationRef} theme={navTheme}>
+                <StatusBar style="dark" />
+                <Stack.Navigator
+                  initialRouteName={initialRoute}
+                  screenOptions={{
+                    headerStyle: { backgroundColor: colors.paper },
+                    headerTitleStyle: { fontFamily: fonts.bodyBold, color: colors.ink },
+                    headerShadowVisible: false,
+                    headerTintColor: colors.clayDeep,
+                    contentStyle: { backgroundColor: colors.paper },
+                    animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
+                    gestureEnabled: true,
+                    fullScreenGestureEnabled: true,
+                    headerLeft: (props) =>
+                      props.canGoBack ? <GlassBackButton label="Back" /> : null,
+                  }}
+                >
+                  <Stack.Screen
+                    name="OnboardingWizard"
+                    component={OnboardingWizardScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="Login"
+                    component={LoginScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="Register"
+                    component={RegisterScreen}
+                    options={{ title: 'Create Account' }}
+                  />
+                  <Stack.Screen
+                    name="MainTabs"
+                    component={TabNavigator}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="OrderList"
+                    component={OrderListScreen}
+                    options={{ title: 'All Orders' }}
+                  />
+                  <Stack.Screen
+                    name="OrderForm"
+                    component={OrderFormScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="OrderDetail"
+                    component={OrderDetailScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="ExpenseForm"
+                    component={ExpenseFormScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="CustomerList"
+                    component={CustomerListScreen}
+                    options={{ title: 'Customers' }}
+                  />
+                  <Stack.Screen
+                    name="CustomerDetail"
+                    component={CustomerDetailScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="CustomerForm"
+                    component={CustomerFormScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="ProductList"
+                    component={ProductListScreen}
+                    options={{ title: 'Product Catalog' }}
+                  />
+                  <Stack.Screen
+                    name="ProductForm"
+                    component={ProductFormScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="Settings"
+                    component={SettingsScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="BusinessProfile"
+                    component={BusinessProfileScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="History"
+                    component={HistoryScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="ResetPassword"
+                    component={ResetPasswordScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="PurchaseList"
+                    component={PurchaseListScreen}
+                    options={{ title: 'Purchases' }}
+                  />
+                  <Stack.Screen
+                    name="PurchaseForm"
+                    component={PurchaseFormScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="EstimateList"
+                    component={EstimateListScreen}
+                    options={{ title: 'Estimates' }}
+                  />
+                  <Stack.Screen
+                    name="EstimateForm"
+                    component={EstimateFormScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="EstimateDetail"
+                    component={EstimateDetailScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="InvoiceTemplateCustomizer"
+                    component={InvoiceTemplateCustomizerScreen}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="PaywallScreen"
+                    component={PaywallScreen}
+                    options={{ headerShown: false, presentation: 'modal' }}
+                  />
+                </Stack.Navigator>
+              </NavigationContainer>
+            </View>
           </View>
-        </View>
+          </SubscriptionModalProvider>
         </TourProvider>
       </LanguageProvider>
     </SafeAreaProvider>

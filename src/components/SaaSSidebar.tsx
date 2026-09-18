@@ -7,6 +7,7 @@ import {
   ScrollView,
   Platform,
   useWindowDimensions,
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -18,6 +19,8 @@ import { colors, fonts, radius, shadow } from '../theme/theme';
 import AppLogo from './AppLogo';
 import { getAuthState, logout, UserAccount } from '../storage/authStorage';
 import { getBusinessProfile, BusinessProfile } from '../storage/businessProfileStorage';
+import { getOrders } from '../storage/orderStorage';
+import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import { useLanguage } from '../i18n/LanguageContext';
 import { useTour } from '../context/TourContext';
@@ -202,6 +205,34 @@ export default function SaaSSidebar({
     },
   ];
 
+  const handleQuickNewOrder = async () => {
+    try {
+      const isPro = await checkProStatus();
+      if (!isPro) {
+        const isBasic = await checkBasicStatus();
+        const orders = await getOrders();
+        const limit = isBasic ? 150 : 10;
+        if (orders.length >= limit) {
+          Alert.alert(
+            'Order Limit Reached',
+            `You have used all ${limit} orders on the ${isBasic ? 'Basic' : 'Free'} plan. Upgrade to Pro for unlimited orders!`,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Upgrade to Pro',
+                onPress: () => navigation.navigate('PaywallScreen' as any),
+              },
+            ]
+          );
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to verify subscription', e);
+    }
+    navigation.navigate('OrderForm');
+  };
+
   return (
     <View style={[styles.sidebar, isCollapsed && styles.sidebarCollapsed]}>
       {/* ─── Header & Brand ─── */}
@@ -242,7 +273,7 @@ export default function SaaSSidebar({
             isCollapsed && styles.quickOrderBtnCollapsed,
             pressed && { opacity: 0.85 },
           ]}
-          onPress={() => navigation.navigate('OrderForm')}
+          onPress={handleQuickNewOrder}
           // @ts-ignore
           title="New Order"
         >

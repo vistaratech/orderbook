@@ -24,6 +24,7 @@ import { RootStackParamList } from '../navigation/types';
 import { Order, PaymentEntry, orderTotal, orderBalance } from '../types/order';
 import {
   getOrder,
+  getOrders,
   deleteOrder,
   setOrderStatus,
   saveOrder,
@@ -33,7 +34,7 @@ import { getAuthState, UserAccount } from '../storage/authStorage';
 import { getBusinessProfile, BusinessProfile } from '../storage/businessProfileStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
-import { checkProStatus } from '../storage/subscriptionStorage';
+import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
 import { confirmAction } from '../utils/dialog';
 import { formatCurrency, formatDate, formatDateTime, todayIso } from '../utils/format';
 import {
@@ -196,9 +197,50 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
     });
   };
 
+  const checkOrderModificationAllowed = async (actionName: string): Promise<boolean> => {
+    try {
+      const isPro = await checkProStatus();
+      if (isPro) return true;
+      const isBasic = await checkBasicStatus();
+      const allOrders = await getOrders();
+      const limit = isBasic ? 150 : 10;
+      if (allOrders.length >= limit) {
+        Alert.alert(
+          'Upgrade to Pro Required',
+          `You have reached your ${isBasic ? 'Basic' : 'Free'} plan limit (${allOrders.length}/${limit} orders). Upgrade to Pro to ${actionName} and manage all orders without limits!`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Upgrade to Pro',
+              onPress: () => (navigation as any).navigate('PaywallScreen'),
+            },
+          ]
+        );
+        return false;
+      }
+    } catch (e) {
+      console.warn('Failed to verify quota', e);
+    }
+    return true;
+  };
+
   const handleStatusChange = async (status: Order['status']) => {
+    const allowed = await checkOrderModificationAllowed('update fulfillment status');
+    if (!allowed) return;
     setOrder({ ...order, status });
     await setOrderStatus(order.id, status);
+  };
+
+  const handleOpenPaymentModal = async () => {
+    const allowed = await checkOrderModificationAllowed('record payments');
+    if (!allowed) return;
+    setShowPaymentModal(true);
+  };
+
+  const handleEditOrder = async () => {
+    const allowed = await checkOrderModificationAllowed('edit this order');
+    if (!allowed) return;
+    navigation.navigate('OrderForm', { orderId: order.id });
   };
 
   const handleRecordPayment = async () => {
@@ -589,7 +631,7 @@ Thank you for your business!`;
         {balance > 0 && (
           <Pressable
             style={({ pressed }) => [styles.recordPayBtn, pressed && { opacity: 0.85 }]}
-            onPress={() => setShowPaymentModal(true)}
+            onPress={handleOpenPaymentModal}
           >
             <Ionicons name="cash-outline" size={18} color={colors.white} />
             <Text style={styles.recordPayBtnText}>+ {t('orders.markPaid')}</Text>
@@ -633,7 +675,7 @@ Thank you for your business!`;
       <View style={styles.actionsRow}>
         <Pressable
           style={({ pressed }) => [styles.actionBtn, styles.editBtn, pressed && { opacity: 0.85 }]}
-          onPress={() => navigation.navigate('OrderForm', { orderId: order.id })}
+          onPress={handleEditOrder}
         >
           <Ionicons name="pencil" size={16} color={colors.white} />
           <Text style={styles.actionBtnText}>{t('common.edit')}</Text>

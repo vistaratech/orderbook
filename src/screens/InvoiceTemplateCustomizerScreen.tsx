@@ -6,7 +6,6 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  Switch,
   ActivityIndicator,
   Platform,
   useWindowDimensions,
@@ -19,7 +18,6 @@ import {
   InvoiceTemplateConfig,
   InvoiceTemplateId,
   PaperSize,
-  LogoSize,
   DEFAULT_INVOICE_TEMPLATE_CONFIG,
   INVOICE_THEME_PRESETS,
 } from '../types/invoiceTemplate';
@@ -44,7 +42,7 @@ import { showAppAlert, confirmAction } from '../utils/dialog';
 import { triggerGlobalSubscriptionModal } from '../context/SubscriptionModalContext';
 import FadeInView from '../components/FadeInView';
 
-// Standard Indian Sample Order for Live Realistic Invoicing
+// Sample Order Data for Direct Live Preview
 const SAMPLE_ORDER: Order = {
   id: 'sample_ord_1',
   orderNumber: 'INV-2026-0042',
@@ -54,7 +52,7 @@ const SAMPLE_ORDER: Order = {
   items: [
     {
       id: 'itm_1',
-      name: 'Organic Traditional Rice (பொன்னி அரிசி)',
+      name: 'Organic Traditional Rice',
       qty: 5,
       unit: 'kg',
       price: 120,
@@ -63,7 +61,7 @@ const SAMPLE_ORDER: Order = {
     },
     {
       id: 'itm_2',
-      name: 'Cold Pressed Sesame Oil (நல்லெண்ணெய்)',
+      name: 'Cold Pressed Sesame Oil',
       qty: 2,
       unit: 'L',
       price: 340,
@@ -72,7 +70,7 @@ const SAMPLE_ORDER: Order = {
     },
     {
       id: 'itm_3',
-      name: 'Natural Palm Jaggery (பனங்கருப்பட்டி)',
+      name: 'Natural Palm Jaggery',
       qty: 1,
       unit: 'kg',
       price: 220,
@@ -90,31 +88,27 @@ const SAMPLE_ORDER: Order = {
   updatedAt: new Date().toISOString(),
 };
 
-type StudioTab = 'header' | 'title' | 'columns' | 'payments' | 'terms' | 'theme';
-
 export default function InvoiceTemplateCustomizerScreen() {
   const navigation = useNavigation();
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
   const hasParentSidebar = useContext(DesktopSidebarContext);
 
   const [config, setConfig] = useState<InvoiceTemplateConfig>(DEFAULT_INVOICE_TEMPLATE_CONFIG);
   const [bizProfile, setBizProfile] = useState<BusinessProfile>({
-    businessName: 'SRI MURUGAN TRADERS',
+    businessName: 'KadaiBook Store',
     phone: '9876543210',
-    email: 'contact@srimurugantraders.in',
-    address: '124, West Masi Street, Madurai - 625001, Tamil Nadu',
-    gstin: '33AABCS1234F1Z5',
-    tagline: 'Wholesale & Retail Commercial Merchants',
-    upiId: 'srimurugan@upi',
-    bankDetails: 'State Bank of India\nA/C: 9876543210123\nIFSC: SBIN0001234\nBranch: Madurai Main',
+    email: 'contact@store.in',
+    address: '124, Market Road, Near Clock Tower, City - 600001',
+    gstin: '33AABCK1234F1Z5',
+    tagline: 'Wholesale & Retail General Merchants',
+    upiId: 'store@upi',
+    bankDetails: 'State Bank of India\nA/C: 9876543210123\nIFSC: SBIN0001234\nBranch: Main Branch',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<StudioTab>('header');
-  const [mobileMode, setMobileMode] = useState<'editor' | 'preview'>('editor');
 
   useEffect(() => {
     loadData();
@@ -200,7 +194,7 @@ export default function InvoiceTemplateCustomizerScreen() {
   const handleReset = () => {
     confirmAction({
       title: 'Reset to Defaults?',
-      message: 'Restore original standard Indian bill template settings?',
+      message: 'Restore original standard bill template settings?',
       confirmText: 'Reset',
       destructive: true,
       onConfirm: async () => {
@@ -222,7 +216,7 @@ export default function InvoiceTemplateCustomizerScreen() {
         <SafeAreaView style={styles.screen} edges={['top']}>
           <View style={styles.loadingWrap}>
             <ActivityIndicator size="large" color={colors.clayDeep} />
-            <Text style={styles.loadingText}>Loading Indian Bill Studio…</Text>
+            <Text style={styles.loadingText}>Loading Bill Studio…</Text>
           </View>
         </SafeAreaView>
       </DesktopLayout>
@@ -239,45 +233,58 @@ export default function InvoiceTemplateCustomizerScreen() {
   const advancePaid = 500;
   const balanceDue = grandTotal - advancePaid;
 
-  const tabs: { id: StudioTab; label: string; subLabel: string; icon: any }[] = [
-    { id: 'header', label: '1. Store & Header', subLabel: 'கடை விபரம் & லோகோ', icon: 'storefront-outline' },
-    { id: 'title', label: '2. Bill Title & Series', subLabel: 'பில் வகை & எண்', icon: 'document-text-outline' },
-    { id: 'columns', label: '3. Items & Columns', subLabel: 'அட்டவணை காலம்கள்', icon: 'grid-outline' },
-    { id: 'payments', label: '4. Bank & UPI QR', subLabel: 'வங்கி & QR குறியீடு', icon: 'qr-code-outline' },
-    { id: 'terms', label: '5. Terms & Sign', subLabel: 'விதிகள் & கையொப்பம்', icon: 'shield-checkmark-outline' },
-    { id: 'theme', label: '6. Colors & Paper', subLabel: 'நிறம் & பிரிண்ட் அளவு', icon: 'color-palette-outline' },
+  const presetsList: { id: InvoiceTemplateId; label: string; color: string }[] = [
+    { id: 'modern_slate', label: 'Modern Slate', color: '#0F172A' },
+    { id: 'terracotta', label: 'Warm Terracotta', color: '#C25D2C' },
+    { id: 'gst_tax_invoice', label: 'GST Tax Invoice', color: '#1E3A8A' },
+    { id: 'emerald', label: 'Forest Emerald', color: '#065F46' },
+    { id: 'sapphire', label: 'Royal Sapphire', color: '#1D4ED8' },
+    { id: 'ruby', label: 'Crimson Ruby', color: '#991B1B' },
+    { id: 'classic', label: 'Classic Monochrome', color: '#334155' },
+    { id: 'thermal_pos', label: 'POS Thermal (80mm)', color: '#18181B' },
   ];
 
   return (
     <DesktopLayout currentTabName="InvoiceTemplateCustomizer">
       <SafeAreaView style={styles.screen} edges={['top']}>
-        {/* ─── Top Studio App Bar ─── */}
+        {/* ─── Top Main Header Bar ─── */}
         <View style={styles.headerBar}>
           <GlassBackButton
             label={t('common.back', 'Back')}
             onPress={hasParentSidebar ? () => (navigation as any).navigate('MainTabs', { screen: 'DashboardTab' }) : undefined}
           />
           <View style={styles.headerTitleWrap}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={styles.headerTitle} numberOfLines={1}>
-                {language === 'ta' ? 'வணிக பில் & இன்வாய்ஸ் ஸ்டுடியோ' : 'Universal Bill & Invoice Studio'}
+                {t('settings.invoiceTemplate', 'Bill & Invoice Studio')}
               </Text>
-              <View style={styles.countryBadge}>
-                <Text style={styles.countryBadgeText}>🇮🇳 Indian Standard GST & Retail</Text>
+              <View style={styles.directEditBadge}>
+                <Ionicons name="create-outline" size={12} color="#0284C7" />
+                <Text style={styles.directEditBadgeText}>Direct On-Bill Editing</Text>
               </View>
             </View>
             <Text style={styles.headerSubtitle} numberOfLines={1}>
-              {language === 'ta' ? 'இங்கு சேமிக்கும் மாற்றங்கள் அனைத்து ஆர்டர் பில்கள் மற்றும் PDF பிரிண்டுகளிலும் உடனடியாக பிரதிபலிக்கும்' : 'Saved customizations automatically apply to all order invoices, PDF downloads & WhatsApp shares'}
+              Edit text, toggle columns, and customize your invoice directly on the bill canvas below
             </Text>
           </View>
 
           <View style={styles.headerActions}>
             <Pressable
+              style={({ pressed }) => [styles.resetActionBtn, pressed && { opacity: 0.7 }]}
+              onPress={handleReset}
+              // @ts-ignore
+              title="Reset Settings"
+            >
+              <Ionicons name="refresh" size={15} color={colors.inkSoft} />
+              <Text style={styles.resetActionBtnText}>Reset</Text>
+            </Pressable>
+
+            <Pressable
               style={({ pressed }) => [styles.testPrintBtn, pressed && { opacity: 0.8 }]}
               onPress={handleTestPrint}
             >
               <Ionicons name="print-outline" size={15} color={colors.ink} />
-              <Text style={styles.testPrintBtnText}>PDF Print</Text>
+              <Text style={styles.testPrintBtnText}>Test PDF Print</Text>
             </Pressable>
 
             <Pressable
@@ -307,824 +314,607 @@ export default function InvoiceTemplateCustomizerScreen() {
           </View>
         </View>
 
-        {/* ─── Mobile View Toggle (Editor vs Live Bill) ─── */}
-        {!isDesktop && (
-          <View style={styles.mobileModeBar}>
-            <Pressable
-              style={[styles.mobileModeTab, mobileMode === 'editor' && styles.mobileModeTabActive]}
-              onPress={() => setMobileMode('editor')}
-            >
-              <Ionicons
-                name="options-outline"
-                size={16}
-                color={mobileMode === 'editor' ? colors.clayDeep : colors.inkSoft}
-              />
-              <Text
-                style={[
-                  styles.mobileModeTabText,
-                  mobileMode === 'editor' && styles.mobileModeTabTextActive,
-                ]}
-              >
-                ⚙️ Configure Settings ({activeTab})
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.mobileModeTab, mobileMode === 'preview' && styles.mobileModeTabActive]}
-              onPress={() => setMobileMode('preview')}
-            >
-              <Ionicons
-                name="document-text"
-                size={16}
-                color={mobileMode === 'preview' ? colors.clayDeep : colors.inkSoft}
-              />
-              <Text
-                style={[
-                  styles.mobileModeTabText,
-                  mobileMode === 'preview' && styles.mobileModeTabTextActive,
-                ]}
-              >
-                📄 Live Indian Bill Preview
-              </Text>
-            </Pressable>
-          </View>
-        )}
-
-        {/* ─── Quick Presets Bar (GST, Retail, Thermal, Modern) ─── */}
-        <View style={styles.presetsToolbar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetsScroll}>
-            <Text style={styles.presetToolbarLabel}>Standard Layouts:</Text>
-            {[
-              { id: 'gst_tax_invoice', label: '🏛️ GST Tax Invoice', sub: 'வரி பில் (B2B/B2C)' },
-              { id: 'terracotta', label: '🧾 Retail Cash Bill', sub: 'கடை ரொக்க பில்' },
-              { id: 'thermal_pos', label: '🖨️ Thermal POS Slip', sub: '80mm தெர்மல் பில்' },
-              { id: 'modern_slate', label: '📜 Modern Executive', sub: 'நவீன இன்வாய்ஸ்' },
-              { id: 'classic', label: '🏛️ Classic Bordered', sub: 'பாரம்பரிய பில்' },
-              { id: 'emerald', label: '🌲 Forest Emerald', sub: 'பச்சை தீம்' },
-            ].map((p) => {
-              const isSelected = config.templateId === p.id;
+        {/* ─── Top Theme & Paper Style Switcher Ribbon ─── */}
+        <View style={styles.paletteRibbon}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.paletteScroll}>
+            <Text style={styles.paletteGroupLabel}>Theme:</Text>
+            {presetsList.map((preset) => {
+              const isSelected = config.templateId === preset.id;
               return (
                 <Pressable
-                  key={p.id}
+                  key={preset.id}
                   style={[
-                    styles.presetPill,
-                    isSelected && styles.presetPillActive,
+                    styles.themeChip,
+                    isSelected && styles.themeChipActive,
+                    { borderColor: isSelected ? preset.color : '#CBD5E1' },
                   ]}
-                  onPress={() => handleApplyPreset(p.id as InvoiceTemplateId)}
+                  onPress={() => handleApplyPreset(preset.id)}
                 >
-                  <Text style={[styles.presetPillTitle, isSelected && styles.presetPillTitleActive]}>
-                    {p.label}
-                  </Text>
-                  <Text style={[styles.presetPillSub, isSelected && styles.presetPillSubActive]}>
-                    {p.sub}
+                  <View style={[styles.themeDot, { backgroundColor: preset.color }]} />
+                  <Text style={[styles.themeChipText, isSelected && { fontFamily: fonts.bodyBold, color: colors.ink }]}>
+                    {preset.label}
                   </Text>
                 </Pressable>
               );
             })}
+
+            <View style={styles.ribbonDivider} />
+
+            <Text style={styles.paletteGroupLabel}>Paper Size:</Text>
+            {[
+              { id: 'a4', label: 'A4' },
+              { id: 'a5', label: 'A5' },
+              { id: 'thermal_80mm', label: '80mm POS' },
+              { id: 'thermal_58mm', label: '58mm' },
+            ].map((p) => {
+              const isSelected = config.paperSize === p.id;
+              return (
+                <Pressable
+                  key={p.id}
+                  style={[styles.paperChip, isSelected && styles.paperChipActive]}
+                  onPress={() => setConfig((prev) => ({ ...prev, paperSize: p.id as PaperSize }))}
+                >
+                  <Text style={[styles.paperChipText, isSelected && styles.paperChipTextActive]}>
+                    {p.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+
+            <View style={styles.ribbonDivider} />
+
+            <Pressable
+              style={[styles.compactTogglePill, config.compactMode && styles.compactTogglePillActive]}
+              onPress={() => setConfig((p) => ({ ...p, compactMode: !p.compactMode }))}
+            >
+              <Ionicons
+                name={config.compactMode ? 'contract' : 'expand'}
+                size={13}
+                color={config.compactMode ? colors.white : colors.inkSoft}
+              />
+              <Text style={[styles.compactToggleText, config.compactMode && styles.compactToggleTextActive]}>
+                {config.compactMode ? 'Compact Margins: ON' : 'Compact Margins: OFF'}
+              </Text>
+            </Pressable>
           </ScrollView>
         </View>
 
-        {/* ─── Main Two-Column Layout ─── */}
-        <View style={styles.studioBody}>
-          {/* ════ LEFT COLUMN: Structured Configuration Inspector ════ */}
-          {(isDesktop || mobileMode === 'editor') && (
-            <View style={[styles.editorColumn, isDesktop && { width: '48%' }]}>
-              {/* Category Tabs Header */}
-              <View style={styles.tabsHeader}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
-                  {tabs.map((tab) => {
-                    const isSelected = activeTab === tab.id;
-                    return (
-                      <Pressable
-                        key={tab.id}
-                        style={[styles.tabButton, isSelected && styles.tabButtonActive]}
-                        onPress={() => setActiveTab(tab.id)}
-                      >
-                        <Ionicons
-                          name={tab.icon}
-                          size={15}
-                          color={isSelected ? colors.white : colors.ink}
-                        />
-                        <View>
-                          <Text style={[styles.tabButtonText, isSelected && styles.tabButtonTextActive]}>
-                            {tab.label}
-                          </Text>
-                          <Text style={[styles.tabButtonSub, isSelected && styles.tabButtonSubActive]}>
-                            {tab.subLabel}
-                          </Text>
-                        </View>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-
-              {/* Form Controls Scroll */}
-              <ScrollView
-                style={styles.formScroll}
-                contentContainerStyle={styles.formContent}
-                showsVerticalScrollIndicator={false}
+        {/* ─── Main Direct On-Bill Interactive Canvas ─── */}
+        <ScrollView
+          style={styles.mainCanvasScroll}
+          contentContainerStyle={styles.mainCanvasContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <FadeInView delay={40} translateY={10}>
+            {/* ════ THE INTERACTIVE INVOICE SHEET ════ */}
+            <View
+              style={[
+                styles.invoiceSheet,
+                {
+                  borderColor: config.cardBorderColor || '#CBD5E1',
+                },
+              ]}
+            >
+              {/* ───── 1. HEADER SECTION (Direct Editable) ───── */}
+              <View
+                style={[
+                  styles.sheetHeader,
+                  {
+                    backgroundColor: config.headerBgColor || '#F8FAFC',
+                    borderBottomColor: config.primaryColor,
+                  },
+                ]}
               >
-                {/* ── 1. STORE & HEADER ── */}
-                {activeTab === 'header' && (
-                  <FadeInView delay={20} translateY={6}>
-                    <View style={styles.sectionHeaderBox}>
-                      <Text style={styles.sectionTitle}>1. Store Profile & Bill Header</Text>
-                      <Text style={styles.sectionDesc}>கடையின் பெயர், முகவரி, போன் எண், GSTIN மற்றும் லோகோ விவரங்கள்</Text>
-                    </View>
+                {/* Store Name, Tagline, Address, Phone, GSTIN */}
+                <View style={{ flex: 1.5, paddingRight: 10 }}>
+                  <View style={styles.fieldWrap}>
+                    <Text style={styles.fieldGuideTag}>Shop / Business Name (Click to edit)</Text>
+                    <TextInput
+                      style={[styles.inlineStoreNameInput, { color: config.headerTextColor || config.primaryColor }]}
+                      value={bizProfile.businessName}
+                      onChangeText={(v) => setBizProfile((p) => ({ ...p, businessName: v }))}
+                      placeholder="Your Store Name"
+                      placeholderTextColor="rgba(0,0,0,0.3)"
+                    />
+                  </View>
 
-                    <View style={styles.inputCard}>
-                      <Text style={styles.inputLabel}>Shop / Business Name (கடையின் பெயர்) *</Text>
-                      <TextInput
-                        style={styles.inputField}
-                        value={bizProfile.businessName}
-                        onChangeText={(v) => setBizProfile((p) => ({ ...p, businessName: v }))}
-                        placeholder="e.g. Sri Murugan Stores"
-                        placeholderTextColor={colors.inkSoft}
-                      />
+                  <View style={[styles.fieldWrap, { marginTop: 4 }]}>
+                    <TextInput
+                      style={styles.inlineTaglineInput}
+                      value={bizProfile.tagline}
+                      onChangeText={(v) => setBizProfile((p) => ({ ...p, tagline: v }))}
+                      placeholder="Store Tagline / Wholesale & Retail"
+                      placeholderTextColor="rgba(0,0,0,0.3)"
+                    />
+                  </View>
 
-                      <Text style={[styles.inputLabel, { marginTop: 12 }]}>Tagline / Business Nature (தொழில் வாசகம்)</Text>
-                      <TextInput
-                        style={styles.inputField}
-                        value={bizProfile.tagline}
-                        onChangeText={(v) => setBizProfile((p) => ({ ...p, tagline: v }))}
-                        placeholder="e.g. Quality Groceries & Wholesaler"
-                        placeholderTextColor={colors.inkSoft}
-                      />
+                  <View style={[styles.fieldWrap, { marginTop: 6 }]}>
+                    <TextInput
+                      style={styles.inlineAddressInput}
+                      value={bizProfile.address}
+                      onChangeText={(v) => setBizProfile((p) => ({ ...p, address: v }))}
+                      placeholder="Store Address, City, Pincode"
+                      placeholderTextColor="rgba(0,0,0,0.3)"
+                      multiline
+                    />
+                  </View>
 
-                      <Text style={[styles.inputLabel, { marginTop: 12 }]}>Phone / Mobile Number (தொடர்பு எண்)</Text>
+                  <View style={styles.inlineContactsRow}>
+                    <View style={[styles.fieldWrap, { flex: 1 }]}>
                       <TextInput
-                        style={styles.inputField}
+                        style={styles.inlineContactInput}
                         value={bizProfile.phone}
                         onChangeText={(v) => setBizProfile((p) => ({ ...p, phone: v }))}
-                        placeholder="e.g. 9876543210"
-                        placeholderTextColor={colors.inkSoft}
+                        placeholder="Phone: 9876543210"
+                        placeholderTextColor="rgba(0,0,0,0.3)"
                         keyboardType="phone-pad"
                       />
+                    </View>
 
-                      <Text style={[styles.inputLabel, { marginTop: 12 }]}>Full Store Address (கடை முகவரி)</Text>
+                    <View style={[styles.fieldWrap, { flex: 1.2 }]}>
                       <TextInput
-                        style={[styles.inputField, { height: 60 }]}
-                        value={bizProfile.address}
-                        onChangeText={(v) => setBizProfile((p) => ({ ...p, address: v }))}
-                        placeholder="e.g. 124, West Masi Street, Madurai - 625001"
+                        style={[styles.inlineContactInput, styles.gstinField]}
+                        value={bizProfile.gstin}
+                        onChangeText={(v) => setBizProfile((p) => ({ ...p, gstin: v }))}
+                        placeholder="GSTIN: 33AAAAA0000A1Z5"
+                        placeholderTextColor="rgba(0,0,0,0.3)"
+                        autoCapitalize="characters"
+                      />
+                    </View>
+                  </View>
+
+                  {/* Header Visibility Toggles */}
+                  <View style={styles.headerTogglesRow}>
+                    <Pressable
+                      style={[styles.miniToggleChip, config.showBusinessAddress && styles.miniToggleChipActive]}
+                      onPress={() => setConfig((p) => ({ ...p, showBusinessAddress: !p.showBusinessAddress }))}
+                    >
+                      <Ionicons
+                        name={config.showBusinessAddress ? 'checkmark-circle' : 'close-circle'}
+                        size={12}
+                        color={config.showBusinessAddress ? colors.clayDeep : colors.inkSoft}
+                      />
+                      <Text style={[styles.miniToggleChipText, config.showBusinessAddress && styles.miniToggleChipTextActive]}>
+                        Address
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={[styles.miniToggleChip, config.showBusinessPhone && styles.miniToggleChipActive]}
+                      onPress={() => setConfig((p) => ({ ...p, showBusinessPhone: !p.showBusinessPhone }))}
+                    >
+                      <Ionicons
+                        name={config.showBusinessPhone ? 'checkmark-circle' : 'close-circle'}
+                        size={12}
+                        color={config.showBusinessPhone ? colors.clayDeep : colors.inkSoft}
+                      />
+                      <Text style={[styles.miniToggleChipText, config.showBusinessPhone && styles.miniToggleChipTextActive]}>
+                        Phone
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={[styles.miniToggleChip, config.showGstin && styles.miniToggleChipActive]}
+                      onPress={() => setConfig((p) => ({ ...p, showGstin: !p.showGstin }))}
+                    >
+                      <Ionicons
+                        name={config.showGstin ? 'checkmark-circle' : 'close-circle'}
+                        size={12}
+                        color={config.showGstin ? colors.clayDeep : colors.inkSoft}
+                      />
+                      <Text style={[styles.miniToggleChipText, config.showGstin && styles.miniToggleChipTextActive]}>
+                        GSTIN
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                {/* ───── Right Meta Box (Document Title, Bill #, Date) ───── */}
+                <View style={styles.sheetHeaderRight}>
+                  {/* Bill Title Badge (Directly Editable or Choice Pills) */}
+                  <TextInput
+                    style={[styles.inlineTitleBadgeInput, { backgroundColor: config.primaryColor }]}
+                    value={config.invoiceTitle}
+                    onChangeText={(v) => setConfig((p) => ({ ...p, invoiceTitle: v }))}
+                    placeholder="TAX INVOICE"
+                    placeholderTextColor="rgba(255,255,255,0.7)"
+                    autoCapitalize="characters"
+                  />
+
+                  {/* Title Preset Quick Pills */}
+                  <View style={styles.titleQuickPills}>
+                    {['TAX INVOICE', 'CASH BILL', 'RETAIL INVOICE', 'ESTIMATE'].map((tName) => (
+                      <Pressable
+                        key={tName}
+                        style={[styles.titleChoicePill, config.invoiceTitle === tName && styles.titleChoicePillActive]}
+                        onPress={() => setConfig((p) => ({ ...p, invoiceTitle: tName }))}
+                      >
+                        <Text style={[styles.titleChoicePillText, config.invoiceTitle === tName && styles.titleChoicePillTextActive]}>
+                          {tName}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  <View style={styles.invoiceMetaGroup}>
+                    <Text style={styles.metaRowText}>
+                      <Text style={{ fontFamily: fonts.bodyBold }}>Bill #:</Text> {SAMPLE_ORDER.orderNumber}
+                    </Text>
+                    <Text style={styles.metaRowText}>
+                      <Text style={{ fontFamily: fonts.bodyBold }}>Date:</Text> {formatDate(SAMPLE_ORDER.orderDate)}
+                    </Text>
+                    <Text style={styles.metaRowText}>
+                      <Text style={{ fontFamily: fonts.bodyBold }}>Place:</Text> Tamil Nadu (33)
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* ───── 2. BUYER & CUSTOMER STRIP ───── */}
+              <View style={styles.buyerDetailsStrip}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.buyerHeading}>{t('invoice.buyerDetails', 'BUYER / CUSTOMER DETAILS')}:</Text>
+                  <Text style={styles.buyerCustomerName}>{SAMPLE_ORDER.customerName}</Text>
+                  {config.showCustomerPhone && (
+                    <Text style={styles.buyerCustomerPhone}>Mobile: {SAMPLE_ORDER.phoneNumber}</Text>
+                  )}
+                </View>
+
+                <View style={styles.buyerStripRight}>
+                  <Pressable
+                    style={[styles.miniToggleChip, config.showCustomerPhone && styles.miniToggleChipActive]}
+                    onPress={() => setConfig((p) => ({ ...p, showCustomerPhone: !p.showCustomerPhone }))}
+                  >
+                    <Ionicons
+                      name={config.showCustomerPhone ? 'checkmark-circle' : 'close-circle'}
+                      size={12}
+                      color={config.showCustomerPhone ? colors.clayDeep : colors.inkSoft}
+                    />
+                    <Text style={[styles.miniToggleChipText, config.showCustomerPhone && styles.miniToggleChipTextActive]}>
+                      Customer Phone
+                    </Text>
+                  </Pressable>
+
+                  <View style={styles.partialPaidTag}>
+                    <Ionicons name="checkmark-circle" size={12} color="#15803D" />
+                    <Text style={styles.partialPaidTagText}>Partially Paid</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* ───── 3. TABLE COLUMNS QUICK TOGGLE RIBBON ───── */}
+              <View style={styles.columnsSwitchBar}>
+                <View style={styles.columnsSwitchLabelRow}>
+                  <Ionicons name="grid-outline" size={13} color={colors.clayDeep} />
+                  <Text style={styles.columnsSwitchTitle}>Table Columns (Tap to add/remove on bill):</Text>
+                </View>
+                <View style={styles.columnsChipsRow}>
+                  {[
+                    { key: 'showRate', label: 'Rate (Price)', val: config.showRate },
+                    { key: 'showUnit', label: 'Unit (kg, pcs)', val: config.showUnit },
+                    { key: 'showGSTRate', label: 'GST %', val: config.showGSTRate },
+                    { key: 'showDiscount', label: 'Discount', val: config.showDiscount },
+                    { key: 'showHsn', label: 'HSN Code', val: config.showHsn },
+                    { key: 'showItemSerialNo', label: 'S.No (#)', val: config.showItemSerialNo },
+                  ].map((col) => (
+                    <Pressable
+                      key={col.key}
+                      style={[
+                        styles.colChip,
+                        col.val && styles.colChipActive,
+                      ]}
+                      onPress={() =>
+                        setConfig((prev) => ({
+                          ...prev,
+                          [col.key]: !col.val,
+                        }))
+                      }
+                    >
+                      <Ionicons
+                        name={col.val ? 'checkmark-circle' : 'add-circle-outline'}
+                        size={13}
+                        color={col.val ? colors.white : colors.inkSoft}
+                      />
+                      <Text
+                        style={[
+                          styles.colChipText,
+                          col.val && styles.colChipTextActive,
+                        ]}
+                      >
+                        {col.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              {/* ───── 4. PRODUCT ITEMS TABLE ───── */}
+              <View style={styles.tableWrap}>
+                {/* Table Header Row */}
+                <View style={[styles.tableHeader, { backgroundColor: config.primaryColor }]}>
+                  {config.showItemSerialNo && (
+                    <Text style={[styles.thCell, { width: 30 }]}>#</Text>
+                  )}
+                  <Text style={[styles.thCell, { flex: 2.2 }]}>Item Description</Text>
+                  {config.showHsn && (
+                    <Text style={[styles.thCell, { width: 48, textAlign: 'center' }]}>HSN</Text>
+                  )}
+                  <Text style={[styles.thCell, { width: 38, textAlign: 'center' }]}>Qty</Text>
+                  {config.showUnit && (
+                    <Text style={[styles.thCell, { width: 38, textAlign: 'center' }]}>Unit</Text>
+                  )}
+                  {config.showRate && (
+                    <Text style={[styles.thCell, { width: 60, textAlign: 'right' }]}>Rate</Text>
+                  )}
+                  {config.showGSTRate && (
+                    <Text style={[styles.thCell, { width: 44, textAlign: 'center' }]}>GST</Text>
+                  )}
+                  {config.showDiscount && (
+                    <Text style={[styles.thCell, { width: 48, textAlign: 'right' }]}>Disc</Text>
+                  )}
+                  <Text style={[styles.thCell, { width: 70, textAlign: 'right' }]}>Total</Text>
+                </View>
+
+                {/* Table Body Rows */}
+                {SAMPLE_ORDER.items.map((it, idx) => (
+                  <View
+                    key={it.id}
+                    style={[
+                      styles.tableRow,
+                      idx % 2 === 1 && { backgroundColor: '#F8FAFC' },
+                    ]}
+                  >
+                    {config.showItemSerialNo && (
+                      <Text style={[styles.tdCell, { width: 30, color: colors.inkSoft }]}>{idx + 1}</Text>
+                    )}
+                    <Text style={[styles.tdCell, { flex: 2.2, fontFamily: fonts.bodyBold }]}>
+                      {it.name}
+                    </Text>
+                    {config.showHsn && (
+                      <Text style={[styles.tdCell, { width: 48, textAlign: 'center', fontSize: 10, color: colors.inkSoft }]}>
+                        {it.hsnCode || '-'}
+                      </Text>
+                    )}
+                    <Text style={[styles.tdCell, { width: 38, textAlign: 'center' }]}>{it.qty}</Text>
+                    {config.showUnit && (
+                      <Text style={[styles.tdCell, { width: 38, textAlign: 'center', color: colors.inkSoft }]}>
+                        {it.unit || '-'}
+                      </Text>
+                    )}
+                    {config.showRate && (
+                      <Text style={[styles.tdCell, { width: 60, textAlign: 'right' }]}>
+                        {formatCurrency(it.price)}
+                      </Text>
+                    )}
+                    {config.showGSTRate && (
+                      <Text style={[styles.tdCell, { width: 44, textAlign: 'center', fontSize: 10 }]}>
+                        {it.taxRate ? `${it.taxRate}%` : '0%'}
+                      </Text>
+                    )}
+                    {config.showDiscount && (
+                      <Text style={[styles.tdCell, { width: 48, textAlign: 'right', color: colors.inflow, fontSize: 10 }]}>
+                        {it.discount ? `-₹${it.discount}` : '-'}
+                      </Text>
+                    )}
+                    <Text style={[styles.tdCell, { width: 70, textAlign: 'right', fontFamily: fonts.bodyBold }]}>
+                      {formatCurrency(it.qty * it.price - (it.discount || 0))}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* ───── 5. TOTALS & SUMMARY SECTION ───── */}
+              <View style={styles.totalsSection}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={styles.amountWordsTitle}>Amount in Words:</Text>
+                  <Text style={styles.amountWordsValue}>One Thousand Four Hundred and Forty Rupees Only</Text>
+
+                  {/* Notes / Special Instructions */}
+                  <View style={{ marginTop: 10 }}>
+                    <Text style={styles.notesTitle}>Customer Note / Instructions:</Text>
+                    <Text style={styles.notesText}>{SAMPLE_ORDER.customerNote}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.totalsCard}>
+                  <View style={styles.calcRow}>
+                    <Text style={styles.calcLabel}>Subtotal:</Text>
+                    <Text style={styles.calcVal}>{formatCurrency(subtotalAmount)}</Text>
+                  </View>
+                  {discountAmount > 0 && (
+                    <View style={styles.calcRow}>
+                      <Text style={[styles.calcLabel, { color: colors.inflow }]}>Discount:</Text>
+                      <Text style={[styles.calcVal, { color: colors.inflow }]}>-{formatCurrency(discountAmount)}</Text>
+                    </View>
+                  )}
+                  {config.showGSTRate && (
+                    <>
+                      <View style={styles.calcRow}>
+                        <Text style={styles.calcLabel}>CGST (2.5%):</Text>
+                        <Text style={styles.calcVal}>+{formatCurrency(cgstAmount)}</Text>
+                      </View>
+                      <View style={styles.calcRow}>
+                        <Text style={styles.calcLabel}>SGST (2.5%):</Text>
+                        <Text style={styles.calcVal}>+{formatCurrency(sgstAmount)}</Text>
+                      </View>
+                    </>
+                  )}
+                  <View style={styles.calcRowTotal}>
+                    <Text style={styles.calcTotalLabel}>Grand Total:</Text>
+                    <Text style={styles.calcTotalVal}>{formatCurrency(grandTotal)}</Text>
+                  </View>
+                  <View style={styles.calcRow}>
+                    <Text style={[styles.calcLabel, { color: colors.inflow }]}>Advance Paid:</Text>
+                    <Text style={[styles.calcVal, { color: colors.inflow }]}>{formatCurrency(advancePaid)}</Text>
+                  </View>
+                  <View style={styles.calcRowBalance}>
+                    <Text style={styles.calcBalanceLabel}>Balance Due:</Text>
+                    <Text style={styles.calcBalanceVal}>{formatCurrency(balanceDue)}</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* ───── 6. BANK & UPI QR PAYMENT SECTION (Direct Editable) ───── */}
+              <View style={styles.paymentContainer}>
+                <View style={styles.paymentHeaderRow}>
+                  <Text style={styles.paymentSectionHeading}>Payment & Bank Transfer Details</Text>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <Pressable
+                      style={[styles.miniToggleChip, config.showUpiQr && styles.miniToggleChipActive]}
+                      onPress={() => setConfig((p) => ({ ...p, showUpiQr: !p.showUpiQr }))}
+                    >
+                      <Ionicons
+                        name={config.showUpiQr ? 'checkmark-circle' : 'close-circle'}
+                        size={12}
+                        color={config.showUpiQr ? colors.clayDeep : colors.inkSoft}
+                      />
+                      <Text style={[styles.miniToggleChipText, config.showUpiQr && styles.miniToggleChipTextActive]}>
+                        UPI QR Code
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={[styles.miniToggleChip, config.showBankDetails && styles.miniToggleChipActive]}
+                      onPress={() => setConfig((p) => ({ ...p, showBankDetails: !p.showBankDetails }))}
+                    >
+                      <Ionicons
+                        name={config.showBankDetails ? 'checkmark-circle' : 'close-circle'}
+                        size={12}
+                        color={config.showBankDetails ? colors.clayDeep : colors.inkSoft}
+                      />
+                      <Text style={[styles.miniToggleChipText, config.showBankDetails && styles.miniToggleChipTextActive]}>
+                        Bank A/C
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View style={styles.paymentInnerRow}>
+                  {config.showUpiQr && (
+                    <View style={styles.qrCardBox}>
+                      <View style={styles.qrIconFrame}>
+                        <Ionicons name="qr-code" size={44} color={config.primaryColor} />
+                      </View>
+                      <Text style={styles.qrLabel}>Scan with GPay / PhonePe</Text>
+                      <TextInput
+                        style={styles.inlineUpiInput}
+                        value={config.upiId || bizProfile.upiId}
+                        onChangeText={(v) => {
+                          setConfig((p) => ({ ...p, upiId: v }));
+                          setBizProfile((p) => ({ ...p, upiId: v }));
+                        }}
+                        placeholder="yourstore@upi"
+                        placeholderTextColor={colors.inkSoft}
+                        autoCapitalize="none"
+                      />
+                    </View>
+                  )}
+
+                  {config.showBankDetails && (
+                    <View style={styles.bankCardBox}>
+                      <Text style={styles.bankBoxTitle}>🏦 Bank Account Information:</Text>
+                      <TextInput
+                        style={styles.inlineBankInput}
+                        value={config.bankDetailsCustom || bizProfile.bankDetails}
+                        onChangeText={(v) => {
+                          setConfig((p) => ({ ...p, bankDetailsCustom: v }));
+                          setBizProfile((p) => ({ ...p, bankDetails: v }));
+                        }}
+                        placeholder="Bank Name, A/C Number, IFSC Code, Branch"
                         placeholderTextColor={colors.inkSoft}
                         multiline
                       />
-
-                      <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                        <View style={{ flex: 1.5 }}>
-                          <Text style={styles.inputLabel}>GSTIN / Tax ID (வரி எண்)</Text>
-                          <TextInput
-                            style={styles.inputField}
-                            value={bizProfile.gstin}
-                            onChangeText={(v) => setBizProfile((p) => ({ ...p, gstin: v }))}
-                            placeholder="33AAAAA0000A1Z5"
-                            placeholderTextColor={colors.inkSoft}
-                            autoCapitalize="characters"
-                          />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.inputLabel}>State Code</Text>
-                          <TextInput
-                            style={[styles.inputField, { backgroundColor: '#F1F5F9' }]}
-                            value="33 - TN"
-                            editable={false}
-                          />
-                        </View>
-                      </View>
                     </View>
+                  )}
 
-                    <View style={styles.inputCard}>
-                      <Text style={styles.cardHeaderSmall}>Display Toggles on Bill</Text>
-                      <View style={styles.toggleRow}>
-                        <Text style={styles.toggleLabel}>Show Business Logo</Text>
-                        <Switch
-                          value={config.showLogo}
-                          onValueChange={(v) => setConfig((p) => ({ ...p, showLogo: v }))}
-                          trackColor={{ false: colors.line, true: colors.clayLight }}
-                          thumbColor={config.showLogo ? colors.clayDeep : '#f4f3f4'}
-                        />
-                      </View>
-                      <View style={styles.toggleRow}>
-                        <Text style={styles.toggleLabel}>Show Store Address on Bill</Text>
-                        <Switch
-                          value={config.showBusinessAddress}
-                          onValueChange={(v) => setConfig((p) => ({ ...p, showBusinessAddress: v }))}
-                          trackColor={{ false: colors.line, true: colors.clayLight }}
-                          thumbColor={config.showBusinessAddress ? colors.clayDeep : '#f4f3f4'}
-                        />
-                      </View>
-                      <View style={styles.toggleRow}>
-                        <Text style={styles.toggleLabel}>Show GSTIN on Bill</Text>
-                        <Switch
-                          value={config.showGstin}
-                          onValueChange={(v) => setConfig((p) => ({ ...p, showGstin: v }))}
-                          trackColor={{ false: colors.line, true: colors.clayLight }}
-                          thumbColor={config.showGstin ? colors.clayDeep : '#f4f3f4'}
-                        />
-                      </View>
-                    </View>
-                  </FadeInView>
-                )}
-
-                {/* ── 2. BILL TITLE & SERIES ── */}
-                {activeTab === 'title' && (
-                  <FadeInView delay={20} translateY={6}>
-                    <View style={styles.sectionHeaderBox}>
-                      <Text style={styles.sectionTitle}>2. Bill Title & Numbering Series</Text>
-                      <Text style={styles.sectionDesc}>பில்லின் தலைப்பு (வரி பில் / ரொக்க பில் / மதிப்பீடு) மற்றும் பில் எண் முன்னொட்டு</Text>
-                    </View>
-
-                    <View style={styles.inputCard}>
-                      <Text style={styles.inputLabel}>Invoice Document Title (பில் தலைப்பு)</Text>
-                      <TextInput
-                        style={styles.inputField}
-                        value={config.invoiceTitle}
-                        onChangeText={(v) => setConfig((p) => ({ ...p, invoiceTitle: v }))}
-                        placeholder="e.g. TAX INVOICE, CASH BILL"
-                        placeholderTextColor={colors.inkSoft}
-                      />
-
-                      <Text style={[styles.inputLabel, { marginTop: 12 }]}>1-Tap Quick Suggestions:</Text>
-                      <View style={styles.chipRow}>
-                        {[
-                          'TAX INVOICE',
-                          'CASH BILL',
-                          'RETAIL INVOICE',
-                          'BILL OF SUPPLY',
-                          'ESTIMATE / QUOTE',
-                          'DELIVERY CHALLAN',
-                        ].map((tName) => (
-                          <Pressable
-                            key={tName}
-                            style={[
-                              styles.choiceChip,
-                              config.invoiceTitle === tName && styles.choiceChipActive,
-                            ]}
-                            onPress={() => setConfig((p) => ({ ...p, invoiceTitle: tName }))}
-                          >
-                            <Text
-                              style={[
-                                styles.choiceChipText,
-                                config.invoiceTitle === tName && styles.choiceChipTextActive,
-                              ]}
-                            >
-                              {tName}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </View>
-
-                      <Text style={[styles.inputLabel, { marginTop: 14 }]}>Invoice Number Prefix (எண் முன்னொட்டு)</Text>
-                      <TextInput
-                        style={styles.inputField}
-                        value={config.invoicePrefix}
-                        onChangeText={(v) => setConfig((p) => ({ ...p, invoicePrefix: v }))}
-                        placeholder="e.g. INV-, BILL-, ORD-"
-                        placeholderTextColor={colors.inkSoft}
-                      />
-                    </View>
-
-                    <View style={styles.inputCard}>
-                      <Text style={styles.cardHeaderSmall}>Date & Buyer Information</Text>
-                      <View style={styles.toggleRow}>
-                        <Text style={styles.toggleLabel}>Show Due Date on Invoice</Text>
-                        <Switch
-                          value={config.showDueDate}
-                          onValueChange={(v) => setConfig((p) => ({ ...p, showDueDate: v }))}
-                          trackColor={{ false: colors.line, true: colors.clayLight }}
-                          thumbColor={config.showDueDate ? colors.clayDeep : '#f4f3f4'}
-                        />
-                      </View>
-                      <View style={styles.toggleRow}>
-                        <Text style={styles.toggleLabel}>Show Customer Phone on Bill</Text>
-                        <Switch
-                          value={config.showCustomerPhone}
-                          onValueChange={(v) => setConfig((p) => ({ ...p, showCustomerPhone: v }))}
-                          trackColor={{ false: colors.line, true: colors.clayLight }}
-                          thumbColor={config.showCustomerPhone ? colors.clayDeep : '#f4f3f4'}
-                        />
-                      </View>
-                    </View>
-                  </FadeInView>
-                )}
-
-                {/* ── 3. TABLE COLUMNS ── */}
-                {activeTab === 'columns' && (
-                  <FadeInView delay={20} translateY={6}>
-                    <View style={styles.sectionHeaderBox}>
-                      <Text style={styles.sectionTitle}>3. Product Table Columns</Text>
-                      <Text style={styles.sectionDesc}>பில் அட்டவணையில் எந்தெந்த காலம்கள் தோன்ற வேண்டும் என்பதை தேர்வு செய்யவும்</Text>
-                    </View>
-
-                    <View style={styles.inputCard}>
-                      {[
-                        { key: 'showRate', title: 'Rate / Price (விலை)', desc: 'பொருளின் யூனிட் விலை காலம்' },
-                        { key: 'showUnit', title: 'Unit of Measure (அளவு/எடை)', desc: 'kg, pcs, box, liters அலகு காலம்' },
-                        { key: 'showGSTRate', title: 'GST Tax % (வரி விகிதம்)', desc: '5%, 12%, 18% ஜிஎஸ்டி வரி விகிதம்' },
-                        { key: 'showDiscount', title: 'Discount (தள்ளுபடி தொகை)', desc: 'ஒவ்வொரு பொருளுக்கும் தள்ளுபடி கழிவு' },
-                        { key: 'showHsn', title: 'HSN / SAC Code', desc: 'ஜிஎஸ்டி தணிக்கைக்கான HSN குறியீடு' },
-                        { key: 'showItemSerialNo', title: 'Serial Number (வ.எண்)', desc: 'வரிசை எண் (1, 2, 3...)' },
-                      ].map((col) => {
-                        const isChecked = Boolean(config[col.key as keyof InvoiceTemplateConfig]);
-                        return (
-                          <View key={col.key} style={styles.columnOptionRow}>
-                            <View style={{ flex: 1, paddingRight: 8 }}>
-                              <Text style={styles.columnOptionTitle}>{col.title}</Text>
-                              <Text style={styles.columnOptionDesc}>{col.desc}</Text>
-                            </View>
-                            <Switch
-                              value={isChecked}
-                              onValueChange={(val) =>
-                                setConfig((prev) => ({ ...prev, [col.key]: val }))
-                              }
-                              trackColor={{ false: colors.line, true: colors.clayLight }}
-                              thumbColor={isChecked ? colors.clayDeep : '#f4f3f4'}
-                            />
-                          </View>
-                        );
-                      })}
-                    </View>
-                  </FadeInView>
-                )}
-
-                {/* ── 4. BANK & UPI QR ── */}
-                {activeTab === 'payments' && (
-                  <FadeInView delay={20} translateY={6}>
-                    <View style={styles.sectionHeaderBox}>
-                      <Text style={styles.sectionTitle}>4. UPI Dynamic QR Code & Bank Details</Text>
-                      <Text style={styles.sectionDesc}>வாடிக்கையாளர் பில்லில் உள்ள QR ஸ்கேன் செய்து கூகுள்பே/போன்பே மூலம் உடனடியாக பணம் செலுத்த</Text>
-                    </View>
-
-                    <View style={styles.inputCard}>
-                      <View style={styles.toggleRow}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.toggleLabel}>Show Dynamic UPI QR Code</Text>
-                          <Text style={styles.toggleSub}>Calculates exact balance due in QR</Text>
-                        </View>
-                        <Switch
-                          value={config.showUpiQr}
-                          onValueChange={(v) => setConfig((p) => ({ ...p, showUpiQr: v }))}
-                          trackColor={{ false: colors.line, true: colors.clayLight }}
-                          thumbColor={config.showUpiQr ? colors.clayDeep : '#f4f3f4'}
-                        />
-                      </View>
-
-                      {config.showUpiQr && (
-                        <View style={{ marginTop: 12 }}>
-                          <Text style={styles.inputLabel}>UPI VPA ID (ஜிபே / போன்பே UPI ஐடி) *</Text>
-                          <TextInput
-                            style={styles.inputField}
-                            value={config.upiId || bizProfile.upiId}
-                            onChangeText={(val) => {
-                              setConfig((p) => ({ ...p, upiId: val }));
-                              setBizProfile((p) => ({ ...p, upiId: val }));
-                            }}
-                            placeholder="e.g. srimurugan@okhdfcbank"
-                            placeholderTextColor={colors.inkSoft}
-                            autoCapitalize="none"
-                          />
-                        </View>
-                      )}
-                    </View>
-
-                    <View style={styles.inputCard}>
-                      <View style={styles.toggleRow}>
-                        <Text style={styles.toggleLabel}>Show Bank Account Transfer Info</Text>
-                        <Switch
-                          value={config.showBankDetails}
-                          onValueChange={(v) => setConfig((p) => ({ ...p, showBankDetails: v }))}
-                          trackColor={{ false: colors.line, true: colors.clayLight }}
-                          thumbColor={config.showBankDetails ? colors.clayDeep : '#f4f3f4'}
-                        />
-                      </View>
-
-                      {config.showBankDetails && (
-                        <View style={{ marginTop: 12 }}>
-                          <Text style={styles.inputLabel}>Bank Account Details (வங்கி கணக்கு விவரம்)</Text>
-                          <TextInput
-                            style={[styles.inputField, { height: 75 }]}
-                            value={config.bankDetailsCustom || bizProfile.bankDetails}
-                            onChangeText={(val) => {
-                              setConfig((p) => ({ ...p, bankDetailsCustom: val }));
-                              setBizProfile((p) => ({ ...p, bankDetails: val }));
-                            }}
-                            placeholder="Bank Name, Account Number, IFSC Code, Branch"
-                            placeholderTextColor={colors.inkSoft}
-                            multiline
-                          />
-                        </View>
-                      )}
-                    </View>
-                  </FadeInView>
-                )}
-
-                {/* ── 5. TERMS & SIGNATURE ── */}
-                {activeTab === 'terms' && (
-                  <FadeInView delay={20} translateY={6}>
-                    <View style={styles.sectionHeaderBox}>
-                      <Text style={styles.sectionTitle}>5. Terms, Notes & Authorized Signature</Text>
-                      <Text style={styles.sectionDesc}>பில்லின் அடியில் வரக்கூடிய விதிகள், நன்றி செய்தி மற்றும் கையொப்ப முத்திரை</Text>
-                    </View>
-
-                    <View style={styles.inputCard}>
-                      <View style={styles.toggleRow}>
-                        <Text style={styles.toggleLabel}>Show Terms & Conditions (விதிமுறைகள்)</Text>
-                        <Switch
-                          value={config.showTerms}
-                          onValueChange={(v) => setConfig((p) => ({ ...p, showTerms: v }))}
-                          trackColor={{ false: colors.line, true: colors.clayLight }}
-                          thumbColor={config.showTerms ? colors.clayDeep : '#f4f3f4'}
-                        />
-                      </View>
-
-                      {config.showTerms && (
-                        <View style={{ marginTop: 12 }}>
-                          <Text style={styles.inputLabel}>Terms & Conditions Text</Text>
-                          <TextInput
-                            style={[styles.inputField, { height: 70 }]}
-                            value={config.termsAndConditions}
-                            onChangeText={(val) => setConfig((p) => ({ ...p, termsAndConditions: val }))}
-                            placeholder="1. சரக்கு திரும்ப பெறப்பட மாட்டாது.\n2. Goods once sold will not be taken back."
-                            placeholderTextColor={colors.inkSoft}
-                            multiline
-                          />
-                        </View>
-                      )}
-                    </View>
-
-                    <View style={styles.inputCard}>
-                      <View style={styles.toggleRow}>
-                        <Text style={styles.toggleLabel}>Show Authorized Signatory Box (கையொப்பம்)</Text>
-                        <Switch
-                          value={config.showSignatory}
-                          onValueChange={(v) => setConfig((p) => ({ ...p, showSignatory: v }))}
-                          trackColor={{ false: colors.line, true: colors.clayLight }}
-                          thumbColor={config.showSignatory ? colors.clayDeep : '#f4f3f4'}
-                        />
-                      </View>
-
-                      {config.showSignatory && (
-                        <View style={{ marginTop: 12 }}>
-                          <Text style={styles.inputLabel}>Signatory Title Label</Text>
-                          <TextInput
-                            style={styles.inputField}
-                            value={config.signatoryTitle}
-                            onChangeText={(val) => setConfig((p) => ({ ...p, signatoryTitle: val }))}
-                            placeholder="Authorized Signatory / மேலாளர்"
-                            placeholderTextColor={colors.inkSoft}
-                          />
-                        </View>
-                      )}
-
-                      <Text style={[styles.inputLabel, { marginTop: 14 }]}>Footer Thank You Note (நன்றி செய்தி)</Text>
-                      <TextInput
-                        style={styles.inputField}
-                        value={config.footerMessage}
-                        onChangeText={(val) => setConfig((p) => ({ ...p, footerMessage: val }))}
-                        placeholder="நன்றி! மீண்டும் வருக! / Thank you for your business!"
-                        placeholderTextColor={colors.inkSoft}
-                      />
-                    </View>
-                  </FadeInView>
-                )}
-
-                {/* ── 6. COLORS & PAPER SIZE ── */}
-                {activeTab === 'theme' && (
-                  <FadeInView delay={20} translateY={6}>
-                    <View style={styles.sectionHeaderBox}>
-                      <Text style={styles.sectionTitle}>6. Color Palette & Printer Paper Size</Text>
-                      <Text style={styles.sectionDesc}>பில்லின் கலர் தீம் மற்றும் பிரிண்ட் பேப்பர் அளவை தேர்வு செய்யவும்</Text>
-                    </View>
-
-                    <View style={styles.inputCard}>
-                      <Text style={styles.inputLabel}>Paper Sizing (பிரிண்டர் தாள் அளவு)</Text>
-                      <View style={styles.chipRow}>
-                        {[
-                          { id: 'a4', label: '📄 A4 Full Page' },
-                          { id: 'a5', label: '📑 A5 Half Page' },
-                          { id: 'thermal_80mm', label: '🧾 80mm POS Thermal (3-inch)' },
-                          { id: 'thermal_58mm', label: '🧾 58mm Thermal (2-inch)' },
-                        ].map((p) => (
-                          <Pressable
-                            key={p.id}
-                            style={[
-                              styles.choiceChip,
-                              config.paperSize === p.id && styles.choiceChipActive,
-                            ]}
-                            onPress={() => setConfig((prev) => ({ ...prev, paperSize: p.id as PaperSize }))}
-                          >
-                            <Text
-                              style={[
-                                styles.choiceChipText,
-                                config.paperSize === p.id && styles.choiceChipTextActive,
-                              ]}
-                            >
-                              {p.label}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </View>
-
-                      <View style={[styles.toggleRow, { marginTop: 14 }]}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.toggleLabel}>Compact Margins (Space Saver)</Text>
-                          <Text style={styles.toggleSub}>Tighter layout for thermal and small slips</Text>
-                        </View>
-                        <Switch
-                          value={config.compactMode}
-                          onValueChange={(v) => setConfig((p) => ({ ...p, compactMode: v }))}
-                          trackColor={{ false: colors.line, true: colors.clayLight }}
-                          thumbColor={config.compactMode ? colors.clayDeep : '#f4f3f4'}
-                        />
-                      </View>
-                    </View>
-
-                    <View style={styles.inputCard}>
-                      <Text style={styles.cardHeaderSmall}>Reset Configuration</Text>
-                      <Pressable
-                        style={({ pressed }) => [styles.resetBtn, pressed && { opacity: 0.8 }]}
-                        onPress={handleReset}
-                      >
-                        <Ionicons name="refresh-outline" size={15} color={colors.danger} />
-                        <Text style={styles.resetBtnText}>Restore Standard Indian Bill Template</Text>
-                      </Pressable>
-                    </View>
-                  </FadeInView>
-                )}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* ════ RIGHT COLUMN: Live Authentic Indian Bill Preview ════ */}
-          {(isDesktop || mobileMode === 'preview') && (
-            <View style={[styles.previewColumn, isDesktop && { width: '52%' }]}>
-              <View style={styles.previewHeaderStrip}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Ionicons name="eye" size={16} color={colors.clayDeep} />
-                  <Text style={styles.previewTitle}>Live Bill View (நேரடி பில் தோற்றம்)</Text>
+                  {!config.showUpiQr && !config.showBankDetails && (
+                    <Text style={styles.noPaymentText}>
+                      UPI QR Code and Bank details are currently turned off. Click the toggle buttons above to enable.
+                    </Text>
+                  )}
                 </View>
-                <Text style={styles.previewBadge}>{config.paperSize.toUpperCase()}</Text>
               </View>
 
-              <ScrollView
-                style={styles.previewScroll}
-                contentContainerStyle={styles.previewContent}
-                showsVerticalScrollIndicator={false}
-              >
-                <FadeInView delay={60} translateY={8}>
-                  {/* The Authentic Indian Invoice Sheet */}
-                  <View
-                    style={[
-                      styles.invoiceSheet,
-                      {
-                        borderColor: config.cardBorderColor || '#CBD5E1',
-                      },
-                    ]}
-                  >
-                    {/* Header Banner */}
-                    <View
-                      style={[
-                        styles.invoiceHeaderBanner,
-                        {
-                          backgroundColor: config.headerBgColor || '#F8FAFC',
-                          borderBottomColor: config.primaryColor,
-                        },
-                      ]}
+              {/* ───── 7. TERMS & CONDITIONS AND SIGNATORY (Direct Editable) ───── */}
+              <View style={styles.footerTermsSection}>
+                <View style={{ flex: 1.4 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <Text style={styles.termsBoxTitle}>Terms & Conditions:</Text>
+                    <Pressable
+                      style={[styles.miniToggleChip, config.showTerms && styles.miniToggleChipActive]}
+                      onPress={() => setConfig((p) => ({ ...p, showTerms: !p.showTerms }))}
                     >
-                      <View style={{ flex: 1.5 }}>
-                        <Text style={[styles.invoiceStoreTitle, { color: config.headerTextColor || config.primaryColor }]}>
-                          {bizProfile.businessName || 'MY BUSINESS NAME'}
-                        </Text>
-                        {config.showTagline && bizProfile.tagline ? (
-                          <Text style={styles.invoiceTagline}>{bizProfile.tagline}</Text>
-                        ) : null}
-
-                        {config.showBusinessAddress && bizProfile.address ? (
-                          <Text style={styles.invoiceAddress} numberOfLines={2}>
-                            {bizProfile.address}
-                          </Text>
-                        ) : null}
-
-                        <View style={styles.invoiceMetaInlineRow}>
-                          {config.showBusinessPhone && bizProfile.phone ? (
-                            <Text style={styles.invoiceContactText}>Ph: {bizProfile.phone}</Text>
-                          ) : null}
-                          {config.showGstin && bizProfile.gstin ? (
-                            <Text style={[styles.invoiceContactText, styles.gstinText]}>
-                              GSTIN: {bizProfile.gstin}
-                            </Text>
-                          ) : null}
-                        </View>
-                      </View>
-
-                      {/* Right Meta Column */}
-                      <View style={styles.invoiceRightMeta}>
-                        <View style={[styles.invoiceTitleBadge, { backgroundColor: config.primaryColor }]}>
-                          <Text style={styles.invoiceTitleBadgeText}>{config.invoiceTitle || 'TAX INVOICE'}</Text>
-                        </View>
-                        <Text style={styles.invoiceMetaDetail}>
-                          <Text style={{ fontFamily: fonts.bodyBold }}>Bill #:</Text> {SAMPLE_ORDER.orderNumber}
-                        </Text>
-                        <Text style={styles.invoiceMetaDetail}>
-                          <Text style={{ fontFamily: fonts.bodyBold }}>Date:</Text> {formatDate(SAMPLE_ORDER.orderDate)}
-                        </Text>
-                        <Text style={styles.invoiceMetaDetail}>
-                          <Text style={{ fontFamily: fonts.bodyBold }}>State:</Text> Tamil Nadu (33)
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Buyer / Customer Details Strip */}
-                    <View style={styles.invoiceBuyerRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.buyerLabel}>BUYER / CUSTOMER (வாங்குபவர் விபரம்):</Text>
-                        <Text style={styles.buyerName}>{SAMPLE_ORDER.customerName}</Text>
-                        {config.showCustomerPhone && (
-                          <Text style={styles.buyerMeta}>Mobile: {SAMPLE_ORDER.phoneNumber}</Text>
-                        )}
-                      </View>
-                      <View style={styles.statusPillSmall}>
-                        <Ionicons name="checkmark-circle" size={12} color="#15803D" />
-                        <Text style={styles.statusPillSmallText}>Partially Paid</Text>
-                      </View>
-                    </View>
-
-                    {/* Products Table */}
-                    <View style={styles.invoiceTable}>
-                      {/* Table Header */}
-                      <View style={[styles.tableHeaderRow, { backgroundColor: config.primaryColor }]}>
-                        {config.showItemSerialNo && (
-                          <Text style={[styles.thCell, { width: 28 }]}>#</Text>
-                        )}
-                        <Text style={[styles.thCell, { flex: 2.2 }]}>Item Description (பொருட்கள்)</Text>
-                        {config.showHsn && (
-                          <Text style={[styles.thCell, { width: 44, textAlign: 'center' }]}>HSN</Text>
-                        )}
-                        <Text style={[styles.thCell, { width: 36, textAlign: 'center' }]}>Qty</Text>
-                        {config.showUnit && (
-                          <Text style={[styles.thCell, { width: 36, textAlign: 'center' }]}>Unit</Text>
-                        )}
-                        {config.showRate && (
-                          <Text style={[styles.thCell, { width: 55, textAlign: 'right' }]}>Rate (₹)</Text>
-                        )}
-                        {config.showGSTRate && (
-                          <Text style={[styles.thCell, { width: 44, textAlign: 'center' }]}>GST</Text>
-                        )}
-                        {config.showDiscount && (
-                          <Text style={[styles.thCell, { width: 45, textAlign: 'right' }]}>Disc</Text>
-                        )}
-                        <Text style={[styles.thCell, { width: 65, textAlign: 'right' }]}>Amount (₹)</Text>
-                      </View>
-
-                      {/* Item Rows */}
-                      {SAMPLE_ORDER.items.map((it, idx) => (
-                        <View
-                          key={it.id}
-                          style={[
-                            styles.tableBodyRow,
-                            idx % 2 === 1 && { backgroundColor: '#F8FAFC' },
-                          ]}
-                        >
-                          {config.showItemSerialNo && (
-                            <Text style={[styles.tdCell, { width: 28, color: colors.inkSoft }]}>{idx + 1}</Text>
-                          )}
-                          <Text style={[styles.tdCell, { flex: 2.2, fontFamily: fonts.bodyBold }]}>
-                            {it.name}
-                          </Text>
-                          {config.showHsn && (
-                            <Text style={[styles.tdCell, { width: 44, textAlign: 'center', fontSize: 10, color: colors.inkSoft }]}>
-                              {it.hsnCode || '-'}
-                            </Text>
-                          )}
-                          <Text style={[styles.tdCell, { width: 36, textAlign: 'center' }]}>{it.qty}</Text>
-                          {config.showUnit && (
-                            <Text style={[styles.tdCell, { width: 36, textAlign: 'center', color: colors.inkSoft }]}>
-                              {it.unit || '-'}
-                            </Text>
-                          )}
-                          {config.showRate && (
-                            <Text style={[styles.tdCell, { width: 55, textAlign: 'right' }]}>
-                              {formatCurrency(it.price)}
-                            </Text>
-                          )}
-                          {config.showGSTRate && (
-                            <Text style={[styles.tdCell, { width: 44, textAlign: 'center', fontSize: 10 }]}>
-                              {it.taxRate ? `${it.taxRate}%` : '0%'}
-                            </Text>
-                          )}
-                          {config.showDiscount && (
-                            <Text style={[styles.tdCell, { width: 45, textAlign: 'right', color: colors.inflow, fontSize: 10 }]}>
-                              {it.discount ? `-₹${it.discount}` : '-'}
-                            </Text>
-                          )}
-                          <Text style={[styles.tdCell, { width: 65, textAlign: 'right', fontFamily: fonts.bodyBold }]}>
-                            {formatCurrency(it.qty * it.price - (it.discount || 0))}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-
-                    {/* Calculation Totals & GST Summary Box */}
-                    <View style={styles.invoiceSummaryRow}>
-                      <View style={{ flex: 1, paddingRight: 10 }}>
-                        <Text style={styles.amountWordsLabel}>Amount in Words (எழுத்தால்):</Text>
-                        <Text style={styles.amountWordsText}>One Thousand Four Hundred and Forty Rupees Only</Text>
-                      </View>
-
-                      <View style={styles.totalsTableBox}>
-                        <View style={styles.summaryLine}>
-                          <Text style={styles.summaryLineLabel}>Subtotal (மொத்த விலை):</Text>
-                          <Text style={styles.summaryLineVal}>{formatCurrency(subtotalAmount)}</Text>
-                        </View>
-                        {discountAmount > 0 && (
-                          <View style={styles.summaryLine}>
-                            <Text style={[styles.summaryLineLabel, { color: colors.inflow }]}>Discount (தள்ளுபடி):</Text>
-                            <Text style={[styles.summaryLineVal, { color: colors.inflow }]}>-{formatCurrency(discountAmount)}</Text>
-                          </View>
-                        )}
-                        {config.showGSTRate && (
-                          <>
-                            <View style={styles.summaryLine}>
-                              <Text style={styles.summaryLineLabel}>CGST (2.5%):</Text>
-                              <Text style={styles.summaryLineVal}>+{formatCurrency(cgstAmount)}</Text>
-                            </View>
-                            <View style={styles.summaryLine}>
-                              <Text style={styles.summaryLineLabel}>SGST (2.5%):</Text>
-                              <Text style={styles.summaryLineVal}>+{formatCurrency(sgstAmount)}</Text>
-                            </View>
-                          </>
-                        )}
-                        <View style={styles.summaryLineTotal}>
-                          <Text style={styles.summaryLineTotalLabel}>Grand Total (நிகர மொத்தம்):</Text>
-                          <Text style={styles.summaryLineTotalVal}>{formatCurrency(grandTotal)}</Text>
-                        </View>
-                        <View style={styles.summaryLine}>
-                          <Text style={[styles.summaryLineLabel, { color: colors.inflow }]}>Advance Paid (முன்பணம்):</Text>
-                          <Text style={[styles.summaryLineVal, { color: colors.inflow }]}>{formatCurrency(advancePaid)}</Text>
-                        </View>
-                        <View style={styles.summaryLineBalance}>
-                          <Text style={styles.summaryLineBalanceLabel}>Balance Due (மீதி தொகை):</Text>
-                          <Text style={styles.summaryLineBalanceVal}>{formatCurrency(balanceDue)}</Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Bank & UPI QR Payment Box */}
-                    {(config.showUpiQr || config.showBankDetails) && (
-                      <View style={styles.invoicePaymentBox}>
-                        {config.showUpiQr && (
-                          <View style={styles.invoiceQrCard}>
-                            <View style={styles.qrIconWrap}>
-                              <Ionicons name="qr-code" size={44} color={config.primaryColor} />
-                            </View>
-                            <Text style={styles.qrCaption}>Scan to Pay via UPI</Text>
-                            <Text style={styles.qrVpa}>{config.upiId || bizProfile.upiId || 'store@upi'}</Text>
-                          </View>
-                        )}
-
-                        {config.showBankDetails && (
-                          <View style={styles.invoiceBankCard}>
-                            <Text style={styles.bankCardTitle}>🏦 Bank Account Details (வங்கி விபரம்):</Text>
-                            <Text style={styles.bankCardBody}>
-                              {config.bankDetailsCustom || bizProfile.bankDetails || 'State Bank of India\nA/C: 9876543210123\nIFSC: SBIN0001234'}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    )}
-
-                    {/* Terms & Conditions and Signature Strip */}
-                    <View style={styles.invoiceFooterRow}>
-                      <View style={{ flex: 1.4 }}>
-                        {config.showTerms && (
-                          <View style={{ marginBottom: 6 }}>
-                            <Text style={styles.termsTitle}>{config.termsHeading || 'Terms & Conditions (விதிமுறைகள்)'}:</Text>
-                            <Text style={styles.termsText}>
-                              {config.termsAndConditions || '1. சரக்கு திரும்ப பெறப்பட மாட்டாது.\n2. Goods once sold will not be taken back.'}
-                            </Text>
-                          </View>
-                        )}
-                        <Text style={styles.footerGreeting}>
-                          {config.footerMessage || 'நன்றி! மீண்டும் வருக! / Thank you for your business!'}
-                        </Text>
-                      </View>
-
-                      {config.showSignatory && (
-                        <View style={styles.signatoryCard}>
-                          <View style={styles.signDivider} />
-                          <Text style={styles.signBusinessName}>For {bizProfile.businessName || 'Store'}</Text>
-                          <Text style={styles.signDesignation}>{config.signatoryTitle || 'Authorized Signatory'}</Text>
-                        </View>
-                      )}
-                    </View>
+                      <Ionicons
+                        name={config.showTerms ? 'checkmark-circle' : 'close-circle'}
+                        size={12}
+                        color={config.showTerms ? colors.clayDeep : colors.inkSoft}
+                      />
+                      <Text style={[styles.miniToggleChipText, config.showTerms && styles.miniToggleChipTextActive]}>
+                        Show Terms
+                      </Text>
+                    </Pressable>
                   </View>
-                </FadeInView>
-              </ScrollView>
+
+                  {config.showTerms ? (
+                    <TextInput
+                      style={styles.inlineTermsInput}
+                      value={config.termsAndConditions}
+                      onChangeText={(v) => setConfig((p) => ({ ...p, termsAndConditions: v }))}
+                      placeholder="1. Goods once sold will not be taken back.\n2. Warranty as per manufacturer terms."
+                      placeholderTextColor={colors.inkSoft}
+                      multiline
+                    />
+                  ) : (
+                    <Text style={{ fontSize: 10, color: colors.inkSoft, fontStyle: 'italic' }}>Terms are hidden</Text>
+                  )}
+
+                  <View style={{ marginTop: 8 }}>
+                    <TextInput
+                      style={[styles.inlineFooterGreetingInput, { color: config.primaryColor }]}
+                      value={config.footerMessage}
+                      onChangeText={(v) => setConfig((p) => ({ ...p, footerMessage: v }))}
+                      placeholder="Thank you for your business! Visit again."
+                      placeholderTextColor={colors.inkSoft}
+                    />
+                  </View>
+                </View>
+
+                {/* Authorized Signatory Card */}
+                <View style={styles.signatoryCard}>
+                  <Pressable
+                    style={[styles.miniToggleChip, config.showSignatory && styles.miniToggleChipActive, { alignSelf: 'center', marginBottom: 4 }]}
+                    onPress={() => setConfig((p) => ({ ...p, showSignatory: !p.showSignatory }))}
+                  >
+                    <Ionicons
+                      name={config.showSignatory ? 'checkmark-circle' : 'close-circle'}
+                      size={12}
+                      color={config.showSignatory ? colors.clayDeep : colors.inkSoft}
+                    />
+                    <Text style={[styles.miniToggleChipText, config.showSignatory && styles.miniToggleChipTextActive]}>
+                      Signatory Seal
+                    </Text>
+                  </Pressable>
+
+                  {config.showSignatory && (
+                    <View style={styles.signatoryBoxInner}>
+                      <View style={styles.signatoryLine} />
+                      <Text style={styles.signatoryStoreName} numberOfLines={1}>
+                        For {bizProfile.businessName || 'Store'}
+                      </Text>
+                      <TextInput
+                        style={styles.inlineSignatoryInput}
+                        value={config.signatoryTitle}
+                        onChangeText={(v) => setConfig((p) => ({ ...p, signatoryTitle: v }))}
+                        placeholder="Authorized Signatory"
+                        placeholderTextColor={colors.inkSoft}
+                      />
+                    </View>
+                  )}
+                </View>
+              </View>
             </View>
-          )}
-        </View>
+          </FadeInView>
+        </ScrollView>
       </SafeAreaView>
     </DesktopLayout>
   );
@@ -1165,29 +955,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.ink,
   },
+  directEditBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  directEditBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    color: '#0284C7',
+  },
   headerSubtitle: {
     fontFamily: fonts.body,
     fontSize: 11,
     color: colors.inkSoft,
     marginTop: 1,
   },
-  countryBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  countryBadgeText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    color: '#92400E',
-  },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  resetActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    borderRadius: radius.sm,
+  },
+  resetActionBtnText: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
   },
   testPrintBtn: {
     flexDirection: 'row',
@@ -1223,383 +1027,280 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.white,
   },
-  mobileModeBar: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    backgroundColor: colors.paperCard,
-  },
-  mobileModeTab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  mobileModeTabActive: {
-    borderBottomColor: colors.clayDeep,
-    backgroundColor: colors.paper,
-  },
-  mobileModeTabText: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
-  },
-  mobileModeTabTextActive: {
-    fontFamily: fonts.bodyBold,
-    color: colors.clayDeep,
-  },
-  presetsToolbar: {
+  paletteRibbon: {
     backgroundColor: colors.paperCard,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     paddingVertical: 6,
     paddingHorizontal: 12,
   },
-  presetsScroll: {
+  paletteScroll: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
-  presetToolbarLabel: {
+  paletteGroupLabel: {
     fontFamily: fonts.bodyBold,
     fontSize: 11,
     color: colors.inkSoft,
     marginRight: 2,
   },
-  presetPill: {
-    paddingHorizontal: 10,
+  themeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 14,
     backgroundColor: colors.paper,
     borderWidth: 1,
-    borderColor: colors.line,
-    alignItems: 'center',
   },
-  presetPillActive: {
+  themeChipActive: {
     backgroundColor: '#FAF5EE',
-    borderColor: colors.clayDeep,
   },
-  presetPillTitle: {
-    fontFamily: fonts.bodyBold,
+  themeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  themeChipText: {
+    fontFamily: fonts.body,
     fontSize: 11,
-    color: colors.ink,
-  },
-  presetPillTitleActive: {
-    color: colors.clayDeep,
-  },
-  presetPillSub: {
-    fontFamily: fonts.body,
-    fontSize: 9.5,
     color: colors.inkSoft,
   },
-  presetPillSubActive: {
-    color: colors.clayDeep,
+  ribbonDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: colors.line,
+    marginHorizontal: 4,
   },
-  studioBody: {
-    flex: 1,
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-
-  /* ════ LEFT EDITOR PANE ════ */
-  editorColumn: {
-    flex: 1,
-    height: '100%',
-    backgroundColor: colors.paper,
-    borderRightWidth: 1,
-    borderRightColor: colors.line,
-  },
-  tabsHeader: {
-    backgroundColor: colors.paperCard,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    paddingVertical: 6,
-  },
-  tabsScroll: {
-    paddingHorizontal: 12,
-    gap: 6,
-    flexDirection: 'row',
-  },
-  tabButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radius.sm,
+  paperChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
   },
-  tabButtonActive: {
-    backgroundColor: colors.clayDeep,
-    borderColor: colors.clayDeep,
-  },
-  tabButtonText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    color: colors.ink,
-  },
-  tabButtonTextActive: {
-    color: colors.white,
-  },
-  tabButtonSub: {
-    fontFamily: fonts.body,
-    fontSize: 9,
-    color: colors.inkSoft,
-  },
-  tabButtonSubActive: {
-    color: 'rgba(255,255,255,0.85)',
-  },
-  formScroll: {
-    flex: 1,
-  },
-  formContent: {
-    padding: 16,
-    paddingBottom: 60,
-  },
-  sectionHeaderBox: {
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14.5,
-    color: colors.ink,
-  },
-  sectionDesc: {
-    fontFamily: fonts.body,
-    fontSize: 11.5,
-    color: colors.inkSoft,
-    marginTop: 2,
-  },
-  inputCard: {
-    backgroundColor: colors.paperCard,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: 14,
-    marginBottom: 14,
-    ...shadow.card,
-  },
-  cardHeaderSmall: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.ink,
-    marginBottom: 8,
-  },
-  inputLabel: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11.5,
-    color: colors.ink,
-    marginBottom: 4,
-  },
-  inputField: {
-    backgroundColor: colors.paper,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radius.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.ink,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  toggleLabel: {
-    fontFamily: fonts.body,
-    fontSize: 12.5,
-    color: colors.ink,
-  },
-  toggleSub: {
-    fontFamily: fonts.body,
-    fontSize: 10.5,
-    color: colors.inkSoft,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 4,
-  },
-  choiceChip: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: radius.sm,
-    backgroundColor: colors.paper,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  choiceChipActive: {
+  paperChipActive: {
     backgroundColor: colors.clayLight,
     borderColor: colors.clayDeep,
   },
-  choiceChipText: {
+  paperChipText: {
     fontFamily: fonts.body,
-    fontSize: 11,
+    fontSize: 10.5,
     color: colors.ink,
   },
-  choiceChipTextActive: {
+  paperChipTextActive: {
     fontFamily: fonts.bodyBold,
     color: colors.clayDeep,
   },
-  columnOptionRow: {
+  compactTogglePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
-  columnOptionTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.ink,
+  compactTogglePillActive: {
+    backgroundColor: colors.clayDeep,
+    borderColor: colors.clayDeep,
   },
-  columnOptionDesc: {
+  compactToggleText: {
     fontFamily: fonts.body,
     fontSize: 10.5,
     color: colors.inkSoft,
-    marginTop: 1,
   },
-  resetBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 9,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.danger,
-    backgroundColor: '#FEF2F2',
-  },
-  resetBtnText: {
+  compactToggleTextActive: {
     fontFamily: fonts.bodyBold,
-    fontSize: 11.5,
-    color: colors.danger,
+    color: colors.white,
   },
 
-  /* ════ RIGHT PREVIEW PANE ════ */
-  previewColumn: {
+  /* ════ CANVAS WORKSPACE ════ */
+  mainCanvasScroll: {
     flex: 1,
-    height: '100%',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEF2F6',
   },
-  previewHeaderStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: colors.paperCard,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-  },
-  previewTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.ink,
-  },
-  previewBadge: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    backgroundColor: '#E2E8F0',
-    color: colors.ink,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  previewScroll: {
-    flex: 1,
-  },
-  previewContent: {
+  mainCanvasContent: {
     padding: 16,
     alignItems: 'center',
     paddingBottom: 60,
   },
 
-  /* 🇮🇳 REALISTIC INDIAN BILL SHEET STYLES */
+  /* ════ REALISTIC INVOICE SHEET ════ */
   invoiceSheet: {
     width: '100%',
-    maxWidth: 580,
+    maxWidth: 680,
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1.5,
     ...shadow.card,
     elevation: 4,
     overflow: 'hidden',
   },
-  invoiceHeaderBanner: {
+  sheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 14,
+    padding: 16,
     borderBottomWidth: 2,
     gap: 12,
   },
-  invoiceStoreTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    letterSpacing: 0.5,
+  fieldWrap: {
+    position: 'relative',
   },
-  invoiceTagline: {
+  fieldGuideTag: {
     fontFamily: fonts.body,
-    fontSize: 10.5,
-    color: colors.inkSoft,
-    marginTop: 1,
+    fontSize: 8.5,
+    color: colors.clayDeep,
+    marginBottom: 1,
+    letterSpacing: 0.3,
   },
-  invoiceAddress: {
+  inlineStoreNameInput: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 17,
+    letterSpacing: 0.5,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.75)',
+  },
+  inlineTaglineInput: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+    paddingVertical: 1,
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.6)',
+  },
+  inlineAddressInput: {
     fontFamily: fonts.body,
     fontSize: 10.5,
     color: colors.ink,
-    marginTop: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.6)',
     lineHeight: 14,
   },
-  invoiceMetaInlineRow: {
+  inlineContactsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
     marginTop: 4,
   },
-  invoiceContactText: {
+  inlineContactInput: {
     fontFamily: fonts.body,
     fontSize: 10.5,
     color: colors.ink,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.6)',
   },
-  gstinText: {
+  gstinField: {
     fontFamily: fonts.bodyBold,
     color: colors.clayDeep,
   },
-  invoiceRightMeta: {
-    alignItems: 'flex-end',
-    minWidth: 130,
+  headerTogglesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
   },
-  invoiceTitleBadge: {
+  miniToggleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  miniToggleChipActive: {
+    backgroundColor: '#FAF5EE',
+    borderColor: colors.clayDeep,
+  },
+  miniToggleChipText: {
+    fontFamily: fonts.body,
+    fontSize: 9.5,
+    color: colors.inkSoft,
+  },
+  miniToggleChipTextActive: {
+    fontFamily: fonts.bodyBold,
+    color: colors.clayDeep,
+  },
+
+  /* Header Right */
+  sheetHeaderRight: {
+    alignItems: 'flex-end',
+    minWidth: 140,
+  },
+  inlineTitleBadgeInput: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.white,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
-    marginBottom: 4,
-  },
-  invoiceTitleBadgeText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10.5,
-    color: colors.white,
+    textAlign: 'center',
     letterSpacing: 0.8,
   },
-  invoiceMetaDetail: {
+  titleQuickPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: 3,
+    marginTop: 4,
+    marginBottom: 6,
+    maxWidth: 150,
+  },
+  titleChoicePill: {
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  titleChoicePillActive: {
+    backgroundColor: colors.clayLight,
+    borderColor: colors.clayDeep,
+  },
+  titleChoicePillText: {
+    fontFamily: fonts.body,
+    fontSize: 8.5,
+    color: colors.ink,
+  },
+  titleChoicePillTextActive: {
+    fontFamily: fonts.bodyBold,
+    color: colors.clayDeep,
+  },
+  invoiceMetaGroup: {
+    alignItems: 'flex-end',
+    gap: 1,
+  },
+  metaRowText: {
     fontFamily: fonts.body,
     fontSize: 10.5,
     color: colors.ink,
-    marginTop: 1,
   },
-  invoiceBuyerRow: {
+
+  /* Buyer Strip */
+  buyerDetailsStrip: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -1609,39 +1310,94 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
-  buyerLabel: {
+  buyerHeading: {
     fontFamily: fonts.body,
     fontSize: 9.5,
     color: colors.inkSoft,
   },
-  buyerName: {
+  buyerCustomerName: {
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     color: colors.ink,
   },
-  buyerMeta: {
+  buyerCustomerPhone: {
     fontFamily: fonts.body,
     fontSize: 10,
     color: colors.inkSoft,
   },
-  statusPillSmall: {
+  buyerStripRight: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  partialPaidTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: '#DCFCE7',
-    paddingHorizontal: 7,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: 6,
   },
-  statusPillSmallText: {
+  partialPaidTagText: {
     fontFamily: fonts.bodyBold,
     fontSize: 9.5,
     color: '#15803D',
   },
-  invoiceTable: {
+
+  /* Column Switcher Bar */
+  columnsSwitchBar: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  columnsSwitchLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  columnsSwitchTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10.5,
+    color: colors.ink,
+  },
+  columnsChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  colChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  colChipActive: {
+    backgroundColor: colors.clayDeep,
+    borderColor: colors.clayDeep,
+  },
+  colChipText: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.ink,
+  },
+  colChipTextActive: {
+    fontFamily: fonts.bodyBold,
+    color: colors.white,
+  },
+
+  /* Table */
+  tableWrap: {
     padding: 10,
   },
-  tableHeaderRow: {
+  tableHeader: {
     flexDirection: 'row',
     paddingHorizontal: 6,
     paddingVertical: 6,
@@ -1653,7 +1409,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.white,
   },
-  tableBodyRow: {
+  tableRow: {
     flexDirection: 'row',
     paddingHorizontal: 6,
     paddingVertical: 5,
@@ -1666,45 +1422,58 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     color: colors.ink,
   },
-  invoiceSummaryRow: {
+
+  /* Totals Section */
+  totalsSection: {
     flexDirection: 'row',
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
     backgroundColor: '#FAFAFA',
   },
-  amountWordsLabel: {
+  amountWordsTitle: {
     fontFamily: fonts.bodyBold,
     fontSize: 9.5,
     color: colors.inkSoft,
   },
-  amountWordsText: {
+  amountWordsValue: {
     fontFamily: fonts.body,
     fontSize: 10,
     color: colors.ink,
     fontStyle: 'italic',
-    marginTop: 2,
+    marginTop: 1,
   },
-  totalsTableBox: {
+  notesTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9.5,
+    color: colors.inkSoft,
+  },
+  notesText: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.ink,
+    marginTop: 1,
+  },
+  totalsCard: {
     width: 220,
     gap: 2,
   },
-  summaryLine: {
+  calcRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  summaryLineLabel: {
+  calcLabel: {
     fontFamily: fonts.body,
     fontSize: 10.5,
     color: colors.ink,
   },
-  summaryLineVal: {
+  calcVal: {
     fontFamily: fonts.bodyBold,
     fontSize: 10.5,
     color: colors.ink,
   },
-  summaryLineTotal: {
+  calcRowTotal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderTopWidth: 1.5,
@@ -1712,17 +1481,17 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     marginTop: 2,
   },
-  summaryLineTotalLabel: {
+  calcTotalLabel: {
     fontFamily: fonts.bodyBold,
     fontSize: 11.5,
     color: colors.ink,
   },
-  summaryLineTotalVal: {
+  calcTotalVal: {
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     color: colors.ink,
   },
-  summaryLineBalance: {
+  calcRowBalance: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#FEF2F2',
@@ -1733,75 +1502,113 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginTop: 4,
   },
-  summaryLineBalanceLabel: {
+  calcBalanceLabel: {
     fontFamily: fonts.bodyBold,
     fontSize: 10.5,
     color: colors.danger,
   },
-  summaryLineBalanceVal: {
+  calcBalanceVal: {
     fontFamily: fonts.bodyBold,
     fontSize: 11,
     color: colors.danger,
   },
-  invoicePaymentBox: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+
+  /* Bank & UPI QR Payment Section */
+  paymentContainer: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
   },
-  invoiceQrCard: {
+  paymentHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  paymentSectionHeading: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10.5,
+    color: colors.ink,
+  },
+  paymentInnerRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 4,
+  },
+  qrCardBox: {
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
     padding: 6,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    minWidth: 100,
+    minWidth: 110,
   },
-  qrIconWrap: {
+  qrIconFrame: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  qrCaption: {
+  qrLabel: {
     fontFamily: fonts.bodyBold,
     fontSize: 8.5,
     color: colors.ink,
     marginTop: 2,
   },
-  qrVpa: {
+  inlineUpiInput: {
     fontFamily: fonts.body,
-    fontSize: 8,
+    fontSize: 8.5,
     color: colors.clayDeep,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+    marginTop: 2,
+    textAlign: 'center',
   },
-  invoiceBankCard: {
+  bankCardBox: {
     flex: 1,
     backgroundColor: '#F8FAFC',
     padding: 6,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    justifyContent: 'center',
     minWidth: 140,
   },
-  bankCardTitle: {
+  bankBoxTitle: {
     fontFamily: fonts.bodyBold,
     fontSize: 9.5,
     color: colors.ink,
     marginBottom: 2,
   },
-  bankCardBody: {
+  inlineBankInput: {
     fontFamily: fonts.body,
     fontSize: 9,
-    color: colors.inkSoft,
+    color: colors.ink,
     lineHeight: 13,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
   },
-  invoiceFooterRow: {
+  noPaymentText: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.inkSoft,
+    fontStyle: 'italic',
+    paddingVertical: 4,
+  },
+
+  /* Footer Terms & Signature */
+  footerTermsSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 14,
@@ -1810,44 +1617,66 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     gap: 12,
   },
-  termsTitle: {
+  termsBoxTitle: {
     fontFamily: fonts.bodyBold,
     fontSize: 9.5,
     color: colors.ink,
   },
-  termsText: {
+  inlineTermsInput: {
     fontFamily: fonts.body,
     fontSize: 8.5,
-    color: colors.inkSoft,
+    color: colors.ink,
     lineHeight: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 4,
+    backgroundColor: '#F8FAFC',
   },
-  footerGreeting: {
+  inlineFooterGreetingInput: {
     fontFamily: fonts.bodyBold,
     fontSize: 9.5,
-    color: colors.clayDeep,
-    marginTop: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 4,
+    backgroundColor: '#F8FAFC',
   },
   signatoryCard: {
     width: 130,
     alignItems: 'center',
     justifyContent: 'flex-end',
   },
-  signDivider: {
+  signatoryBoxInner: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  signatoryLine: {
     width: '100%',
     height: 1,
     backgroundColor: '#94A3B8',
     marginBottom: 4,
   },
-  signBusinessName: {
+  signatoryStoreName: {
     fontFamily: fonts.bodyBold,
     fontSize: 9,
     color: colors.ink,
     textAlign: 'center',
   },
-  signDesignation: {
+  inlineSignatoryInput: {
     fontFamily: fonts.body,
     fontSize: 8,
     color: colors.inkSoft,
     textAlign: 'center',
+    paddingHorizontal: 2,
+    paddingVertical: 1,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 3,
+    backgroundColor: '#F8FAFC',
+    marginTop: 2,
   },
 });

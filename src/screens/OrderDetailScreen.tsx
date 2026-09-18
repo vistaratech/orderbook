@@ -151,6 +151,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
     tagline: bizProfile?.tagline || '',
     logoUri: bizProfile?.logoUri || '',
     bankDetails: bizProfile?.bankDetails || '',
+    upiId: bizProfile?.upiId || '',
   }), [bizProfile, userProfile]);
 
   const selectedPreset = INVOICE_THEME_PRESETS[selectedTemplate] || INVOICE_THEME_PRESETS['modern_slate'];

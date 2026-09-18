@@ -476,11 +476,11 @@ export default function InvoiceTemplateCustomizerScreen() {
                         <Text style={styles.fieldGuideTag}>SHOP / BUSINESS NAME</Text>
                       </View>
                       <TextInput
-                        style={[styles.inlineStoreNameInput, { color: config.headerTextColor || config.primaryColor }]}
+                        style={styles.inlineStoreNameInput}
                         value={bizProfile.businessName}
                         onChangeText={(v) => setBizProfile((p) => ({ ...p, businessName: v }))}
-                        placeholder="Your Store Name"
-                        placeholderTextColor="rgba(0,0,0,0.3)"
+                        placeholder="Your Store / Business Name"
+                        placeholderTextColor="rgba(15, 23, 42, 0.4)"
                       />
                     </View>
 
@@ -490,7 +490,7 @@ export default function InvoiceTemplateCustomizerScreen() {
                         value={bizProfile.tagline}
                         onChangeText={(v) => setBizProfile((p) => ({ ...p, tagline: v }))}
                         placeholder="Store Tagline / Wholesale & Retail"
-                        placeholderTextColor="rgba(0,0,0,0.3)"
+                        placeholderTextColor="rgba(15, 23, 42, 0.4)"
                       />
                     </View>
 
@@ -1299,6 +1299,7 @@ const styles = StyleSheet.create({
   inlineStoreNameInput: {
     fontFamily: fonts.bodyBold,
     fontSize: 18,
+    color: colors.ink,
     letterSpacing: 0.3,
     paddingVertical: 4,
     paddingHorizontal: 8,

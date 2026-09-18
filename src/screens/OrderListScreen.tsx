@@ -256,9 +256,9 @@ export default function OrderListScreen() {
               />
               <Text style={styles.quotaBannerText} numberOfLines={1}>
                 {orders.length >= (isBasic ? 150 : 10)
-                  ? `🚨 Free limit reached (${orders.length}/${isBasic ? 150 : 10} orders). Upgrade to Pro!`
+                  ? `🚨 Free limit reached (${orders.length}/${isBasic ? 150 : 10} orders). Upgrade from ₹99/mo!`
                   : orders.length >= (isBasic ? 120 : 7)
-                  ? `⚠️ Only ${Math.max(0, (isBasic ? 150 : 10) - orders.length)} free orders left (${orders.length}/${isBasic ? 150 : 10} used). Upgrade to Pro!`
+                  ? `⚠️ Only ${Math.max(0, (isBasic ? 150 : 10) - orders.length)} free orders left. Upgrade from ₹99/mo!`
                   : `📦 Free Plan: ${orders.length} of ${isBasic ? 150 : 10} free orders used (${Math.max(0, (isBasic ? 150 : 10) - orders.length)} left)`}
               </Text>
             </View>

@@ -224,7 +224,7 @@ export default function ReportsScreen() {
     if (!isPro) {
       triggerGlobalSubscriptionModal({
         title: '👑 Pro Analytics & Reports',
-        message: 'Exporting, downloading, and sharing detailed financial P&L reports is a Pro feature.\n\nUpgrade to KadaiBook Pro for unlimited financial exports, Excel & PDF statements!',
+        message: 'Exporting, downloading, and sharing detailed financial P&L reports is a premium feature.\n\nUpgrade starting from just ₹99/mo to unlock unlimited exports, Excel & PDF statements!',
         actionName: 'export and share business reports',
         onUpgrade: () => (navigation as any).navigate('PaywallScreen'),
       });

@@ -309,9 +309,9 @@ export default function CustomerListScreen() {
                 ]}
               >
                 {isLimitReached
-                  ? `🚨 Free customer limit reached (${customers.length}/${customerLimit})! Upgrade to Pro.`
+                  ? `🚨 Free customer limit reached (${customers.length}/${customerLimit})! Upgrade from ₹99/mo.`
                   : isWarning
-                  ? `⚠️ Only ${Math.max(0, customerLimit - customers.length)} free customers left! Upgrade to Pro.`
+                  ? `⚠️ Only ${Math.max(0, customerLimit - customers.length)} free customers left! Upgrade from ₹99/mo.`
                   : `${customers.length} of ${customerLimit} free customers used`}
               </Text>
               <Text

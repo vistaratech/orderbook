@@ -184,11 +184,11 @@ export default function SubscriptionLimitModal({
             </View>
           </View>
 
-          {/* Special Pro Yearly Highlight Offer */}
+          {/* Affordable Entry Highlight Offer */}
           <View style={styles.modalOfferCard}>
             <Ionicons name="sparkles" size={14} color="#CA8A04" />
             <Text style={styles.modalOfferText}>
-              <Text style={styles.modalOfferBold}>Pro Yearly @ ₹1,499/yr</Text> (Just ₹125/mo • Save 50%)
+              <Text style={styles.modalOfferBold}>Plans start from just ₹99/mo</Text> • Save more on Yearly
             </Text>
           </View>
 
@@ -202,7 +202,7 @@ export default function SubscriptionLimitModal({
               onPress={handleUpgradePress}
             >
               <Ionicons name="sparkles" size={18} color={colors.white} />
-              <Text style={styles.upgradeBtnText}>Upgrade to Pro • ₹1,499/yr</Text>
+              <Text style={styles.upgradeBtnText}>Upgrade • Starting @ ₹99/mo</Text>
               <Ionicons name="arrow-forward" size={16} color={colors.white} />
             </Pressable>
 

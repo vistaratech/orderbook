@@ -62,6 +62,52 @@ import { navigationRef } from './src/navigation/navigationRef';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const linking = {
+  prefixes: [
+    'https://kadaibook.in',
+    'http://localhost:8081',
+    'kadaibook://',
+    Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : '',
+  ].filter(Boolean),
+  config: {
+    screens: {
+      OnboardingWizard: 'onboarding',
+      Login: 'login',
+      Register: 'register',
+      ResetPassword: 'reset-password',
+      MainTabs: {
+        path: '',
+        screens: {
+          DashboardTab: '',
+          OrdersTab: 'orders',
+          ExpensesTab: 'expenses',
+          ReportsTab: 'reports',
+          MoreTab: 'more',
+        },
+      },
+      OrderList: 'orders-all',
+      OrderForm: 'order/form/:orderId?',
+      OrderDetail: 'order/:orderId',
+      ExpenseForm: 'expense/form/:expenseId?',
+      CustomerList: 'customers',
+      CustomerDetail: 'customer/:customerId',
+      CustomerForm: 'customer/form/:customerId?',
+      ProductList: 'products',
+      ProductForm: 'product/form/:productId?',
+      Settings: 'settings',
+      BusinessProfile: 'profile',
+      History: 'history',
+      PurchaseList: 'purchases',
+      PurchaseForm: 'purchase/form/:purchaseId?',
+      EstimateList: 'estimates',
+      EstimateForm: 'estimate/form/:estimateId?',
+      EstimateDetail: 'estimate/:estimateId',
+      InvoiceTemplateCustomizer: 'invoice-customizer',
+      PaywallScreen: 'upgrade',
+    },
+  },
+};
+
 const navTheme = {
   ...DefaultTheme,
   colors: {
@@ -227,7 +273,7 @@ export default function App() {
           <SubscriptionModalProvider>
             <View style={[{ flex: 1, backgroundColor: colors.paper }, isWeb ? styles.webOuterContainer : styles.mobileContainer]}>
             <View style={[{ flex: 1, backgroundColor: colors.paper }, isWeb ? styles.webInnerFrame : styles.mobileContainer]}>
-              <NavigationContainer ref={navigationRef} theme={navTheme}>
+              <NavigationContainer ref={navigationRef} theme={navTheme} linking={linking}>
                 <StatusBar style="dark" />
                 <Stack.Navigator
                   initialRouteName={initialRoute}

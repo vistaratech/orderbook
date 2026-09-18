@@ -30,6 +30,58 @@ import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+const TAB_URL_MAP: Record<string, string> = {
+  DashboardTab: '/',
+  OrdersTab: '/orders',
+  ExpensesTab: '/expenses',
+  ReportsTab: '/reports',
+  CustomerList: '/customers',
+  ProductList: '/products',
+  PurchaseList: '/purchases',
+  EstimateList: '/estimates',
+  History: '/history',
+  Settings: '/settings',
+  InvoiceTemplateCustomizer: '/invoice-customizer',
+  BusinessProfile: '/profile',
+  MoreTab: '/more',
+};
+
+function getTabFromPath(pathname: string): string {
+  const clean = (pathname || '').replace(/^\/+|\/+$/g, '').toLowerCase();
+  switch (clean) {
+    case 'orders':
+    case 'orders-all':
+      return 'OrdersTab';
+    case 'expenses':
+      return 'ExpensesTab';
+    case 'reports':
+      return 'ReportsTab';
+    case 'customers':
+      return 'CustomerList';
+    case 'products':
+      return 'ProductList';
+    case 'purchases':
+      return 'PurchaseList';
+    case 'estimates':
+      return 'EstimateList';
+    case 'history':
+      return 'History';
+    case 'invoice-customizer':
+      return 'InvoiceTemplateCustomizer';
+    case 'profile':
+    case 'business-profile':
+      return 'BusinessProfile';
+    case 'settings':
+      return 'Settings';
+    case 'more':
+      return 'MoreTab';
+    case 'dashboard':
+    case '':
+    default:
+      return 'DashboardTab';
+  }
+}
+
 function CentralOrderBottomBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
@@ -164,14 +216,52 @@ export default function TabNavigator() {
   const { width } = useWindowDimensions();
   const { setTabSwitcher, startTour } = useTour();
   const isDesktop = Platform.OS === 'web' && width >= 768;
-  const [activeTab, setActiveTab] = useState<string>('DashboardTab');
-  const [visitedTabs, setVisitedTabs] = useState<Record<string, boolean>>({ DashboardTab: true });
+
+  const getInitialTab = (): string => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const fromPath = getTabFromPath(window.location.pathname);
+      if (fromPath) return fromPath;
+      try {
+        const saved = sessionStorage.getItem('order_book:active_desktop_tab');
+        if (saved) return saved;
+      } catch {}
+    }
+    return 'DashboardTab';
+  };
+
+  const initial = getInitialTab();
+  const [activeTab, setActiveTab] = useState<string>(initial);
+  const [visitedTabs, setVisitedTabs] = useState<Record<string, boolean>>({ [initial]: true, DashboardTab: true });
 
   const handleSelectTab = (tab: string) => {
     if (!tab) return;
     setActiveTab(tab);
     setVisitedTabs((prev) => (prev[tab] ? prev : { ...prev, [tab]: true }));
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('order_book:active_desktop_tab', tab);
+        const targetUrl = TAB_URL_MAP[tab] || '/';
+        if (window.location.pathname !== targetUrl) {
+          window.history.replaceState(null, '', targetUrl);
+        }
+      } catch {}
+    }
   };
+
+  // Sync tab with browser back/forward buttons
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const handlePopState = () => {
+        const tab = getTabFromPath(window.location.pathname);
+        if (tab && tab !== activeTab) {
+          setActiveTab(tab);
+          setVisitedTabs((prev) => (prev[tab] ? prev : { ...prev, [tab]: true }));
+        }
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+    }
+  }, [activeTab]);
 
   // Register desktop tab switcher
   useEffect(() => {

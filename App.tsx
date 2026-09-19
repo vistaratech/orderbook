@@ -264,7 +264,7 @@ export default function App() {
 
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      document.title = 'KadaiBook — Smart Business & Order Management | kadaibook.in';
+      document.title = 'KadaiBook (kadaibook.in | kadaibook.com) — Digital Order Book & Billing App';
 
       let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
       if (!link) {

@@ -610,7 +610,7 @@ const styles = StyleSheet.create({
     gap: 3,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: radius.full,
+    borderRadius: radius.pill,
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderWidth: 1,
     borderColor: 'rgba(46, 42, 36, 0.1)',

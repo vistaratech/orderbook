@@ -41,7 +41,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function LoginScreen({ navigation, route }: Props) {
-  const { language, setLanguage, currentLangOption, availableLanguages } = useLanguage();
+  const { language, setLanguage, currentLangOption, availableLanguages, t } = useLanguage();
   const { width: windowWidth } = useWindowDimensions();
   const isDesktopWeb = Platform.OS === 'web' && windowWidth >= 960;
   const [showLangModal, setShowLangModal] = useState(false);
@@ -404,11 +404,10 @@ export default function LoginScreen({ navigation, route }: Props) {
 
   // ── Right-side login form content (used both mobile & desktop) ──
   const loginFormContent = (
-    <>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
@@ -446,7 +445,7 @@ export default function LoginScreen({ navigation, route }: Props) {
             >
               <Ionicons name="globe-outline" size={15} color="#2D2B28" />
               <Text style={styles.langDropdownText}>
-                {currentLangOption.label}
+                {currentLangOption.flag} {currentLangOption.nativeLabel}
               </Text>
               <Ionicons name="chevron-down" size={13} color="#4A463F" />
             </Pressable>
@@ -473,7 +472,7 @@ export default function LoginScreen({ navigation, route }: Props) {
               <Text style={styles.brandTitleBook}>Book</Text>
             </Text>
             <Text style={styles.brandSubtitle}>
-              Manage orders, invoices and expenses anywhere
+              {t('auth.subtitle', 'Manage orders, invoices and expenses anywhere')}
             </Text>
           </Animated.View>
 
@@ -505,7 +504,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                   authTab === 'login' && styles.switcherTextActive,
                 ]}
               >
-                Sign In
+                {t('auth.signInTab', 'Sign In')}
               </Text>
             </Pressable>
 
@@ -527,7 +526,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                   authTab === 'register' && styles.switcherTextActive,
                 ]}
               >
-                Create Account
+                {t('auth.createAccountTab', 'Create Account')}
               </Text>
             </Pressable>
           </Animated.View>
@@ -593,7 +592,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                         ) : (
                           <>
                             <GoogleIcon size={19} />
-                            <Text style={styles.googleBtnText}>Continue with Google</Text>
+                            <Text style={styles.googleBtnText}>{t('auth.googleSignIn', 'Continue with Google')}</Text>
                           </>
                         )}
                       </Pressable>
@@ -602,13 +601,13 @@ export default function LoginScreen({ navigation, route }: Props) {
                     {/* 2. Divider: or sign in with email */}
                     <View style={styles.divider}>
                       <View style={styles.dividerLine} />
-                      <Text style={styles.dividerText}>or sign in with email</Text>
+                      <Text style={styles.dividerText}>{t('auth.orEmailSignIn', 'or sign in with email')}</Text>
                       <View style={styles.dividerLine} />
                     </View>
 
                     {/* 3. Email Address Field */}
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Email Address</Text>
+                      <Text style={styles.inputLabel}>{t('auth.emailLabel', 'Email Address')}</Text>
                       <View
                         style={[
                           styles.inputBox,
@@ -633,7 +632,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                           keyboardType="email-address"
                           autoCapitalize="none"
                           autoComplete="email"
-                          placeholder="e.g. store@kadaibook.in"
+                          placeholder={t('auth.emailPlaceholder', 'e.g. store@kadaibook.in')}
                           placeholderTextColor="#9E9689"
                         />
                       </View>
@@ -641,7 +640,7 @@ export default function LoginScreen({ navigation, route }: Props) {
 
                     {/* 4. Password Field */}
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Password</Text>
+                      <Text style={styles.inputLabel}>{t('auth.passwordLabel', 'Password')}</Text>
                       <View
                         style={[
                           styles.inputBox,
@@ -665,7 +664,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                           }}
                           secureTextEntry={!showPassword}
                           autoComplete="password"
-                          placeholder="Enter your account password"
+                          placeholder={t('auth.passwordPlaceholder', 'Enter your account password')}
                           placeholderTextColor="#9E9689"
                         />
                         <Pressable
@@ -688,7 +687,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                       onPress={handleForgotPassword}
                       hitSlop={6}
                     >
-                      <Text style={styles.forgotBtnText}>Forgot Password?</Text>
+                      <Text style={styles.forgotBtnText}>{t('auth.forgotPassword', 'Forgot Password?')}</Text>
                     </Pressable>
 
                     {/* 6. Sign In to Store Button */}
@@ -708,7 +707,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                         ) : (
                           <>
                             <Ionicons name="log-in-outline" size={19} color="#FFFFFF" />
-                            <Text style={styles.primaryBtnText}>Sign In to Store</Text>
+                            <Text style={styles.primaryBtnText}>{t('auth.signInBtn', 'Sign In to Store')}</Text>
                             <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 2 }} />
                           </>
                         )}
@@ -718,7 +717,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                     {/* 7. Divider: or */}
                     <View style={[styles.divider, { marginVertical: 12 }]}>
                       <View style={styles.dividerLine} />
-                      <Text style={styles.dividerText}>or</Text>
+                      <Text style={styles.dividerText}>{t('auth.or', 'or')}</Text>
                       <View style={styles.dividerLine} />
                     </View>
 
@@ -737,7 +736,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                           style={{ marginRight: 6 }}
                         />
                         <Text style={styles.secondaryBtnText}>
-                          Explore as Guest / Public Visitor
+                          {t('auth.guestExplore', 'Explore as Guest / Public Visitor')}
                         </Text>
                       </Pressable>
                     </Animated.View>
@@ -761,7 +760,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                         ) : (
                           <>
                             <GoogleIcon size={19} />
-                            <Text style={styles.googleBtnText}>Continue with Google</Text>
+                            <Text style={styles.googleBtnText}>{t('auth.googleSignUp', 'Continue with Google')}</Text>
                           </>
                         )}
                       </Pressable>
@@ -770,13 +769,13 @@ export default function LoginScreen({ navigation, route }: Props) {
                     {/* Divider */}
                     <View style={styles.divider}>
                       <View style={styles.dividerLine} />
-                      <Text style={styles.dividerText}>or register with details</Text>
+                      <Text style={styles.dividerText}>{t('auth.orEmailSignUp', 'or register with details')}</Text>
                       <View style={styles.dividerLine} />
                     </View>
 
                     {/* Business Name */}
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Store / Business Name *</Text>
+                      <Text style={styles.inputLabel}>{t('auth.businessNameLabel', 'Store / Business Name *')}</Text>
                       <View
                         style={[
                           styles.inputBox,
@@ -798,7 +797,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                             setBusinessName(val);
                             if (errorMessage) setErrorMessage(null);
                           }}
-                          placeholder="e.g. Balaji Traders"
+                          placeholder={t('auth.businessNamePlaceholder', 'e.g. Balaji Traders')}
                           placeholderTextColor="#9E9689"
                         />
                       </View>
@@ -806,7 +805,7 @@ export default function LoginScreen({ navigation, route }: Props) {
 
                     {/* Owner Name */}
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Your Name *</Text>
+                      <Text style={styles.inputLabel}>{t('auth.ownerNameLabel', 'Your Name *')}</Text>
                       <View
                         style={[
                           styles.inputBox,
@@ -828,7 +827,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                             setOwnerName(val);
                             if (errorMessage) setErrorMessage(null);
                           }}
-                          placeholder="e.g. Ramesh Kumar"
+                          placeholder={t('auth.ownerNamePlaceholder', 'e.g. Ramesh Kumar')}
                           placeholderTextColor="#9E9689"
                         />
                       </View>
@@ -836,7 +835,7 @@ export default function LoginScreen({ navigation, route }: Props) {
 
                     {/* Email Address */}
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Email Address *</Text>
+                      <Text style={styles.inputLabel}>{t('auth.emailLabel', 'Email Address *')}</Text>
                       <View
                         style={[
                           styles.inputBox,
@@ -860,7 +859,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                           }}
                           keyboardType="email-address"
                           autoCapitalize="none"
-                          placeholder="store@example.com"
+                          placeholder={t('auth.emailPlaceholder', 'store@example.com')}
                           placeholderTextColor="#9E9689"
                         />
                       </View>
@@ -868,7 +867,7 @@ export default function LoginScreen({ navigation, route }: Props) {
 
                     {/* Phone */}
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Phone Number</Text>
+                      <Text style={styles.inputLabel}>{t('auth.phoneLabel', 'Phone Number')}</Text>
                       <View
                         style={[
                           styles.inputBox,
@@ -891,7 +890,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                             if (errorMessage) setErrorMessage(null);
                           }}
                           keyboardType="phone-pad"
-                          placeholder="10-digit mobile number"
+                          placeholder={t('auth.phonePlaceholder', '10-digit mobile number')}
                           placeholderTextColor="#9E9689"
                         />
                       </View>
@@ -899,7 +898,7 @@ export default function LoginScreen({ navigation, route }: Props) {
 
                     {/* Password */}
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Password * (min 6)</Text>
+                      <Text style={styles.inputLabel}>{t('auth.passwordLabel', 'Password * (min 6)')}</Text>
                       <View
                         style={[
                           styles.inputBox,
@@ -922,7 +921,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                             if (errorMessage) setErrorMessage(null);
                           }}
                           secureTextEntry={!showRegPassword}
-                          placeholder="Enter secure password"
+                          placeholder={t('auth.passwordPlaceholder', 'Enter secure password')}
                           placeholderTextColor="#9E9689"
                         />
                         <Pressable
@@ -956,7 +955,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                         ) : (
                           <>
                             <Ionicons name="person-add-outline" size={19} color="#FFFFFF" />
-                            <Text style={styles.primaryBtnText}>Create Store Account</Text>
+                            <Text style={styles.primaryBtnText}>{t('auth.createAccountBtn', 'Create Free Store Account')}</Text>
                           </>
                         )}
                       </Pressable>
@@ -985,8 +984,8 @@ export default function LoginScreen({ navigation, route }: Props) {
                   hitSlop={6}
                 >
                   <Text style={styles.toggleText}>
-                    Don't have an account?{' '}
-                    <Text style={styles.toggleHighlight}>Create Account</Text>
+                    {t('auth.noAccount', "Don't have an account?")}{' '}
+                    <Text style={styles.toggleHighlight}>{t('auth.createAccountLink', 'Create Account')}</Text>
                   </Text>
                 </Pressable>
               ) : (
@@ -995,8 +994,8 @@ export default function LoginScreen({ navigation, route }: Props) {
                   hitSlop={6}
                 >
                   <Text style={styles.toggleText}>
-                    Already have an account?{' '}
-                    <Text style={styles.toggleHighlight}>Sign In</Text>
+                    {t('auth.haveAccount', 'Already have an account?')}{' '}
+                    <Text style={styles.toggleHighlight}>{t('auth.loginLink', 'Sign In')}</Text>
                   </Text>
                 </Pressable>
               )}
@@ -1026,7 +1025,7 @@ export default function LoginScreen({ navigation, route }: Props) {
             {/* Privacy Policy & Terms Link at bottom */}
             <View style={styles.legalFooter}>
               <Text style={styles.legalText}>
-                By continuing, you agree to our{' '}
+                {t('auth.agreeTerms', 'By continuing, you agree to our')}{' '}
                 <Text
                   style={styles.legalLink}
                   onPress={async () => {
@@ -1038,7 +1037,7 @@ export default function LoginScreen({ navigation, route }: Props) {
                     }
                   }}
                 >
-                  Privacy Policy
+                  {t('auth.privacyPolicy', 'Privacy Policy')}
                 </Text>
                 {' & '}
                 <Text
@@ -1052,171 +1051,45 @@ export default function LoginScreen({ navigation, route }: Props) {
                     }
                   }}
                 >
-                  Terms of Service
+                  {t('auth.termsOfService', 'Terms of Service')}
                 </Text>
               </Text>
             </View>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+  );
 
-      {/* ─── Forgot Password Modal ──────────────────────── */}
-      <Modal
-        visible={showForgotModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowForgotModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.modalCenterWrap}
-          >
-            <View style={styles.modalCard}>
-              <View style={styles.modalHeader}>
-                <View style={styles.modalIconWrap}>
-                  <Ionicons name="key-outline" size={22} color="#A5513E" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.modalTitle}>Reset Password</Text>
-                  <Text style={styles.modalSub}>
-                    Enter your registered email to receive a password reset link.
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => setShowForgotModal(false)}
-                  style={styles.modalCloseBtn}
-                  hitSlop={8}
-                >
-                  <Ionicons name="close" size={20} color="#6E6659" />
-                </Pressable>
+  // ─── Forgot Password Modal ────────────────────────
+  const forgotModal = (
+    <Modal
+      visible={showForgotModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowForgotModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <Pressable
+          style={[StyleSheet.absoluteFill, { zIndex: 1 }]}
+          onPress={() => setShowForgotModal(false)}
+        />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={[styles.modalCenterWrap, { zIndex: 10 }]}
+        >
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIconWrap}>
+                <Ionicons name="key-outline" size={22} color="#A5513E" />
               </View>
-
-              {/* Success Banner */}
-              {forgotSuccess ? (
-                <View style={styles.forgotSuccessBox}>
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={20}
-                    color="#2E7D32"
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text style={styles.forgotSuccessText}>{forgotSuccess}</Text>
-                </View>
-              ) : null}
-
-              {/* Error Banner */}
-              {forgotError ? (
-                <View style={styles.forgotErrorBox}>
-                  <Ionicons
-                    name="alert-circle-outline"
-                    size={20}
-                    color="#B9483D"
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text style={styles.forgotErrorText}>{forgotError}</Text>
-                </View>
-              ) : null}
-
-              {!forgotSuccess ? (
-                <>
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Registered Email Address</Text>
-                    <View style={styles.inputBox}>
-                      <Ionicons
-                        name="mail-outline"
-                        size={18}
-                        color="#6E6659"
-                        style={styles.inputIcon}
-                      />
-                      <TextInput
-                        style={styles.textInput}
-                        value={forgotEmail}
-                        onChangeText={(val) => {
-                          setForgotEmail(val);
-                          if (forgotError) setForgotError(null);
-                        }}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoComplete="email"
-                        placeholder="your.email@example.com"
-                        placeholderTextColor="#8E8678"
-                        autoFocus
-                      />
-                      {forgotEmail.length > 0 && (
-                        <Pressable onPress={() => setForgotEmail('')} hitSlop={8}>
-                          <Ionicons name="close-circle" size={18} color="#6E6659" />
-                        </Pressable>
-                      )}
-                    </View>
-                  </View>
-
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.primaryBtn,
-                      forgotLoading && styles.disabledBtn,
-                      pressed && { opacity: 0.88 },
-                    ]}
-                    onPress={handleSendResetEmail}
-                    disabled={forgotLoading}
-                  >
-                    {forgotLoading ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <>
-                        <Ionicons
-                          name="paper-plane-outline"
-                          size={18}
-                          color="#FFFFFF"
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text style={styles.primaryBtnText}>Send Reset Link</Text>
-                      </>
-                    )}
-                  </Pressable>
-                </>
-              ) : (
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.primaryBtn,
-                    { marginTop: 14 },
-                    pressed && { opacity: 0.88 },
-                  ]}
-                  onPress={() => setShowForgotModal(false)}
-                >
-                  <Text style={styles.primaryBtnText}>Back to Sign In</Text>
-                </Pressable>
-              )}
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-
-      {/* ─── Choose Language Modal ─── */}
-      <Modal
-        visible={showLangModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowLangModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setShowLangModal(false)}
-          />
-          <View style={styles.langModalCard}>
-            <View style={styles.langModalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={styles.langIconCircle}>
-                  <Ionicons name="language" size={20} color="#A5513E" />
-                </View>
-                <View>
-                  <Text style={styles.langModalTitle}>Choose Language / மொழி</Text>
-                  <Text style={styles.langModalSub}>Select your preferred language</Text>
-                </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>{t('auth.resetTitle', 'Reset Password')}</Text>
+                <Text style={styles.modalSub}>
+                  {t('auth.resetSubtitle', 'Enter your registered email to receive a password reset link.')}
+                </Text>
               </View>
               <Pressable
-                onPress={() => setShowLangModal(false)}
+                onPress={() => setShowForgotModal(false)}
                 style={styles.modalCloseBtn}
                 hitSlop={8}
               >
@@ -1224,96 +1097,237 @@ export default function LoginScreen({ navigation, route }: Props) {
               </Pressable>
             </View>
 
-            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
-              <View style={{ gap: 8 }}>
-                {availableLanguages.map((item) => {
-                  const isActive = language === item.code;
-                  return (
-                    <Pressable
-                      key={item.code}
-                      style={({ pressed }) => [
-                        styles.langGridCard,
-                        isActive && styles.langGridCardActive,
-                        pressed && { opacity: 0.85 },
-                      ]}
-                      onPress={() => {
-                        setLanguage(item.code);
-                        setShowLangModal(false);
-                      }}
-                    >
-                      <Text style={{ fontSize: 20 }}>{item.flag}</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={[
-                            styles.langGridNative,
-                            isActive && { color: '#A5513E' },
-                          ]}
-                        >
-                          {item.nativeLabel}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.langGridEnglish,
-                            isActive && { color: '#A5513E' },
-                          ]}
-                        >
-                          {item.label}
-                        </Text>
-                      </View>
-                      {isActive && (
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={18}
-                          color="#A5513E"
-                        />
-                      )}
-                    </Pressable>
-                  );
-                })}
+            {/* Success Banner */}
+            {forgotSuccess ? (
+              <View style={styles.forgotSuccessBox}>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={20}
+                  color="#2E7D32"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.forgotSuccessText}>{forgotSuccess}</Text>
               </View>
-            </ScrollView>
+            ) : null}
+
+            {/* Error Banner */}
+            {forgotError ? (
+              <View style={styles.forgotErrorBox}>
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={20}
+                  color="#B9483D"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.forgotErrorText}>{forgotError}</Text>
+              </View>
+            ) : null}
+
+            {!forgotSuccess ? (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>{t('auth.registeredEmail', 'Registered Email Address')}</Text>
+                  <View style={styles.inputBox}>
+                    <Ionicons
+                      name="mail-outline"
+                      size={18}
+                      color="#6E6659"
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      style={styles.textInput}
+                      value={forgotEmail}
+                      onChangeText={(val) => {
+                        setForgotEmail(val);
+                        if (forgotError) setForgotError(null);
+                      }}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoComplete="email"
+                      placeholder="your.email@example.com"
+                      placeholderTextColor="#8E8678"
+                      autoFocus
+                    />
+                    {forgotEmail.length > 0 && (
+                      <Pressable onPress={() => setForgotEmail('')} hitSlop={8}>
+                        <Ionicons name="close-circle" size={18} color="#6E6659" />
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.primaryBtn,
+                    forgotLoading && styles.disabledBtn,
+                    pressed && { opacity: 0.88 },
+                  ]}
+                  onPress={handleSendResetEmail}
+                  disabled={forgotLoading}
+                >
+                  {forgotLoading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="paper-plane-outline"
+                        size={18}
+                        color="#FFFFFF"
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text style={styles.primaryBtnText}>{t('auth.sendResetLink', 'Send Reset Link')}</Text>
+                    </>
+                  )}
+                </Pressable>
+              </>
+            ) : (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.primaryBtn,
+                  { marginTop: 14 },
+                  pressed && { opacity: 0.88 },
+                ]}
+                onPress={() => setShowForgotModal(false)}
+              >
+                <Text style={styles.primaryBtnText}>{t('auth.backToSignIn', 'Back to Sign In')}</Text>
+              </Pressable>
+            )}
           </View>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
+  );
+
+  // ─── Choose Language Modal ───
+  const langModal = (
+    <Modal
+      visible={showLangModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowLangModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <Pressable
+          style={[StyleSheet.absoluteFill, { zIndex: 1 }]}
+          onPress={() => setShowLangModal(false)}
+        />
+        <View style={[styles.langModalCard, { zIndex: 10 }]}>
+          <View style={styles.langModalHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={styles.langIconCircle}>
+                <Ionicons name="language" size={20} color="#A5513E" />
+              </View>
+              <View>
+                <Text style={styles.langModalTitle}>{t('auth.languageModalTitle', 'Choose App Language')}</Text>
+                <Text style={styles.langModalSub}>{t('auth.languageModalSubtitle', 'Select your preferred language')}</Text>
+              </View>
+            </View>
+            <Pressable
+              onPress={() => setShowLangModal(false)}
+              style={styles.modalCloseBtn}
+              hitSlop={8}
+            >
+              <Ionicons name="close" size={20} color="#6E6659" />
+            </Pressable>
+          </View>
+
+          <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+            <View style={{ gap: 8 }}>
+              {availableLanguages.map((item) => {
+                const isActive = language === item.code;
+                return (
+                  <Pressable
+                    key={item.code}
+                    style={({ pressed }) => [
+                      styles.langGridCard,
+                      isActive && styles.langGridCardActive,
+                      pressed && { opacity: 0.85 },
+                    ]}
+                    onPress={() => {
+                      setLanguage(item.code);
+                      setShowLangModal(false);
+                    }}
+                  >
+                    <Text style={{ fontSize: 20 }}>{item.flag}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[
+                          styles.langGridNative,
+                          isActive && { color: '#A5513E' },
+                        ]}
+                      >
+                        {item.nativeLabel}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.langGridEnglish,
+                          isActive && { color: '#A5513E' },
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </View>
+                    {isActive && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={18}
+                        color="#A5513E"
+                      />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </ScrollView>
         </View>
-      </Modal>
-    </>
+      </View>
+    </Modal>
   );
 
   // ── Desktop Web: Two-column split layout ──
   if (isDesktopWeb) {
     return (
-      <View style={styles.desktopRoot}>
-        {/* Left Panel: Branding + Illustration */}
-        <View style={styles.desktopLeftPanel}>
-          <LoginDesktopLeftPanel />
-        </View>
+      <>
+        <View style={styles.desktopRoot}>
+          {/* Left Panel: Branding + Illustration */}
+          <View style={styles.desktopLeftPanel}>
+            <LoginDesktopLeftPanel />
+          </View>
 
-        {/* Right Panel: Login Form */}
-        <View style={styles.desktopRightPanel}>
-          <SafeAreaView style={[styles.screen, styles.desktopRightInner]} edges={['top', 'bottom']}>
-            {loginFormContent}
-          </SafeAreaView>
+          {/* Right Panel: Login Form */}
+          <View style={styles.desktopRightPanel}>
+            <SafeAreaView style={[styles.screen, styles.desktopRightInner]} edges={['top', 'bottom']}>
+              {loginFormContent}
+            </SafeAreaView>
 
-          {/* Bottom Right Botanical Leaf Accent */}
-          <View style={styles.leafAccentRight} pointerEvents="none">
-            <Svg width={90} height={140} viewBox="0 0 90 140">
-              <G opacity={0.65}>
-                <Path d="M 90 140 Q 60 100, 45 40" stroke="#5A6D52" strokeWidth="2.5" fill="none" />
-                <Path d="M 45 40 Q 15 35, 10 15 Q 35 20, 45 40 Z" fill="#6B8062" />
-                <Path d="M 52 70 Q 20 68, 12 50 Q 38 55, 52 70 Z" fill="#7D9474" />
-                <Path d="M 60 100 Q 25 102, 18 85 Q 45 88, 60 100 Z" fill="#5E7356" />
-              </G>
-            </Svg>
+            {/* Bottom Right Botanical Leaf Accent */}
+            <View style={styles.leafAccentRight} pointerEvents="none">
+              <Svg width={90} height={140} viewBox="0 0 90 140">
+                <G opacity={0.65}>
+                  <Path d="M 90 140 Q 60 100, 45 40" stroke="#5A6D52" strokeWidth="2.5" fill="none" />
+                  <Path d="M 45 40 Q 15 35, 10 15 Q 35 20, 45 40 Z" fill="#6B8062" />
+                  <Path d="M 52 70 Q 20 68, 12 50 Q 38 55, 52 70 Z" fill="#7D9474" />
+                  <Path d="M 60 100 Q 25 102, 18 85 Q 45 88, 60 100 Z" fill="#5E7356" />
+                </G>
+              </Svg>
+            </View>
           </View>
         </View>
-      </View>
+        {forgotModal}
+        {langModal}
+      </>
     );
   }
 
   // ── Mobile: Single-column layout ──
   return (
-    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-      {loginFormContent}
-    </SafeAreaView>
+    <>
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+        {loginFormContent}
+      </SafeAreaView>
+      {forgotModal}
+      {langModal}
+    </>
   );
 }
 
@@ -1723,14 +1737,16 @@ const styles = StyleSheet.create({
   // ── Modal Styles ──
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    zIndex: 99999,
   },
   modalCenterWrap: {
     width: '100%',
     maxWidth: 420,
+    zIndex: 10,
   },
   modalCard: {
     width: '100%',
@@ -1741,9 +1757,10 @@ const styles = StyleSheet.create({
     padding: 22,
     shadowColor: '#3A2E2B',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 6,
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
+    zIndex: 10,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1818,9 +1835,10 @@ const styles = StyleSheet.create({
     padding: 20,
     shadowColor: '#3A2E2B',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 6,
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    elevation: 10,
+    zIndex: 10,
   },
   langModalHeader: {
     flexDirection: 'row',

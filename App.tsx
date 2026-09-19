@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, Platform, Text, Image } from 'react-native';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, getStateFromPath } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -62,8 +62,11 @@ import { navigationRef } from './src/navigation/navigationRef';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+let activeAuthRoute: keyof RootStackParamList = 'Login';
+
 const linking = {
   prefixes: [
+    'https://www.kadaibook.in',
     'https://kadaibook.in',
     'http://localhost:8081',
     'kadaibook://',
@@ -76,9 +79,9 @@ const linking = {
       Register: 'register',
       ResetPassword: 'reset-password',
       MainTabs: {
-        path: '',
+        path: 'app',
         screens: {
-          DashboardTab: '',
+          DashboardTab: 'dashboard',
           OrdersTab: 'orders',
           ExpensesTab: 'expenses',
           ReportsTab: 'reports',
@@ -105,6 +108,40 @@ const linking = {
       InvoiceTemplateCustomizer: 'invoice-customizer',
       PaywallScreen: 'upgrade',
     },
+  },
+  getStateFromPath: (path: string, options: any) => {
+    const cleanPath = path.split('?')[0].replace(/^\/+|\/+$/g, '');
+
+    // Root URL (e.g. kadaibook.in from WhatsApp, Instagram, or browser)
+    if (!cleanPath) {
+      if (activeAuthRoute === 'MainTabs') {
+        return {
+          routes: [
+            {
+              name: 'MainTabs',
+              state: {
+                routes: [{ name: 'DashboardTab' }],
+              },
+            },
+          ],
+        };
+      }
+      return {
+        routes: [{ name: activeAuthRoute }],
+      };
+    }
+
+    // Protected route safety guard: unauthenticated users are routed to Login
+    if (activeAuthRoute !== 'MainTabs') {
+      const publicRoutes = ['login', 'register', 'reset-password', 'onboarding'];
+      if (!publicRoutes.includes(cleanPath)) {
+        return {
+          routes: [{ name: activeAuthRoute }],
+        };
+      }
+    }
+
+    return getStateFromPath(path, options);
   },
 };
 
@@ -169,21 +206,25 @@ export default function App() {
     getAuthState()
       .then((state) => {
         if (!isMounted) return;
+        let route: keyof RootStackParamList = 'Login';
         if (!state.isOnboarded) {
-          setInitialRoute('OnboardingWizard');
+          route = 'OnboardingWizard';
         } else if (!state.isLoggedIn) {
-          setInitialRoute('Login');
+          route = 'Login';
         } else {
           if (state.user?.uid) {
             setCurrentUidCache(state.user.uid);
             initRevenueCat(state.user.uid).catch(console.warn);
           }
-          setInitialRoute('MainTabs');
+          route = 'MainTabs';
         }
+        activeAuthRoute = route;
+        setInitialRoute(route);
       })
       .catch((err) => {
         console.warn('[App] getAuthState error, defaulting to OnboardingWizard:', err);
         if (isMounted) {
+          activeAuthRoute = 'OnboardingWizard';
           setInitialRoute('OnboardingWizard');
         }
       });

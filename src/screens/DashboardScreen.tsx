@@ -31,6 +31,7 @@ import { getOrders, setOrderStatus } from '../storage/orderStorage';
 import { getExpenses } from '../storage/expenseStorage';
 import { getLowStockProducts } from '../storage/productStorage';
 import { addDataListener } from '../storage/firebaseSync';
+import { getAuthState } from '../storage/authStorage';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
 import { formatCurrency, formatDate } from '../utils/format';
 import AppLogo from '../components/AppLogo';
@@ -96,8 +97,22 @@ export default function DashboardScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadData(false);
-    }, [loadData])
+      let isMounted = true;
+      getAuthState().then((auth) => {
+        if (!isMounted) return;
+        if (!auth.isLoggedIn) {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          });
+          return;
+        }
+        loadData(false);
+      });
+      return () => {
+        isMounted = false;
+      };
+    }, [loadData, navigation])
   );
 
   // Subscribe to live Firestore changes from other devices

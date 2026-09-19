@@ -4,13 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Account Deletion - KadaiBook</title>
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="canonical" href="https://www.kadaibook.in/delete-account.html">
+  <meta name="description" content="Request account and personal data deletion for KadaiBook (kadaibook.in).">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
     :root {
       --primary-text: #282c3f;
       --secondary-text: #535665;
       --border-color: #e9e9eb;
+      --accent-color: #0284c7;
     }
     
     * {
@@ -22,9 +26,8 @@
     body {
       font-family: 'Gilroy', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       font-size: 16px;
-      font-weight: 200;
-      line-height: 21px;
-      letter-spacing: -0.4px;
+      font-weight: 400;
+      line-height: 1.6;
       color: var(--primary-text);
       background-color: #ffffff;
       -webkit-font-smoothing: antialiased;
@@ -52,11 +55,12 @@
       width: 45px;
       height: 45px;
       border-radius: 12px;
+      object-fit: cover;
     }
 
     .header-title {
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 700;
       letter-spacing: 1px;
       color: var(--secondary-text);
       text-transform: uppercase;
@@ -69,32 +73,38 @@
     }
 
     h1 {
-      font-weight: 700;
-      font-size: 24px;
-      margin-bottom: 24px;
+      font-weight: 800;
+      font-size: 28px;
+      margin-bottom: 16px;
+      color: #111827;
     }
 
     h2 {
       font-weight: 700;
-      margin: 40px 0 20px;
+      font-size: 20px;
+      margin: 36px 0 16px;
       text-transform: uppercase;
+      color: #111827;
+      letter-spacing: 0.5px;
     }
 
     p {
-      margin-bottom: 24px;
+      margin-bottom: 20px;
+      color: #374151;
     }
 
     ul, ol {
-      margin-bottom: 24px;
-      padding-left: 20px;
+      margin-bottom: 20px;
+      padding-left: 24px;
+      color: #374151;
     }
 
     li {
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     a {
-      color: #0284C7;
+      color: var(--accent-color);
       text-decoration: none;
       font-weight: 600;
     }
@@ -104,11 +114,23 @@
     }
 
     .contact-box {
-      background-color: #F8FAFC;
+      background-color: #f8fafc;
       border: 1px solid var(--border-color);
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 24px;
-      margin-top: 32px;
+      margin-top: 36px;
+    }
+
+    .footer-nav {
+      margin-top: 50px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--secondary-text);
     }
   </style>
 </head>
@@ -116,7 +138,7 @@
 
   <header class="header-container">
     <div class="header-content">
-      <img src="icon.png" alt="KadaiBook Logo" class="logo">
+      <img src="/icon.png" alt="KadaiBook Logo" class="logo">
       <span class="header-title">DATA DELETION REQUEST</span>
     </div>
   </header>
@@ -136,18 +158,36 @@
     </ul>
 
     <h2>How to Request Deletion</h2>
-    <p>To request the deletion of your account and all associated data, please follow these steps:</p>
+    <p>To request the deletion of your account and all associated data, you have two simple options:</p>
+
+    <h3>Option 1: Instant in-app deletion</h3>
+    <p>If you are logged into the KadaiBook mobile application:</p>
     <ol>
-      <li>Send an email to our privacy and support team at: <strong>privacy@kadaibook.com</strong> (or your support email address).</li>
-      <li>Use the subject line: <strong>"Account Deletion Request"</strong>.</li>
-      <li>In the body of the email, include the email address or phone number associated with your KadaiBook account so we can verify your identity.</li>
+      <li>Go to <strong>Settings</strong> screen.</li>
+      <li>Scroll down to the <strong>Danger Zone</strong>.</li>
+      <li>Tap <strong>Delete Account</strong> and confirm your password to instantly erase all your data.</li>
     </ol>
-    
-    <p>Alternatively, if you are logged into the KadaiBook app, you can navigate to <strong>Settings -> Delete Account</strong> (if available in your app version) to instantly and securely erase your data.</p>
+
+    <h3>Option 2: Email request</h3>
+    <ol>
+      <li>Send an email to our support team at: <strong><a href="mailto:info.vistaratech@gmail.com">info.vistaratech@gmail.com</a></strong>.</li>
+      <li>Use the subject line: <strong>"Account Deletion Request"</strong>.</li>
+      <li>In the body of the email, include the phone number or email address linked to your KadaiBook account for verification.</li>
+    </ol>
 
     <div class="contact-box">
       <h2>Data Retention Policy</h2>
-      <p>Once an account deletion request is verified, your data is immediately queued for permanent deletion. Due to automated backup cycles, it may take up to 90 days for your data to be entirely purged from our encrypted offline backups, but it will no longer be accessible to you or our systems.</p>
+      <p>Once an account deletion request is initiated, your data is immediately queued for permanent erasure. Due to automated backup cycles, it may take up to 30 days for archived data to be completely overwritten, during which it will remain inaccessible.</p>
+    </div>
+
+    <div class="footer-nav">
+      <div>&copy; 2026 KadaiBook (kadaibook.in). All rights reserved.</div>
+      <div>
+        <a href="/">Home</a> &bull; 
+        <a href="/privacy.html">Privacy Policy</a> &bull; 
+        <a href="/terms.html">Terms of Service</a> &bull; 
+        <a href="/delete-account.html">Delete Account</a>
+      </div>
     </div>
   </main>
 

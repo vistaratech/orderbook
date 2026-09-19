@@ -20,6 +20,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as WebBrowser from 'expo-web-browser';
 
 import { RootStackParamList } from '../navigation/types';
 import {
@@ -314,12 +315,22 @@ export default function SettingsScreen() {
     }
   };
 
-  const openPrivacyPolicy = () => {
-    Linking.openURL('https://kadaibook.in/privacy');
+  const openPrivacyPolicy = async () => {
+    const url = 'https://www.kadaibook.in/privacy.html';
+    try {
+      await WebBrowser.openBrowserAsync(url);
+    } catch {
+      Linking.openURL(url);
+    }
   };
 
-  const openTermsOfService = () => {
-    Linking.openURL('https://kadaibook.in/terms');
+  const openTermsOfService = async () => {
+    const url = 'https://www.kadaibook.in/terms.html';
+    try {
+      await WebBrowser.openBrowserAsync(url);
+    } catch {
+      Linking.openURL(url);
+    }
   };
 
   if (loading) {

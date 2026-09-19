@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import Svg, { Path, G, Rect, Defs, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 
 import { RootStackParamList } from '../navigation/types';
@@ -1028,14 +1029,28 @@ export default function LoginScreen({ navigation, route }: Props) {
                 By continuing, you agree to our{' '}
                 <Text
                   style={styles.legalLink}
-                  onPress={() => Linking.openURL('https://kadaibook.in/privacy')}
+                  onPress={async () => {
+                    const url = 'https://www.kadaibook.in/privacy.html';
+                    try {
+                      await WebBrowser.openBrowserAsync(url);
+                    } catch {
+                      Linking.openURL(url);
+                    }
+                  }}
                 >
                   Privacy Policy
                 </Text>
                 {' & '}
                 <Text
                   style={styles.legalLink}
-                  onPress={() => Linking.openURL('https://kadaibook.in/terms')}
+                  onPress={async () => {
+                    const url = 'https://www.kadaibook.in/terms.html';
+                    try {
+                      await WebBrowser.openBrowserAsync(url);
+                    } catch {
+                      Linking.openURL(url);
+                    }
+                  }}
                 >
                   Terms of Service
                 </Text>

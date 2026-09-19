@@ -70,13 +70,27 @@ export function useGoogleAuth(options?: UseGoogleAuthOptions) {
 
     // Native Android / iOS: use the native GoogleSignin module
     try {
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      if (GoogleSignin) {
+        GoogleSignin.configure({
+          webClientId: GOOGLE_WEB_CLIENT_ID,
+          offlineAccess: false,
+        });
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
+
       const userInfo = await GoogleSignin.signIn();
-      const idToken = userInfo?.data?.idToken;
+
+      // Handle user cancellation in @react-native-google-signin v16+
+      if (userInfo?.type === 'cancelled') {
+        setLoading(false);
+        return { success: false };
+      }
+
+      const idToken = userInfo?.data?.idToken ?? (userInfo as any)?.idToken;
 
       if (!idToken) {
         setLoading(false);
-        setError('Could not get ID token from Google.');
+        setError('Could not get ID token from Google. Please try again.');
         return { success: false };
       }
 
@@ -91,11 +105,27 @@ export function useGoogleAuth(options?: UseGoogleAuthOptions) {
       return result;
     } catch (err: any) {
       setLoading(false);
-      const msg = err?.code === '10'
-        ? 'Google Sign-In configuration error. Check SHA-1 fingerprints in Firebase Console.'
-        : err?.message || 'Google Sign-In failed.';
+      const errorCode = String(err?.code || '');
+      const errorMsg = String(err?.message || '');
+
+      // User cancelled sign-in (back button or closed dialog)
+      if (errorCode === '12501' || errorCode === 'SIGN_IN_CANCELLED' || errorMsg.includes('cancelled')) {
+        return { success: false };
+      }
+
+      // Developer Error (Code 10 / 12500) — SHA-1 missing in Firebase
+      let msg = 'Google Sign-In failed.';
+      if (errorCode === '10' || errorCode === '12500' || errorMsg.includes('DEVELOPER_ERROR') || errorMsg.includes('10')) {
+        msg = 'Google Sign-In Error (Code 10: DEVELOPER_ERROR). The app SHA-1 fingerprint is not registered in Firebase Console.';
+      } else if (errorCode === 'PLAY_SERVICES_NOT_AVAILABLE') {
+        msg = 'Google Play Services is not available or outdated on this device.';
+      } else if (errorMsg) {
+        msg = errorMsg;
+      }
+
+      console.warn('[GoogleAuth] Native sign-in error:', err);
       setError(msg);
-      return { success: false };
+      return { success: false, error: msg };
     }
   }, []);
 

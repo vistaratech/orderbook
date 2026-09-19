@@ -17,7 +17,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
-import { registerUser, loginAsGuest } from '../storage/authStorage';
+import { registerUser, loginAsGuest, setOnboardingComplete } from '../storage/authStorage';
 import { saveBusinessProfile } from '../storage/businessProfileStorage';
 import AppLogo from '../components/AppLogo';
 import Onboarding3DStage from '../components/Onboarding3DStage';
@@ -270,13 +270,17 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
     }
   };
 
-  const handleExplorePublic = async () => {
-    await loginAsGuest();
-    navigation.replace('MainTabs');
+  const handleSkip = async () => {
+    try {
+      await setOnboardingComplete(true);
+    } catch (e) {
+      console.warn('[Onboarding] Error setting onboarding complete:', e);
+    }
+    navigation.replace('Login');
   };
 
-  const handleGoToLogin = () => {
-    navigation.navigate('Login');
+  const handleGoToLogin = async () => {
+    await handleSkip();
   };
 
   const currentSlide = SLIDES[currentStep] || SLIDES[0];
@@ -330,10 +334,18 @@ export default function OnboardingWizardScreen({ navigation }: Props) {
             })}
           </View>
 
-          <Pressable onPress={handleExplorePublic} style={styles.visitorBtn}>
-            <Text style={[styles.visitorText, { color: currentSlide.themeColor }]}>
-              Visitor Mode
+          <Pressable
+            onPress={handleSkip}
+            style={({ pressed }) => [
+              styles.skipBtn,
+              pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] },
+            ]}
+            hitSlop={12}
+          >
+            <Text style={[styles.skipText, { color: currentSlide.themeColor }]}>
+              Skip
             </Text>
+            <Ionicons name="chevron-forward" size={14} color={currentSlide.themeColor} />
           </Pressable>
         </View>
 
@@ -592,17 +604,26 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 3,
   },
-  visitorBtn: {
+  skipBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: radius.sm,
-    backgroundColor: colors.paperCard,
+    paddingHorizontal: 12,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: 'rgba(46, 42, 36, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  visitorText: {
+  skipText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 11.5,
+    fontSize: 12.5,
+    letterSpacing: 0.3,
   },
 
   // Slide Body

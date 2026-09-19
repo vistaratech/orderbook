@@ -33,8 +33,7 @@
         "backgroundColor": "#F6F1E7"
       },
       "permissions": [
-        "com.android.vending.BILLING",
-        "android.permission.RECORD_AUDIO"
+        "com.android.vending.BILLING"
       ]
     },
     "androidStatusBar": {

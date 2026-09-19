@@ -312,9 +312,43 @@
       <div class="app-splash-loader">
         <img src="/icon.png" alt="KadaiBook" class="splash-logo" />
         <div class="splash-title">KadaiBook</div>
-        <div class="splash-subtitle">கடை புக் &bull; Digital Order Book &amp; Billing</div>
+        <div id="splash-sub" class="splash-subtitle">Digital Order Book &amp; Billing</div>
         <div class="splash-spinner"></div>
       </div>
     </div>
+    <script>
+      (function() {
+        try {
+          var lang = localStorage.getItem('order_book:app_language');
+          if (!lang) {
+            var n = (navigator.language || navigator.userLanguage || '').toLowerCase();
+            if (n.indexOf('ta') === 0) lang = 'ta';
+            else if (n.indexOf('hi') === 0) lang = 'hi';
+            else if (n.indexOf('te') === 0) lang = 'te';
+            else if (n.indexOf('kn') === 0) lang = 'kn';
+            else if (n.indexOf('ml') === 0) lang = 'ml';
+            else if (n.indexOf('mr') === 0) lang = 'mr';
+            else if (n.indexOf('gu') === 0) lang = 'gu';
+            else if (n.indexOf('bn') === 0) lang = 'bn';
+            else lang = 'en';
+          }
+          var subtitles = {
+            en: 'Digital Order Book & Billing',
+            ta: 'கடை புக் • டிஜிட்டல் பில்லிங் & ஆர்டர் புக்',
+            hi: 'कढ़ाई बुक • डिजिटल ऑर्डर बुक और बिलिंग',
+            te: 'కడై బుక్ • డిజిటల్ ఆర్డర్ బుక్ & బిల్లింగ్',
+            kn: 'ಕಡೈ ಬುಕ್ • ಡಿಜಿಟಲ್ ಆರ್ಡರ್ ಬುಕ್ & ಬಿಲ್ಲಿಂಗ್',
+            ml: 'കട ബുക്ക് • ഡിജിറ്റൽ ഓർഡർ ബുക്കും ബില്ലിംഗും',
+            mr: 'कडाई बुक • डिजिटल ऑर्डर बुक आणि बिलिंग',
+            gu: 'કડાઈ બુક • ડિજિટલ ઓર્ડર બુક અને બિલિંગ',
+            bn: 'কড়াই বুক • ডিজিটাল অর্ডার বুক ও বিলিং'
+          };
+          var el = document.getElementById('splash-sub');
+          if (el && subtitles[lang]) {
+            el.textContent = subtitles[lang];
+          }
+        } catch (e) {}
+      })();
+    </script>
   </body>
 </html>

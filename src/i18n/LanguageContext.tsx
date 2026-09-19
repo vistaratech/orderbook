@@ -26,7 +26,17 @@ const LanguageContext = createContext<LanguageContextType>({
 });
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLangState] = useState<LanguageCode>('en');
+  const [language, setLangState] = useState<LanguageCode>(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const saved = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+        if (saved && SUPPORTED_LANGUAGES.some((l) => l.code === saved)) {
+          return saved as LanguageCode;
+        }
+      }
+    } catch {}
+    return 'en';
+  });
 
   // Load persisted language from AsyncStorage on app startup
   useEffect(() => {
@@ -42,6 +52,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const setLanguage = useCallback(async (newLang: LanguageCode) => {
     setLangState(newLang);
     try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(LANGUAGE_STORAGE_KEY, newLang);
+      }
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, newLang);
     } catch { }
   }, []);

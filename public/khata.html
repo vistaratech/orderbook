@@ -62,333 +62,728 @@
   }
   </script>
 
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+  <!-- Performance: Preconnect + non-blocking font load -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
 
+  <style>
     :root {
-      --primary-text: #282c3f;
-      --secondary-text: #535665;
-      --border-color: #e9e9eb;
-      --accent-color: #B96659;
-      --accent-dark: #8F4C41;
-      --bg-cream: #F6F1E7;
+      --ink: #1a1714;
+      --ink-light: #4b453d;
+      --ink-muted: #736b5e;
+      --clay: #B96659;
+      --clay-deep: #8F4C41;
+      --clay-glow: rgba(185, 102, 89, 0.35);
+      --paper: #F6F1E7;
+      --paper-light: #FAF7F0;
+      --card-bg: rgba(255, 255, 255, 0.72);
+      --card-border: rgba(185, 102, 89, 0.12);
+      --line: #E8E0D4;
+      --radius: 20px;
+      --shadow-sm: 0 2px 8px rgba(26, 23, 20, 0.04);
+      --shadow-md: 0 8px 32px rgba(26, 23, 20, 0.08);
+      --shadow-lg: 0 16px 48px rgba(26, 23, 20, 0.12);
+      --shadow-glow: 0 8px 32px rgba(185, 102, 89, 0.2);
     }
-    
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 16px;
       line-height: 1.6;
-      color: var(--primary-text);
-      background-color: #ffffff;
+      color: var(--ink);
+      background-color: var(--paper);
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
     }
 
-    .header-container {
-      border-bottom: 1px solid var(--border-color);
+    /* ═══════════ ANIMATIONS ═══════════ */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInScale {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      33%      { transform: translateY(-12px) rotate(1deg); }
+      66%      { transform: translateY(-6px) rotate(-1deg); }
+    }
+
+    @keyframes pulse-ring {
+      0%   { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50%      { background-position: 100% 50%; }
+    }
+
+    @keyframes line-grow {
+      from { transform: scaleY(0); }
+      to   { transform: scaleY(1); }
+    }
+
+    .animate-in {
+      animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+
+    /* ═══════════ HEADER ═══════════ */
+    .header {
       position: sticky;
       top: 0;
-      background: white;
       z-index: 100;
-      padding: 16px 0;
+      background: rgba(246, 241, 231, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 0;
+      animation: fadeInUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
-    .header-content {
-      max-width: 1000px;
+    .header-inner {
+      max-width: 1080px;
       margin: 0 auto;
-      padding: 0 20px;
+      padding: 0 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    .brand-wrap {
+    .brand {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
       text-decoration: none;
       color: inherit;
     }
 
-    .logo {
-      width: 44px;
-      height: 44px;
+    .brand-logo {
+      width: 40px;
+      height: 40px;
       border-radius: 12px;
       object-fit: cover;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .brand:hover .brand-logo {
+      transform: scale(1.08) rotate(-3deg);
     }
 
     .brand-name {
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 800;
-      color: #111827;
+      color: var(--ink);
       letter-spacing: -0.5px;
     }
 
-    .nav-links {
+    .nav {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 6px;
       list-style: none;
     }
 
-    .nav-links a {
-      color: var(--secondary-text);
+    .nav a {
+      color: var(--ink-muted);
       text-decoration: none;
       font-weight: 600;
       font-size: 14px;
-      transition: color 0.2s;
+      padding: 6px 14px;
+      border-radius: 10px;
+      transition: all 0.25s ease;
     }
 
-    .nav-links a:hover, .nav-links a.active {
-      color: var(--accent-color);
-    }
+    .nav a:hover { color: var(--clay); background: rgba(185, 102, 89, 0.08); }
+    .nav a.active { color: var(--clay); background: rgba(185, 102, 89, 0.1); }
 
-    .btn-launch {
-      background-color: var(--accent-color);
-      color: #ffffff !important;
-      padding: 8px 18px;
-      border-radius: 24px;
+    .btn-app {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, var(--clay), var(--clay-deep));
+      color: #fff !important;
+      padding: 9px 22px;
+      border-radius: 50px;
       font-weight: 700;
+      font-size: 13.5px;
       text-decoration: none;
-      font-size: 14px;
-      transition: background 0.2s;
+      box-shadow: var(--shadow-glow);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    .btn-launch:hover {
-      background-color: var(--accent-dark);
+    .btn-app:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 12px 40px rgba(185, 102, 89, 0.35);
     }
 
-    .hero-section {
-      background: linear-gradient(180deg, #F6F1E7 0%, #FFFFFF 100%);
-      padding: 60px 20px 40px;
+    /* ═══════════ HERO ═══════════ */
+    .hero {
+      position: relative;
+      padding: 72px 24px 56px;
       text-align: center;
+      overflow: hidden;
+      background: linear-gradient(180deg, var(--paper) 0%, var(--paper-light) 50%, #fff 100%);
     }
 
-    .hero-wrap {
-      max-width: 800px;
+    .hero::before,
+    .hero::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.3;
+      will-change: transform;
+      animation: float 8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .hero::before {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(185, 102, 89, 0.35), transparent 70%);
+      top: -80px;
+      left: -60px;
+      animation-delay: -3s;
+    }
+
+    .hero::after {
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(34, 139, 34, 0.2), transparent 70%);
+      bottom: -50px;
+      right: -50px;
+      animation-delay: -6s;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 780px;
       margin: 0 auto;
     }
 
-    .badge {
-      display: inline-block;
-      background-color: rgba(185, 102, 89, 0.12);
-      color: var(--accent-color);
-      padding: 6px 16px;
-      border-radius: 20px;
-      font-size: 13px;
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(185, 102, 89, 0.1);
+      border: 1px solid rgba(185, 102, 89, 0.15);
+      color: var(--clay);
+      padding: 7px 18px;
+      border-radius: 50px;
+      font-size: 12.5px;
       font-weight: 700;
-      margin-bottom: 16px;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.8px;
       text-transform: uppercase;
+      margin-bottom: 20px;
+      animation: fadeInScale 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
     }
 
-    h1 {
-      font-size: 38px;
+    .hero-badge::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      background: var(--clay);
+      border-radius: 50%;
+      animation: pulse-ring 2s ease-out infinite;
+    }
+
+    .hero h1 {
+      font-size: clamp(30px, 5vw, 44px);
       font-weight: 800;
-      color: #111827;
-      line-height: 1.25;
+      color: var(--ink);
+      line-height: 1.18;
       margin-bottom: 18px;
-      letter-spacing: -0.8px;
+      letter-spacing: -1.2px;
+      animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+    }
+
+    .hero h1 .accent {
+      background: linear-gradient(135deg, var(--clay), #D4886E);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .hero-desc {
-      font-size: 18px;
-      color: #4b5563;
-      margin-bottom: 30px;
+      font-size: 17px;
+      color: var(--ink-light);
+      max-width: 620px;
+      margin: 0 auto 28px;
+      line-height: 1.7;
+      animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both;
     }
 
-    .main-content {
-      max-width: 1000px;
-      margin: 40px auto;
-      padding: 0 20px;
+    .hero-cta {
+      animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
     }
 
-    .steps-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    .btn-hero {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--clay), var(--clay-deep));
+      color: #fff;
+      padding: 14px 36px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 16px;
+      text-decoration: none;
+      box-shadow: var(--shadow-glow);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .btn-hero:hover {
+      transform: translateY(-3px) scale(1.04);
+      box-shadow: 0 16px 48px rgba(185, 102, 89, 0.35);
+    }
+
+    /* ═══════════ STEPS SECTION ═══════════ */
+    .steps-section {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 48px 24px 20px;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 48px;
+      animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .section-label {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--clay);
+      margin-bottom: 10px;
+    }
+
+    .section-header h2 {
+      font-size: clamp(24px, 3.5vw, 32px);
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: -0.6px;
+      margin-bottom: 10px;
+    }
+
+    .section-header p {
+      font-size: 16px;
+      color: var(--ink-muted);
+      max-width: 540px;
+      margin: 0 auto;
+    }
+
+    .steps-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-width: 680px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* Vertical connecting line */
+    .steps-timeline::before {
+      content: '';
+      position: absolute;
+      left: 27px;
+      top: 40px;
+      bottom: 40px;
+      width: 2px;
+      background: linear-gradient(180deg, var(--clay), rgba(185, 102, 89, 0.15));
+      transform-origin: top;
+      animation: line-grow 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+    }
+
+    .step-item {
+      display: flex;
       gap: 24px;
-      margin: 30px 0;
-    }
-
-    .step-card {
-      background: #fafafa;
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 24px;
+      padding: 24px 0;
+      position: relative;
     }
 
     .step-num {
-      width: 36px;
-      height: 36px;
-      background: var(--accent-color);
-      color: white;
-      border-radius: 50%;
+      flex-shrink: 0;
+      width: 56px;
+      height: 56px;
       display: flex;
       align-items: center;
       justify-content: center;
+      background: linear-gradient(135deg, var(--clay), var(--clay-deep));
+      color: #fff;
+      border-radius: 16px;
       font-weight: 800;
-      font-size: 16px;
-      margin-bottom: 16px;
+      font-size: 20px;
+      box-shadow: var(--shadow-glow);
+      position: relative;
+      z-index: 2;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    .step-card h3 {
+    .step-item:hover .step-num {
+      transform: scale(1.1) rotate(-4deg);
+    }
+
+    .step-body {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      flex: 1;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .step-item:hover .step-body {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: rgba(185, 102, 89, 0.2);
+    }
+
+    .step-body h3 {
       font-size: 18px;
-      color: #111827;
-      margin-bottom: 8px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 6px;
+      letter-spacing: -0.2px;
     }
 
-    .step-card p {
-      color: #4b5563;
+    .step-body p {
+      color: var(--ink-muted);
+      font-size: 14.5px;
+      line-height: 1.65;
+    }
+
+    /* ═══════════ BENEFITS ═══════════ */
+    .benefits-section {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 40px 24px 20px;
+    }
+
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .benefit-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      text-align: center;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .benefit-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--clay), #D4886E);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .benefit-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .benefit-card:hover::after {
+      opacity: 1;
+    }
+
+    .benefit-icon {
+      font-size: 36px;
+      margin-bottom: 14px;
+      display: block;
+    }
+
+    .benefit-card h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .benefit-card p {
+      color: var(--ink-muted);
       font-size: 14px;
       line-height: 1.6;
     }
 
+    /* ═══════════ CTA BANNER ═══════════ */
+    .cta-section {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 40px 24px 72px;
+    }
+
     .cta-banner {
-      background-color: #2E2A24;
-      color: white;
-      border-radius: 20px;
-      padding: 40px;
+      position: relative;
+      background: linear-gradient(135deg, #2E2A24 0%, #1a1714 100%);
+      border-radius: 24px;
+      padding: 56px 40px;
       text-align: center;
-      margin: 60px 0;
+      overflow: hidden;
+      animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .cta-banner::before {
+      content: '';
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(185, 102, 89, 0.25), transparent 70%);
+      top: -100px;
+      right: -50px;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: float 10s ease-in-out infinite;
+    }
+
+    .cta-banner::after {
+      content: '';
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(202, 138, 4, 0.15), transparent 70%);
+      bottom: -80px;
+      left: -30px;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: float 12s ease-in-out infinite reverse;
     }
 
     .cta-banner h2 {
-      font-size: 28px;
+      font-size: clamp(24px, 3.5vw, 30px);
       font-weight: 800;
       margin-bottom: 12px;
-      color: #ffffff;
+      color: #fff;
+      position: relative;
+      z-index: 2;
+      letter-spacing: -0.4px;
     }
 
-    .cta-banner p {
-      color: #D1D5DB;
+    .cta-banner .cta-desc {
+      color: rgba(255, 255, 255, 0.65);
       font-size: 16px;
-      max-width: 600px;
-      margin: 0 auto 24px;
+      max-width: 520px;
+      margin: 0 auto 28px;
+      position: relative;
+      z-index: 2;
     }
 
-    .cta-banner .btn-main {
-      display: inline-block;
-      background-color: var(--accent-color);
-      color: white;
-      padding: 12px 32px;
-      border-radius: 30px;
+    .btn-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--clay), #D4886E);
+      color: #fff;
+      padding: 14px 36px;
+      border-radius: 50px;
       font-weight: 700;
-      text-decoration: none;
       font-size: 16px;
-      box-shadow: 0 4px 14px rgba(185, 102, 89, 0.4);
+      text-decoration: none;
+      position: relative;
+      z-index: 2;
+      box-shadow: 0 8px 32px rgba(185, 102, 89, 0.4);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    .footer-nav {
-      margin-top: 60px;
-      padding: 30px 0;
-      border-top: 1px solid var(--border-color);
+    .btn-cta:hover {
+      transform: translateY(-3px) scale(1.04);
+      box-shadow: 0 12px 40px rgba(185, 102, 89, 0.5);
+    }
+
+    /* ═══════════ FOOTER ═══════════ */
+    .footer {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px 40px;
+    }
+
+    .footer-inner {
+      border-top: 1px solid var(--line);
+      padding-top: 24px;
       display: flex;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 16px;
-      font-size: 14px;
-      color: var(--secondary-text);
+      gap: 14px;
+      font-size: 13px;
+      color: var(--ink-muted);
     }
 
-    .footer-nav a {
-      color: var(--secondary-text);
+    .footer-links a {
+      color: var(--ink-muted);
       text-decoration: none;
-      margin: 0 8px;
       font-weight: 600;
+      margin: 0 6px;
+      transition: color 0.2s;
     }
 
-    .footer-nav a:hover {
-      color: var(--accent-color);
-    }
+    .footer-links a:hover { color: var(--clay); }
 
-    @media (max-width: 640px) {
-      h1 { font-size: 28px; }
-      .nav-links { display: none; }
+    /* ═══════════ RESPONSIVE ═══════════ */
+    @media (max-width: 768px) {
+      .nav { display: none; }
+      .hero { padding: 52px 20px 40px; }
+      .steps-timeline::before { left: 27px; }
+      .step-num { width: 48px; height: 48px; font-size: 17px; border-radius: 14px; }
+      .step-item { gap: 16px; }
+      .cta-banner { padding: 40px 24px; border-radius: 20px; }
+      .benefits-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 
-  <header class="header-container">
-    <div class="header-content">
-      <a href="/" class="brand-wrap">
-        <img src="/icon.png" alt="KadaiBook Logo" class="logo" />
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="brand">
+        <img src="/icon.png" alt="KadaiBook Logo" class="brand-logo" />
         <span class="brand-name">KadaiBook</span>
       </a>
-      <ul class="nav-links">
+      <ul class="nav">
         <li><a href="/">Home</a></li>
         <li><a href="/features.html">Features</a></li>
         <li><a href="/khata.html" class="active">Khata Book</a></li>
         <li><a href="/about.html">About</a></li>
         <li><a href="/privacy.html">Privacy</a></li>
       </ul>
-      <a href="/" class="btn-launch">Open App</a>
+      <a href="/" class="btn-app">Open App →</a>
     </div>
   </header>
 
-  <section class="hero-section">
-    <div class="hero-wrap">
-      <span class="badge">Digital Udhar Ledger (டிஜிட்டல் கடன் புத்தகம்)</span>
-      <h1>No More Paper Dairies: Manage Customer Credit with Ease</h1>
+  <section class="hero">
+    <div class="hero-content">
+      <span class="hero-badge">Digital Udhar Ledger • டிஜிட்டல் கடன் புத்தகம்</span>
+      <h1>No More Paper Ledgers:<br><span class="accent">Manage Credit with Ease</span></h1>
       <p class="hero-desc">
         Never forget a pending balance. KadaiBook (kadaibook.in | kadaibook.com) gives you a 100% secure, automated credit ledger with direct WhatsApp reminders for shop customers.
       </p>
-      <a href="/" class="btn-launch" style="padding: 12px 30px; font-size: 16px;">Open Digital Khata Book</a>
+      <div class="hero-cta">
+        <a href="/" class="btn-hero">Open Digital Khata Book →</a>
+      </div>
     </div>
   </section>
 
-  <main class="main-content">
-    <h2 style="font-size: 24px; font-weight: 800; color: #111827; text-align: center; margin-bottom: 8px;">
-      How KadaiBook Khata Works for Your Shop
-    </h2>
-    <p style="text-align: center; color: #4b5563; max-width: 650px; margin: 0 auto 30px;">
-      கடன் கணக்கு வைப்பதும், அதை வசூலிப்பதும் இப்போது மிக எளிது.
-    </p>
-
-    <div class="steps-grid">
-      <div class="step-card">
-        <div class="step-num">1</div>
-        <h3>Add Customer (வாடிக்கையாளர் சேர்ப்பு)</h3>
-        <p>Enter the customer name and phone number once. Their complete credit history will be stored safely on the cloud.</p>
-      </div>
-
-      <div class="step-card">
-        <div class="step-num">2</div>
-        <h3>Record Credit or Payment (வரவு / செலவு)</h3>
-        <p>When a customer buys items on credit or pays back money, update the amount in one second. The balance is automatically calculated.</p>
-      </div>
-
-      <div class="step-card">
-        <div class="step-num">3</div>
-        <h3>Send WhatsApp Reminders (வாட்ஸ்அப் நினைவூட்டல்)</h3>
-        <p>Send a polite, automated WhatsApp reminder along with payment QR codes so customers can pay directly via GPay, PhonePe, or Paytm.</p>
-      </div>
+  <section class="steps-section">
+    <div class="section-header">
+      <span class="section-label">How It Works</span>
+      <h2>Three Simple Steps to Collect Dues Faster</h2>
+      <p>கடன் கணக்கு வைப்பதும், அதை வசூலிப்பதும் இப்போது மிக எளிது.</p>
     </div>
 
+    <div class="steps-timeline">
+      <div class="step-item animate-in delay-1">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Add Customer (வாடிக்கையாளர் சேர்ப்பு)</h3>
+          <p>Enter the customer name and phone number once. Their complete credit history will be stored safely on the cloud — accessible from any device.</p>
+        </div>
+      </div>
+
+      <div class="step-item animate-in delay-2">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Record Credit or Payment (வரவு / செலவு)</h3>
+          <p>When a customer buys items on credit or pays back money, update the amount in one second. The balance is automatically calculated with full transaction history.</p>
+        </div>
+      </div>
+
+      <div class="step-item animate-in delay-3">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Send WhatsApp Reminders (வாட்ஸ்அப் நினைவூட்டல்)</h3>
+          <p>Send a polite, automated WhatsApp reminder along with payment QR codes so customers can pay directly via GPay, PhonePe, or Paytm.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="benefits-section">
+    <div class="section-header">
+      <span class="section-label">Why Choose KadaiBook Khata</span>
+      <h2>Benefits Over Paper Ledger Books</h2>
+    </div>
+
+    <div class="benefits-grid">
+      <div class="benefit-card animate-in delay-1">
+        <span class="benefit-icon">🔒</span>
+        <h3>100% Secure Cloud Backup</h3>
+        <p>Phone lost? No worries. Your credit records are safely encrypted in the cloud and accessible from any device.</p>
+      </div>
+
+      <div class="benefit-card animate-in delay-2">
+        <span class="benefit-icon">⚡</span>
+        <h3>Instant Balance Calculation</h3>
+        <p>No more manual math errors. KadaiBook automatically calculates running balances for every customer.</p>
+      </div>
+
+      <div class="benefit-card animate-in delay-3">
+        <span class="benefit-icon">📱</span>
+        <h3>WhatsApp Payment Collection</h3>
+        <p>Send professional payment reminders with UPI QR codes. Customers pay directly — no awkward conversations.</p>
+      </div>
+
+      <div class="benefit-card animate-in delay-4">
+        <span class="benefit-icon">📊</span>
+        <h3>Full Transaction History</h3>
+        <p>Every credit entry and payment is logged with date, time, and amount. Perfect for dispute resolution.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
     <div class="cta-banner">
       <h2>Collect Your Customer Dues 3x Faster</h2>
-      <p>Secure cloud backup ensures you never lose customer accounts even if your phone is lost or damaged.</p>
-      <a href="/" class="btn-main">Get Started on KadaiBook</a>
+      <p class="cta-desc">Secure cloud backup ensures you never lose customer accounts even if your phone is lost or damaged.</p>
+      <a href="/" class="btn-cta">Get Started on KadaiBook →</a>
     </div>
+  </section>
 
-    <footer class="footer-nav">
+  <footer class="footer">
+    <div class="footer-inner">
       <div>&copy; 2026 KadaiBook (kadaibook.in | kadaibook.com). All rights reserved.</div>
-      <div>
-        <a href="/">Home</a> | 
-        <a href="/features.html">Features</a> | 
-        <a href="/khata.html">Khata Book</a> | 
-        <a href="/about.html">About</a> | 
-        <a href="/privacy.html">Privacy Policy</a> | 
-        <a href="/terms.html">Terms</a> | 
+      <div class="footer-links">
+        <a href="/">Home</a> |
+        <a href="/features.html">Features</a> |
+        <a href="/khata.html">Khata Book</a> |
+        <a href="/about.html">About</a> |
+        <a href="/privacy.html">Privacy Policy</a> |
+        <a href="/terms.html">Terms</a> |
         <a href="/delete-account.html">Delete Account</a>
       </div>
-    </footer>
-  </main>
+    </div>
+  </footer>
 
 </body>
 </html>

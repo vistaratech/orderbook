@@ -42,8 +42,6 @@ import AppLogo from '../components/AppLogo';
 import GlassBackButton from '../components/GlassBackButton';
 import DesktopLayout from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
-import { useTour } from '../context/TourContext';
-import { resetTour } from '../storage/tourStorage';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -51,7 +49,6 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const { language, setLanguage, t, currentLangOption, availableLanguages } = useLanguage();
-  const { startTour } = useTour();
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [profile, setProfile] = useState<BusinessProfile>({
     businessName: '',
@@ -175,18 +172,6 @@ export default function SettingsScreen() {
 
   const handleRelaunchWizard = () => {
     navigation.navigate('OnboardingWizard');
-  };
-
-  const handleStartAppTour = async () => {
-    await resetTour();
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.navigate('MainTabs');
-    }
-    setTimeout(() => {
-      startTour(0);
-    }, 150);
   };
 
   const handleExport = async () => {
@@ -448,26 +433,6 @@ export default function SettingsScreen() {
                 </View>
               </View>
             ) : null}
-
-            {/* Interactive App Tour */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.tourSettingCard,
-                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-              ]}
-              onPress={handleStartAppTour}
-            >
-              <View style={styles.tourSettingIconWrap}>
-                <Ionicons name="compass" size={20} color={colors.clayDeep} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.tourSettingTitle}>Interactive App Tour</Text>
-                <Text style={styles.tourSettingSub}>
-                  Take a guided screen-by-screen tour of features & workflows
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.clayDeep} />
-            </Pressable>
 
             {/* Onboarding Wizard shortcut */}
             <Pressable
@@ -1561,36 +1526,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.white,
-  },
-  tourSettingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    backgroundColor: '#F3D9D535',
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: '#B9665940',
-    marginBottom: 12,
-  },
-  tourSettingIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: '#F3D9D5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tourSettingTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: colors.ink,
-    marginBottom: 2,
-  },
-  tourSettingSub: {
-    fontFamily: fonts.body,
-    fontSize: 11.5,
-    color: colors.inkSoft,
   },
 });
 

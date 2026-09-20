@@ -21,10 +21,6 @@ import BusinessProfileScreen from '../screens/BusinessProfileScreen';
 import SaaSSidebar from '../components/SaaSSidebar';
 import { DesktopSidebarContext } from '../components/DesktopLayout';
 import { useLanguage } from '../i18n/LanguageContext';
-import { useTour } from '../context/TourContext';
-import { hasCompletedTour } from '../storage/tourStorage';
-import TourTarget from '../components/tour/TourTarget';
-import AppTourOverlay from '../components/tour/AppTourOverlay';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 
@@ -41,42 +37,48 @@ const TAB_URL_MAP: Record<string, string> = {
   EstimateList: '/estimates',
   History: '/history',
   Settings: '/settings',
-  InvoiceTemplateCustomizer: '/invoice-customizer',
+  InvoiceTemplateCustomizer: '/bill-templates',
   BusinessProfile: '/profile',
   MoreTab: '/more',
 };
 
-function getTabFromPath(pathname: string): string {
-  const clean = (pathname || '').replace(/^\/+|\/+$/g, '').toLowerCase();
-  switch (clean) {
-    case 'orders':
-    case 'orders-all':
-      return 'OrdersTab';
-    case 'expenses':
-      return 'ExpensesTab';
-    case 'reports':
-      return 'ReportsTab';
-    case 'customers':
-      return 'CustomerList';
-    case 'products':
-      return 'ProductList';
-    case 'purchases':
-      return 'PurchaseList';
-    case 'estimates':
-      return 'EstimateList';
-    case 'history':
-      return 'History';
-    case 'invoice-customizer':
-      return 'InvoiceTemplateCustomizer';
-    case 'profile':
-    case 'business-profile':
-      return 'BusinessProfile';
-    case 'settings':
-      return 'Settings';
-    case 'more':
-      return 'MoreTab';
-    case 'dashboard':
-    case '':
+function getTabFromPath(pathname: string): string | null {
+  for (const [tab, path] of Object.entries(TAB_URL_MAP)) {
+    if (pathname === path || pathname === path + '/') {
+      return tab;
+    }
+  }
+  return null;
+}
+
+function getTabForTitle(tabName: string): string {
+  switch (tabName) {
+    case 'DashboardTab':
+      return 'Home';
+    case 'OrdersTab':
+      return 'Orders';
+    case 'ExpensesTab':
+      return 'Expenses';
+    case 'ReportsTab':
+      return 'Reports';
+    case 'CustomerList':
+      return 'Customers';
+    case 'ProductList':
+      return 'Products';
+    case 'PurchaseList':
+      return 'Purchases';
+    case 'EstimateList':
+      return 'Estimates';
+    case 'History':
+      return 'Store Activity';
+    case 'Settings':
+      return 'Settings & Backup';
+    case 'InvoiceTemplateCustomizer':
+      return 'Bill Templates';
+    case 'BusinessProfile':
+      return 'Business Profile';
+    case 'MoreTab':
+      return 'More';
     default:
       return 'DashboardTab';
   }
@@ -85,15 +87,8 @@ function getTabFromPath(pathname: string): string {
 function CentralOrderBottomBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
-  const { setTabSwitcher } = useTour();
   const currentRoute = state.routes[state.index]?.name;
   const isTabActive = (tabName: string) => currentRoute === tabName;
-
-  useEffect(() => {
-    setTabSwitcher((tabName: string) => {
-      navigation.navigate(tabName as any);
-    });
-  }, [navigation, setTabSwitcher]);
 
   return (
     <View
@@ -143,28 +138,26 @@ function CentralOrderBottomBar({ state, navigation }: BottomTabBarProps) {
       </Pressable>
 
       {/* Tab 3: Central "New Order" Elevated Action Button */}
-      <TourTarget targetKey="new-order-fab">
-        <Pressable
-          style={({ pressed }) => [
-            styles.centralActionWrap,
-            pressed && styles.centralActionWrapPressed,
-          ]}
-          onPress={async () => {
-            const allowed = await assertSubscriptionLimit({
-              type: 'order',
-              actionName: 'create a new order',
-              navigation,
-            });
-            if (!allowed) return;
-            (navigation as any).navigate('OrderForm');
-          }}
-        >
-          <View style={styles.centralFabCircle}>
-            <Ionicons name="add" size={26} color={colors.white} />
-          </View>
-          <Text style={styles.centralFabLabel}>New Order</Text>
-        </Pressable>
-      </TourTarget>
+      <Pressable
+        style={({ pressed }) => [
+          styles.centralActionWrap,
+          pressed && styles.centralActionWrapPressed,
+        ]}
+        onPress={async () => {
+          const allowed = await assertSubscriptionLimit({
+            type: 'order',
+            actionName: 'create a new order',
+            navigation,
+          });
+          if (!allowed) return;
+          (navigation as any).navigate('OrderForm');
+        }}
+      >
+        <View style={styles.centralFabCircle}>
+          <Ionicons name="add" size={26} color={colors.white} />
+        </View>
+        <Text style={styles.centralFabLabel}>New Order</Text>
+      </Pressable>
 
       {/* Tab 4: Expenses */}
       <Pressable
@@ -187,26 +180,24 @@ function CentralOrderBottomBar({ state, navigation }: BottomTabBarProps) {
       </Pressable>
 
       {/* Tab 5: More */}
-      <TourTarget targetKey="more-menu-hub">
-        <Pressable
-          style={styles.tabItem}
-          onPress={() => navigation.navigate('MoreTab')}
+      <Pressable
+        style={styles.tabItem}
+        onPress={() => navigation.navigate('MoreTab')}
+      >
+        <Ionicons
+          name={isTabActive('MoreTab') ? 'grid' : 'grid-outline'}
+          size={22}
+          color={isTabActive('MoreTab') ? colors.clayDeep : colors.inkSoft}
+        />
+        <Text
+          style={[
+            styles.tabItemLabel,
+            isTabActive('MoreTab') && styles.tabItemLabelActive,
+          ]}
         >
-          <Ionicons
-            name={isTabActive('MoreTab') ? 'grid' : 'grid-outline'}
-            size={22}
-            color={isTabActive('MoreTab') ? colors.clayDeep : colors.inkSoft}
-          />
-          <Text
-            style={[
-              styles.tabItemLabel,
-              isTabActive('MoreTab') && styles.tabItemLabelActive,
-            ]}
-          >
-            {t('nav.more', 'More')}
-          </Text>
-        </Pressable>
-      </TourTarget>
+          {t('nav.more', 'More')}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -214,7 +205,6 @@ function CentralOrderBottomBar({ state, navigation }: BottomTabBarProps) {
 export default function TabNavigator() {
   const { t } = useLanguage();
   const { width } = useWindowDimensions();
-  const { setTabSwitcher, startTour } = useTour();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
   const getInitialTab = (): string => {
@@ -262,36 +252,6 @@ export default function TabNavigator() {
       return () => window.removeEventListener('popstate', handlePopState);
     }
   }, [activeTab]);
-
-  // Register desktop tab switcher
-  useEffect(() => {
-    if (isDesktop) {
-      setTabSwitcher((tabName: string) => {
-        handleSelectTab(tabName);
-      });
-    }
-  }, [isDesktop, setTabSwitcher]);
-
-  // First-time visitor check for interactive onboarding tour
-  // NOTE: We use a ref to capture startTour so this effect runs only once on mount.
-  // Previously, startTour was in the dependency array, but its identity changes
-  // whenever currentStepIndex updates (via the useCallback chain), causing the
-  // effect to re-fire and call startTour(0) again — looping back to welcome.
-  const startTourRef = useRef(startTour);
-  startTourRef.current = startTour;
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    hasCompletedTour().then((completed) => {
-      if (!completed) {
-        timer = setTimeout(() => {
-          startTourRef.current(0);
-        }, 800);
-      }
-    });
-    return () => { if (timer) clearTimeout(timer); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   if (isDesktop) {
     return (
@@ -371,7 +331,6 @@ export default function TabNavigator() {
             </View>
           </View>
         </DesktopSidebarContext.Provider>
-        <AppTourOverlay />
       </View>
     );
   }
@@ -405,7 +364,6 @@ export default function TabNavigator() {
           component={MoreScreen}
         />
       </Tab.Navigator>
-      <AppTourOverlay />
     </View>
   );
 }

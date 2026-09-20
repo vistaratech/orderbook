@@ -35,7 +35,6 @@ import { getAuthState } from '../storage/authStorage';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
 import { formatCurrency, formatDate } from '../utils/format';
 import AppLogo from '../components/AppLogo';
-import TourTarget from '../components/tour/TourTarget';
 import { useLanguage } from '../i18n/LanguageContext';
 import { checkProStatus } from '../storage/subscriptionStorage';
 import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
@@ -464,71 +463,69 @@ export default function DashboardScreen() {
                 </View>
 
               {/* 4 Metric Tiles */}
-              <TourTarget targetKey="dashboard-metrics">
-                <View style={styles.metricsRow}>
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.metricTile,
-                      { borderLeftColor: colors.inflow },
-                      pressed && { opacity: 0.8 },
-                    ]}
-                    onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'All' })}
-                  >
-                    <Ionicons name="arrow-down-circle" size={18} color={colors.inflow} />
-                    <Text style={styles.metricTileLabel}>{t('dashboard.totalSales')}</Text>
-                    <Text style={[styles.metricTileValue, { color: colors.inflow }]}>
-                      {formatCurrency(totalSales)}
-                    </Text>
-                  </Pressable>
+              <View style={styles.metricsRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.metricTile,
+                    { borderLeftColor: colors.inflow },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                  onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'All' })}
+                >
+                  <Ionicons name="arrow-down-circle" size={18} color={colors.inflow} />
+                  <Text style={styles.metricTileLabel}>{t('dashboard.totalSales')}</Text>
+                  <Text style={[styles.metricTileValue, { color: colors.inflow }]}>
+                    {formatCurrency(totalSales)}
+                  </Text>
+                </Pressable>
 
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.metricTile,
-                      { borderLeftColor: colors.outflow },
-                      pressed && { opacity: 0.8 },
-                    ]}
-                    onPress={() => (navigation as any).navigate('ExpensesTab')}
-                  >
-                    <Ionicons name="arrow-up-circle" size={18} color={colors.outflow} />
-                    <Text style={styles.metricTileLabel}>{t('expenses.totalExpenses')}</Text>
-                    <Text style={[styles.metricTileValue, { color: colors.outflow }]}>
-                      {formatCurrency(totalOutflow)}
-                    </Text>
-                  </Pressable>
-                </View>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.metricTile,
+                    { borderLeftColor: colors.outflow },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                  onPress={() => (navigation as any).navigate('ExpensesTab')}
+                >
+                  <Ionicons name="arrow-up-circle" size={18} color={colors.outflow} />
+                  <Text style={styles.metricTileLabel}>{t('expenses.totalExpenses')}</Text>
+                  <Text style={[styles.metricTileValue, { color: colors.outflow }]}>
+                    {formatCurrency(totalOutflow)}
+                  </Text>
+                </Pressable>
+              </View>
 
-                <View style={styles.metricsRow}>
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.metricTile,
-                      { borderLeftColor: colors.duskDeep },
-                      pressed && { opacity: 0.8 },
-                    ]}
-                    onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Paid' })}
-                  >
-                    <Ionicons name="checkmark-circle" size={18} color={colors.duskDeep} />
-                    <Text style={styles.metricTileLabel}>{t('orders.payPaid')}</Text>
-                    <Text style={styles.metricTileValue}>
-                      {formatCurrency(totalCollected)}
-                    </Text>
-                  </Pressable>
+              <View style={styles.metricsRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.metricTile,
+                    { borderLeftColor: colors.duskDeep },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                  onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Paid' })}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color={colors.duskDeep} />
+                  <Text style={styles.metricTileLabel}>{t('orders.payPaid')}</Text>
+                  <Text style={styles.metricTileValue}>
+                    {formatCurrency(totalCollected)}
+                  </Text>
+                </Pressable>
 
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.metricTile,
-                      { borderLeftColor: colors.pending },
-                      pressed && { opacity: 0.8 },
-                    ]}
-                    onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Pending', initialSort: 'due' })}
-                  >
-                    <Ionicons name="time" size={18} color={colors.pending} />
-                    <Text style={styles.metricTileLabel}>{t('dashboard.pendingDues')}</Text>
-                    <Text style={[styles.metricTileValue, { color: colors.pending }]}>
-                      {formatCurrency(pendingCollection)}
-                    </Text>
-                  </Pressable>
-                </View>
-              </TourTarget>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.metricTile,
+                    { borderLeftColor: colors.pending },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                  onPress={() => (navigation as any).navigate('OrdersTab', { initialPaymentFilter: 'Pending', initialSort: 'due' })}
+                >
+                  <Ionicons name="time" size={18} color={colors.pending} />
+                  <Text style={styles.metricTileLabel}>{t('dashboard.pendingDues')}</Text>
+                  <Text style={[styles.metricTileValue, { color: colors.pending }]}>
+                    {formatCurrency(pendingCollection)}
+                  </Text>
+                </Pressable>
+              </View>
 
               {/* Expandable Financial Analysis Panel Toggle */}
               <Pressable
@@ -650,59 +647,57 @@ export default function DashboardScreen() {
 
             {/* ─── Order Pipeline ─── */}
             <FadeInView delay={220} translateY={12}>
-              <TourTarget targetKey="dashboard-pipeline">
-                <View style={styles.sectionCard}>
-                  <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.sectionTitle}>{t('dashboard.pipelineTitle')}</Text>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.pipelineManageBadge,
-                        pressed && { opacity: 0.75 },
-                      ]}
-                      onPress={() => setActivePipelineStatus('Placed')}
-                    >
-                      <Ionicons name="options-outline" size={13} color={colors.clayDeep} />
-                      <Text style={styles.pipelineManageText}>{t('dashboard.pipelineTapToManage')}</Text>
-                    </Pressable>
-                  </View>
-                  <View style={styles.pipelineRow}>
-                    {ORDER_STATUS_STEPS.map((st, idx) => {
-                      const cnt = statusCounts[st] || 0;
-                      const color = statusColor[st] || colors.clay;
-                      const isLast = idx === ORDER_STATUS_STEPS.length - 1;
-                      return (
-                        <React.Fragment key={st}>
-                          <Pressable
-                            style={({ pressed }) => [
-                              styles.pipelineItem,
-                              pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] },
-                            ]}
-                            onPress={() => setActivePipelineStatus(st)}
-                          >
-                            <View style={[styles.pipelineCircle, { backgroundColor: cnt > 0 ? color : colors.line }]}>
-                              <Ionicons
-                                name={statusIcons[st] as any}
-                                size={18}
-                                color={cnt > 0 ? colors.white : colors.inkSoft}
-                              />
-                            </View>
-                            <Text style={[styles.pipelineCount, cnt > 0 && { color }]}>{cnt}</Text>
-                            <Text style={styles.pipelineName} numberOfLines={1}>
-                              {t('status.' + st.toLowerCase()) || st}
-                            </Text>
-                          </Pressable>
-                          {!isLast && (
-                            <View style={styles.pipelineConnector}>
-                              <View style={styles.pipelineConnectorLine} />
-                              <Ionicons name="chevron-forward" size={10} color={colors.line} />
-                            </View>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </View>
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>{t('dashboard.pipelineTitle')}</Text>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.pipelineManageBadge,
+                      pressed && { opacity: 0.75 },
+                    ]}
+                    onPress={() => setActivePipelineStatus('Placed')}
+                  >
+                    <Ionicons name="options-outline" size={13} color={colors.clayDeep} />
+                    <Text style={styles.pipelineManageText}>{t('dashboard.pipelineTapToManage')}</Text>
+                  </Pressable>
                 </View>
-              </TourTarget>
+                <View style={styles.pipelineRow}>
+                  {ORDER_STATUS_STEPS.map((st, idx) => {
+                    const cnt = statusCounts[st] || 0;
+                    const color = statusColor[st] || colors.clay;
+                    const isLast = idx === ORDER_STATUS_STEPS.length - 1;
+                    return (
+                      <React.Fragment key={st}>
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.pipelineItem,
+                            pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] },
+                          ]}
+                          onPress={() => setActivePipelineStatus(st)}
+                        >
+                          <View style={[styles.pipelineCircle, { backgroundColor: cnt > 0 ? color : colors.line }]}>
+                            <Ionicons
+                              name={statusIcons[st] as any}
+                              size={18}
+                              color={cnt > 0 ? colors.white : colors.inkSoft}
+                            />
+                          </View>
+                          <Text style={[styles.pipelineCount, cnt > 0 && { color }]}>{cnt}</Text>
+                          <Text style={styles.pipelineName} numberOfLines={1}>
+                            {t('status.' + st.toLowerCase()) || st}
+                          </Text>
+                        </Pressable>
+                        {!isLast && (
+                          <View style={styles.pipelineConnector}>
+                            <View style={styles.pipelineConnectorLine} />
+                            <Ionicons name="chevron-forward" size={10} color={colors.line} />
+                          </View>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </View>
+              </View>
             </FadeInView>
 
             {/* ─── Recent Orders ─── */}

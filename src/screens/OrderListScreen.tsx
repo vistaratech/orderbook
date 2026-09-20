@@ -22,7 +22,6 @@ import { getOrders } from '../storage/orderStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import OrderCard from '../components/OrderCard';
 import EmptyState from '../components/EmptyState';
-import TourTarget from '../components/tour/TourTarget';
 import { useLanguage } from '../i18n/LanguageContext';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 import { formatCurrency } from '../utils/format';
@@ -270,41 +269,39 @@ export default function OrderListScreen() {
         )}
 
         {/* Modern Search & Filter Toolbar */}
-        <TourTarget targetKey="orders-search-filter">
-          <View style={styles.searchToolbar}>
-            <View style={styles.searchInputWrap}>
-              <Ionicons name="search" size={18} color={colors.inkSoft} style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder={t('orders.searchPlaceholder')}
-                placeholderTextColor={colors.inkSoft}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              {searchQuery.length > 0 && (
-                <Pressable onPress={() => setSearchQuery('')} style={styles.clearBtn}>
-                  <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
-                </Pressable>
-              )}
-            </View>
-
-            {/* Filter Toggle Button with Badge */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.filterIconButton,
-                hasActiveFilters && styles.filterIconButtonActive,
-                pressed && { opacity: 0.8 },
-              ]}
-              onPress={() => setShowFilters(!showFilters)}
-            >
-              <Ionicons
-                name={showFilters ? 'chevron-up' : 'options-outline'}
-                size={20}
-                color={hasActiveFilters ? colors.white : colors.ink}
-              />
-              {hasActiveFilters && <View style={styles.activeFilterDot} />}
-            </Pressable>
+        <View style={styles.searchToolbar}>
+          <View style={styles.searchInputWrap}>
+            <Ionicons name="search" size={18} color={colors.inkSoft} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('orders.searchPlaceholder')}
+              placeholderTextColor={colors.inkSoft}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} style={styles.clearBtn}>
+                <Ionicons name="close-circle" size={18} color={colors.inkSoft} />
+              </Pressable>
+            )}
           </View>
+
+          {/* Filter Toggle Button */}
+          <Pressable
+            style={[
+              styles.filterIconButton,
+              (showFilters || hasActiveFilters) && styles.filterIconButtonActive,
+            ]}
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <Ionicons
+              name={showFilters ? 'chevron-up' : 'options-outline'}
+              size={20}
+              color={hasActiveFilters ? colors.white : colors.ink}
+            />
+            {hasActiveFilters && <View style={styles.activeFilterDot} />}
+          </Pressable>
+        </View>
 
           {/* Quick Filter Horizontal Scrollbar */}
           <View style={styles.quickFilterBar}>
@@ -361,7 +358,6 @@ export default function OrderListScreen() {
               </Pressable>
             </ScrollView>
           </View>
-        </TourTarget>
 
         {/* Collapsible Advanced Filter Panel */}
         {showFilters && (
@@ -463,38 +459,36 @@ export default function OrderListScreen() {
         )}
 
         {/* Orders List */}
-        <TourTarget targetKey="orders-list-area" style={{ flex: 1 }}>
-          <FlatList
-            data={filteredOrders}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            initialNumToRender={8}
-            maxToRenderPerBatch={8}
-            windowSize={5}
-            updateCellsBatchingPeriod={40}
-            removeClippedSubviews={Platform.OS === 'android'}
-            scrollEventThrottle={16}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
-            }
-            renderItem={({ item, index }) => (
-              <OrderCard
-                order={item}
-                index={index}
-                onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
+        <FlatList
+          data={filteredOrders}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          updateCellsBatchingPeriod={40}
+          removeClippedSubviews={Platform.OS === 'android'}
+          scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.clayDeep} />
+          }
+          renderItem={({ item, index }) => (
+            <OrderCard
+              order={item}
+              index={index}
+              onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
+            />
+          )}
+          ListEmptyComponent={
+            !loading ? (
+              <EmptyState
+                title={t('orders.noOrdersFound')}
+                message={t('orders.subtitle')}
               />
-            )}
-            ListEmptyComponent={
-              !loading ? (
-                <EmptyState
-                  title={t('orders.noOrdersFound')}
-                  message={t('orders.subtitle')}
-                />
-              ) : null
-            }
-          />
-        </TourTarget>
+            ) : null
+          }
+        />
 
         {/* Floating Action Button */}
         <Pressable

@@ -23,9 +23,6 @@ import { getOrders } from '../storage/orderStorage';
 import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import { useLanguage } from '../i18n/LanguageContext';
-import { useTour } from '../context/TourContext';
-import { resetTour } from '../storage/tourStorage';
-import TourTarget from './tour/TourTarget';
 import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -47,7 +44,6 @@ export default function SaaSSidebar({
 }: SaaSSidebarProps) {
   const navigation = useNavigation<Nav>();
   const { t } = useLanguage();
-  const { startTour } = useTour();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
@@ -250,21 +246,19 @@ export default function SaaSSidebar({
       </View>
 
       {/* ─── Quick Action Button ─── */}
-      <TourTarget targetKey="desktop-new-order">
-        <Pressable
-          style={({ pressed }) => [
-            styles.quickOrderBtn,
-            isCollapsed && styles.quickOrderBtnCollapsed,
-            pressed && { opacity: 0.85 },
-          ]}
-          onPress={handleQuickNewOrder}
-          // @ts-ignore
-          title="New Order"
-        >
-          <Ionicons name="add" size={isCollapsed ? 24 : 18} color={colors.white} />
-          {!isCollapsed && <Text style={styles.quickOrderBtnText}>New Order</Text>}
-        </Pressable>
-      </TourTarget>
+      <Pressable
+        style={({ pressed }) => [
+          styles.quickOrderBtn,
+          isCollapsed && styles.quickOrderBtnCollapsed,
+          pressed && { opacity: 0.85 },
+        ]}
+        onPress={handleQuickNewOrder}
+        // @ts-ignore
+        title="New Order"
+      >
+        <Ionicons name="add" size={isCollapsed ? 24 : 18} color={colors.white} />
+        {!isCollapsed && <Text style={styles.quickOrderBtnText}>New Order</Text>}
+      </Pressable>
 
       {/* ─── Navigation Groups ─── */}
       <ScrollView
@@ -272,99 +266,63 @@ export default function SaaSSidebar({
         contentContainerStyle={styles.navScrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {navItems.map((group) => {
-          const groupContent = (
-            <View key={group.group} style={styles.navGroup}>
-              {!isCollapsed ? (
-                <Text style={styles.navGroupLabel}>{group.group}</Text>
-              ) : (
-                <View style={styles.navGroupDivider} />
-              )}
+        {navItems.map((group) => (
+          <View key={group.group} style={styles.navGroup}>
+            {!isCollapsed ? (
+              <Text style={styles.navGroupLabel}>{group.group}</Text>
+            ) : (
+              <View style={styles.navGroupDivider} />
+            )}
 
-              {group.items.map((item) => {
-                const isActive = currentTabName === item.key;
-                return (
-                  <Pressable
-                    key={item.key}
-                    style={({ pressed }) => [
-                      styles.navItemWrap,
-                      isCollapsed && styles.navItemWrapCollapsed,
-                      pressed && { opacity: 0.8 },
+            {group.items.map((item) => {
+              const isActive = currentTabName === item.key;
+              return (
+                <Pressable
+                  key={item.key}
+                  style={({ pressed }) => [
+                    styles.navItemWrap,
+                    isCollapsed && styles.navItemWrapCollapsed,
+                    pressed && { opacity: 0.8 },
+                  ]}
+                  onPress={item.action}
+                  // @ts-ignore
+                  title={isCollapsed ? item.label : undefined}
+                >
+                  <View
+                    style={[
+                      styles.navItemBox,
+                      isCollapsed && styles.navItemBoxCollapsed,
+                      isActive && styles.navItemActive,
                     ]}
-                    onPress={item.action}
-                    // @ts-ignore
-                    title={isCollapsed ? item.label : undefined}
                   >
-                    <View
-                      style={[
-                        styles.navItemBox,
-                        isCollapsed && styles.navItemBoxCollapsed,
-                        isActive && styles.navItemActive,
-                      ]}
-                    >
-                      <Ionicons
-                        name={isActive ? item.activeIcon : item.icon}
-                        size={20}
-                        color={isActive ? colors.clayDeep : colors.inkSoft}
-                        style={isCollapsed ? undefined : styles.navItemIcon}
-                      />
+                    <Ionicons
+                      name={isActive ? item.activeIcon : item.icon}
+                      size={20}
+                      color={isActive ? colors.clayDeep : colors.inkSoft}
+                      style={isCollapsed ? undefined : styles.navItemIcon}
+                    />
 
-                      {!isCollapsed && (
-                        <Text
-                          style={[
-                            styles.navItemLabel,
-                            isActive && styles.navItemLabelActive,
-                          ]}
-                        >
-                          {item.label}
-                        </Text>
-                      )}
+                    {!isCollapsed && (
+                      <Text
+                        style={[
+                          styles.navItemLabel,
+                          isActive && styles.navItemLabelActive,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    )}
 
-                      {isActive ? (
-                        <View style={isCollapsed ? styles.activeIndicatorCollapsed : styles.activeIndicator} />
-                      ) : null}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          );
-
-          if (group.group === 'MANAGEMENT') {
-            return (
-              <TourTarget key={group.group} targetKey="desktop-management-group">
-                {groupContent}
-              </TourTarget>
-            );
-          }
-
-          return groupContent;
-        })}
+                    {isActive ? (
+                      <View style={isCollapsed ? styles.activeIndicatorCollapsed : styles.activeIndicator} />
+                    ) : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        ))}
       </ScrollView>
-
-      {/* ─── Quick Tour Button ─── */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.tourSidebarBtn,
-          isCollapsed && styles.tourSidebarBtnCollapsed,
-          pressed && { opacity: 0.8 },
-        ]}
-        onPress={async () => {
-          if (navigation.canGoBack()) {
-            navigation.navigate('MainTabs');
-          }
-          if (onSelectTab) {
-            onSelectTab('DashboardTab');
-          }
-          await resetTour();
-          startTour(0);
-        }}
-        // @ts-ignore
-        title="Interactive Tour"
-      >
-        <Ionicons name="sparkles" size={isCollapsed ? 18 : 15} color={colors.clayDeep} />
-        {!isCollapsed && <Text style={styles.tourSidebarBtnText}>Interactive Tour</Text>}
-      </Pressable>
 
       {/* ─── Footer: User Account & Sign Out ─── */}
       <View style={[styles.userFooter, isCollapsed && styles.userFooterCollapsed]}>
@@ -654,31 +612,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 0,
-  },
-  tourSidebarBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#F3D9D550',
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-    borderRadius: radius.md,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#B9665930',
-  },
-  tourSidebarBtnCollapsed: {
-    paddingHorizontal: 0,
-    justifyContent: 'center',
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    alignSelf: 'center',
-    marginBottom: 8,
-  },
-  tourSidebarBtnText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.clayDeep,
   },
 });

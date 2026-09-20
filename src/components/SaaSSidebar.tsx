@@ -50,8 +50,6 @@ export default function SaaSSidebar({
   const [user, setUser] = useState<UserAccount | null>(null);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [internalCollapsed, setInternalCollapsed] = useState<boolean>(false);
-  const [isPro, setIsPro] = useState(false);
-  const [isBasic, setIsBasic] = useState(false);
 
   // Sync internal collapsed state with AsyncStorage
   useEffect(() => {
@@ -75,16 +73,9 @@ export default function SaaSSidebar({
 
   const loadUserInfo = async () => {
     try {
-      const [authState, bp, proStatus, basicStatus] = await Promise.all([
-        getAuthState(),
-        getBusinessProfile(),
-        checkProStatus(),
-        checkBasicStatus(),
-      ]);
+      const [authState, bp] = await Promise.all([getAuthState(), getBusinessProfile()]);
       setUser(authState.user);
       setProfile(bp);
-      setIsPro(proStatus);
-      setIsBasic(basicStatus);
     } catch {}
   };
 
@@ -200,13 +191,6 @@ export default function SaaSSidebar({
           icon: 'color-palette-outline' as const,
           activeIcon: 'color-palette' as const,
           action: () => handleNav('InvoiceTemplateCustomizer', 'InvoiceTemplateCustomizer'),
-        },
-        {
-          key: 'PaywallScreen',
-          label: t('nav.pricing', 'Pricing & Upgrade'),
-          icon: 'sparkles-outline' as const,
-          activeIcon: 'sparkles' as const,
-          action: () => handleNav('PaywallScreen', 'PaywallScreen'),
         },
         {
           key: 'Settings',
@@ -339,37 +323,6 @@ export default function SaaSSidebar({
           </View>
         ))}
       </ScrollView>
-
-      {/* ─── Pro Upgrade Sidebar Banner ─── */}
-      {!isCollapsed ? (
-        !isPro ? (
-          <Pressable
-            style={({ pressed }) => [
-              styles.sidebarUpgradeCard,
-              pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-            ]}
-            onPress={() => navigation.navigate('PaywallScreen')}
-          >
-            <View style={styles.sidebarUpgradeHeader}>
-              <View style={styles.sidebarUpgradeIconWrap}>
-                <Ionicons name="sparkles" size={14} color="#CA8A04" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.sidebarUpgradeTitle}>KadaiBook Pro</Text>
-                <Text style={styles.sidebarUpgradeSub}>Unlimited orders & sync</Text>
-              </View>
-            </View>
-            <View style={styles.sidebarUpgradeBtn}>
-              <Text style={styles.sidebarUpgradeBtnText}>Upgrade Now →</Text>
-            </View>
-          </Pressable>
-        ) : (
-          <View style={styles.sidebarProActiveCard}>
-            <Ionicons name="sparkles" size={13} color="#854D0E" />
-            <Text style={styles.sidebarProActiveText}>Pro Plan Active</Text>
-          </View>
-        )
-      ) : null}
 
       {/* ─── Footer: User Account & Sign Out ─── */}
       <View style={[styles.userFooter, isCollapsed && styles.userFooterCollapsed]}>
@@ -659,73 +612,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 0,
-  },
-  sidebarUpgradeCard: {
-    backgroundColor: '#FEFCE8',
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: '#FDE047',
-    padding: 12,
-    marginBottom: 10,
-    marginTop: 6,
-    shadowColor: '#CA8A04',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  sidebarUpgradeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  sidebarUpgradeIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#FEF08A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sidebarUpgradeTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: '#854D0E',
-  },
-  sidebarUpgradeSub: {
-    fontFamily: fonts.body,
-    fontSize: 10,
-    color: '#A16207',
-  },
-  sidebarUpgradeBtn: {
-    backgroundColor: '#CA8A04',
-    paddingVertical: 5,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  sidebarUpgradeBtnText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    color: '#FFFFFF',
-  },
-  sidebarProActiveCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FEF3C7',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    marginBottom: 10,
-    marginTop: 6,
-    justifyContent: 'center',
-  },
-  sidebarProActiveText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    color: '#854D0E',
   },
 });

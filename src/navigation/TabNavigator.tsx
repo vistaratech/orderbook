@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Platform, View, Text, Pressable, useWindowDimensions } from 'react-native';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -273,16 +273,25 @@ export default function TabNavigator() {
   }, [isDesktop, setTabSwitcher]);
 
   // First-time visitor check for interactive onboarding tour
+  // NOTE: We use a ref to capture startTour so this effect runs only once on mount.
+  // Previously, startTour was in the dependency array, but its identity changes
+  // whenever currentStepIndex updates (via the useCallback chain), causing the
+  // effect to re-fire and call startTour(0) again — looping back to welcome.
+  const startTourRef = useRef(startTour);
+  startTourRef.current = startTour;
+
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     hasCompletedTour().then((completed) => {
       if (!completed) {
-        const timer = setTimeout(() => {
-          startTour(0);
+        timer = setTimeout(() => {
+          startTourRef.current(0);
         }, 800);
-        return () => clearTimeout(timer);
       }
     });
-  }, [startTour]);
+    return () => { if (timer) clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (isDesktop) {
     return (

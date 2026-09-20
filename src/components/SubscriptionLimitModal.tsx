@@ -33,7 +33,7 @@ export default function SubscriptionLimitModal({
   message,
   type = 'order',
   currentCount,
-  limit = 10,
+  limit = 30,
   planName = 'Free',
   actionName,
   onUpgrade,

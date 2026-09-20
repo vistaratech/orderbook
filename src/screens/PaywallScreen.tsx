@@ -30,6 +30,7 @@ const APP_STORE_URL = 'https://apps.apple.com/app/kadaibook/id6743072498';
 
 type SelectedTier = 'free' | 'basic' | 'pro';
 type BillingPeriod = 'yearly' | 'monthly';
+type ShopScale = 'small' | 'medium' | 'large';
 
 export default function PaywallScreen() {
   const navigation = useNavigation();
@@ -43,6 +44,7 @@ export default function PaywallScreen() {
   const [isBasic, setIsBasic] = useState(false);
   const [selectedTier, setSelectedTier] = useState<SelectedTier>('pro');
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('yearly');
+  const [shopScale, setShopScale] = useState<ShopScale>('medium');
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   useEffect(() => {
@@ -178,6 +180,34 @@ export default function PaywallScreen() {
   const basicPriceText = billingPeriod === 'yearly' ? '₹899 / yr' : '₹99 / mo';
   const proPriceText = billingPeriod === 'yearly' ? '₹1,499 / yr' : '₹249 / mo';
 
+  // ROI Calculator dynamic numbers
+  const roiData = {
+    small: {
+      orders: '1 - 30 bills / mo',
+      timeSaved: '15 Hours / mo',
+      debtRecovered: '₹4,500 / mo',
+      costPerDay: '₹4.10 / day',
+      recommendation: 'Free Plan fits well, upgrade to Basic/Pro when bills increase.',
+      tamilNote: 'ஆரம்ப கட்ட கடைக்கு 30 பில் இலவசம் போதுமானது.',
+    },
+    medium: {
+      orders: '30 - 150 bills / mo',
+      timeSaved: '35 Hours / mo',
+      debtRecovered: '₹12,500 / mo',
+      costPerDay: '₹4.10 / day (₹125/mo)',
+      recommendation: 'Pro Unlimited is recommended for WhatsApp reminders & fast thermal billing.',
+      tamilNote: 'ப்ரோ பிளான் மூலம் மாதம் ₹12,500+ வரை பாக்கி வசூல் & 35 மணி நேரம் மிச்சம்!',
+    },
+    large: {
+      orders: '150+ bills / mo',
+      timeSaved: '60+ Hours / mo',
+      debtRecovered: '₹28,000 / mo',
+      costPerDay: '₹4.10 / day (₹125/mo)',
+      recommendation: 'Pro Unlimited essential for multi-device counter billing & unlimited orders.',
+      tamilNote: 'அன்லிமிடெட் பில்லிங், பல போன்களில் சின்க், ஜிஎஸ்டி ரிப்போர்ட் — 100% தடையில்லா வியாபாரம்!',
+    },
+  }[shopScale];
+
   const faqs = [
     {
       q: 'Can I use KadaiBook on multiple phones or computers at the same time?',
@@ -185,7 +215,7 @@ export default function PaywallScreen() {
     },
     {
       q: 'What happens to my orders & customer credit records if my subscription ends?',
-      a: 'Your data is 100% safe and permanent. You will never lose any past orders, customer ledger entries, or invoices. You can view all existing records anytime on the Free tier.',
+      a: 'Your data is 100% safe and permanent. You will never lose any past orders, customer ledger entries, or invoices. You can view and download all existing records anytime on the Free tier.',
     },
     {
       q: 'How does WhatsApp Bill & Automated Payment Reminders work?',
@@ -194,6 +224,10 @@ export default function PaywallScreen() {
     {
       q: 'Can I connect Bluetooth Thermal Printers?',
       a: 'Yes! KadaiBook supports all 2-inch and 3-inch standard ESC/POS Bluetooth thermal printers for fast receipt printing at your billing counter.',
+    },
+    {
+      q: 'Is there a free trial or refund policy?',
+      a: 'You can start completely free with 30 orders & 30 customers every month. If you upgrade to Pro and feel it is not suited for your store within 7 days, contact our WhatsApp support for full assistance.',
     },
   ];
 
@@ -205,8 +239,8 @@ export default function PaywallScreen() {
           <View style={styles.topHeaderInner}>
             <GlassBackButton label="Back" />
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.topHeaderTitle}>Subscription Plans</Text>
-              <Text style={styles.topHeaderSub}>Choose the right plan for your shop</Text>
+              <Text style={styles.topHeaderTitle}>Subscription & Plans</Text>
+              <Text style={styles.topHeaderSub}>Choose the right power for your shop</Text>
             </View>
             <View
               style={[
@@ -217,7 +251,7 @@ export default function PaywallScreen() {
               <Ionicons
                 name={isPro ? 'sparkles' : isBasic ? 'star' : 'leaf-outline'}
                 size={12}
-                color={isPro ? '#854D0E' : isBasic ? '#0369A1' : '#15803D'}
+                color={isPro ? '#CA8A04' : isBasic ? '#38BDF8' : '#4ADE80'}
               />
               <Text
                 style={[
@@ -229,7 +263,7 @@ export default function PaywallScreen() {
                     : styles.statusPillTextFree,
                 ]}
               >
-                {isPro ? 'Pro Active' : isBasic ? 'Basic Active' : 'Free Plan (30 Limit)'}
+                {isPro ? 'Pro Active' : isBasic ? 'Basic Active' : 'Free (30 Limit)'}
               </Text>
             </View>
           </View>
@@ -240,28 +274,34 @@ export default function PaywallScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.innerContainer}>
-            {/* ── Hero Luxury Card ── */}
+            {/* ── Hero Luxury Dark Card ── */}
             <View style={styles.heroCard}>
-              <View style={styles.heroGlow} />
+              <View style={styles.heroGlowAmber} />
+              <View style={styles.heroGlowRose} />
+              
               <View style={styles.heroBadge}>
                 <Ionicons name="sparkles" size={13} color="#FDE047" />
-                <Text style={styles.heroBadgeText}>KADAIBOOK PRO • RETAILERS' #1 CHOICE</Text>
+                <Text style={styles.heroBadgeText}>KADAIBOOK PRO EDITION • 10,000+ SHOPS</Text>
               </View>
+
               <Text style={styles.heroTitle}>
-                Scale Your Business{'\n'}With KadaiBook Pro
+                One Small Subscription.{'\n'}
+                <Text style={styles.heroTitleAccent}>Unstoppable Shop Growth.</Text>
               </Text>
+
               <Text style={styles.heroTamilSubtitle}>
-                கடை வியாபாரத்தை 10 மடங்கு எளிதாகவும் வேகமாகவும் மாற்றுங்கள்
+                ஒரே ஒரு சந்தா • தடையில்லா வியாபார வளர்ச்சி!
               </Text>
+
               <Text style={styles.heroSubtitle}>
-                Manage unlimited billing, automated WhatsApp credit reminders, Bluetooth thermal receipts, and real-time cloud multi-device sync.
+                Unlock unlimited billing, automated WhatsApp credit reminders, Bluetooth thermal printing, and real-time cloud sync across all your phones and desktop.
               </Text>
 
               {/* 4 Trust Micro-Pills */}
               <View style={styles.heroTrustGrid}>
                 <View style={styles.heroTrustPill}>
                   <Ionicons name="star" size={13} color="#FBBF24" />
-                  <Text style={styles.heroTrustText}>4.9/5 Rating (10,000+ Stores)</Text>
+                  <Text style={styles.heroTrustText}>4.9/5 Rating (10K+ Stores)</Text>
                 </View>
                 <View style={styles.heroTrustPill}>
                   <Ionicons name="flash" size={13} color="#60A5FA" />
@@ -278,7 +318,77 @@ export default function PaywallScreen() {
               </View>
             </View>
 
-            {/* ── Billing Cycle Toggle Switch ── */}
+            {/* ── Interactive ROI & Savings Calculator ── */}
+            <View style={styles.roiCard}>
+              <View style={styles.roiHeaderRow}>
+                <View style={styles.roiIconWrap}>
+                  <Ionicons name="calculator-outline" size={20} color="#CA8A04" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.roiTitle}>Smart Shop ROI & Profit Calculator</Text>
+                  <Text style={styles.roiSub}>கணக்கு & லாப கால்குலேட்டர் — Select your monthly bill volume</Text>
+                </View>
+              </View>
+
+              {/* Volume Switcher Tabs */}
+              <View style={styles.roiTabsRow}>
+                <Pressable
+                  style={[styles.roiTabBtn, shopScale === 'small' && styles.roiTabBtnActive]}
+                  onPress={() => setShopScale('small')}
+                >
+                  <Text style={[styles.roiTabText, shopScale === 'small' && styles.roiTabTextActive]}>
+                    🛒 Small Shop{'\n'}(1-30 Bills)
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={[styles.roiTabBtn, shopScale === 'medium' && styles.roiTabBtnActive]}
+                  onPress={() => setShopScale('medium')}
+                >
+                  <Text style={[styles.roiTabText, shopScale === 'medium' && styles.roiTabTextActive]}>
+                    🏪 Active Retailer{'\n'}(30-150 Bills)
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={[styles.roiTabBtn, shopScale === 'large' && styles.roiTabBtnActive]}
+                  onPress={() => setShopScale('large')}
+                >
+                  <Text style={[styles.roiTabText, shopScale === 'large' && styles.roiTabTextActive]}>
+                    🏢 Supermart{'\n'}(150+ Bills)
+                  </Text>
+                </Pressable>
+              </View>
+
+              {/* Dynamic Metric Tiles */}
+              <View style={styles.roiMetricsGrid}>
+                <View style={styles.roiMetricTile}>
+                  <Ionicons name="time-outline" size={18} color="#0284C7" />
+                  <Text style={styles.roiMetricValue}>{roiData.timeSaved}</Text>
+                  <Text style={styles.roiMetricLabel}>Bookkeeping Time Saved</Text>
+                </View>
+
+                <View style={[styles.roiMetricTile, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
+                  <Ionicons name="cash-outline" size={18} color="#16A34A" />
+                  <Text style={[styles.roiMetricValue, { color: '#15803D' }]}>{roiData.debtRecovered}</Text>
+                  <Text style={styles.roiMetricLabel}>Recovered Unpaid Debts</Text>
+                </View>
+
+                <View style={[styles.roiMetricTile, { backgroundColor: '#FEFCE8', borderColor: '#FEF08A' }]}>
+                  <Ionicons name="cafe-outline" size={18} color="#CA8A04" />
+                  <Text style={[styles.roiMetricValue, { color: '#854D0E' }]}>{roiData.costPerDay}</Text>
+                  <Text style={styles.roiMetricLabel}>Pro Cost / Day</Text>
+                </View>
+              </View>
+
+              {/* Tamil Insight Box */}
+              <View style={styles.roiTamilCallout}>
+                <Ionicons name="sparkles" size={14} color="#CA8A04" />
+                <Text style={styles.roiTamilCalloutText}>{roiData.tamilNote}</Text>
+              </View>
+            </View>
+
+            {/* ── Billing Cycle Slider Switch ── */}
             <View style={styles.billingToggleWrapper}>
               <View style={styles.billingToggleContainer}>
                 <Pressable
@@ -294,7 +404,7 @@ export default function PaywallScreen() {
                       billingPeriod === 'monthly' && styles.billingToggleTextActive,
                     ]}
                   >
-                    Monthly Billing
+                    Monthly (Flexible)
                   </Text>
                 </Pressable>
 
@@ -317,37 +427,37 @@ export default function PaywallScreen() {
                         billingPeriod === 'yearly' && styles.billingToggleTextActiveYearly,
                       ]}
                     >
-                      Yearly Plan
+                      Yearly (Save 50%)
                     </Text>
                     <View style={styles.discountPill}>
-                      <Text style={styles.discountPillText}>SAVE 50%</Text>
+                      <Text style={styles.discountPillText}>50% OFF</Text>
                     </View>
                   </View>
                 </Pressable>
               </View>
             </View>
 
-            {/* ── Best Value Callout Banner ── */}
+            {/* ── Value Callout Banner ── */}
             {billingPeriod === 'yearly' && (
               <View style={styles.bestValueBanner}>
                 <View style={styles.bestValueBannerIconWrap}>
-                  <Ionicons name="gift" size={20} color="#CA8A04" />
+                  <Ionicons name="gift" size={22} color="#CA8A04" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.bestValueBannerTitle}>
                     🔥 Pro Yearly Offer: ₹1,499/year (Save ₹1,500/year!)
                   </Text>
                   <Text style={styles.bestValueBannerSub}>
-                    Equivalent to just ₹125/month (₹4.1/day)! Get 100% UNLIMITED access to all orders, customers, and premium features.
+                    Equivalent to just ₹125/month (₹4.1/day)! Less than a cup of tea for 100% UNLIMITED business power.
                   </Text>
                 </View>
               </View>
             )}
 
-            {/* ── Interactive Plan Cards ── */}
+            {/* ── Interactive 3-Tier Plan Cards ── */}
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionHeading}>Select Your Plan</Text>
-              <Text style={styles.sectionSub}>Pick the right fit for your retail shop</Text>
+              <Text style={styles.sectionSub}>Transparent pricing • No hidden fees</Text>
             </View>
 
             <View style={[styles.plansContainer, isDesktop && styles.plansContainerDesktop]}>
@@ -374,7 +484,7 @@ export default function PaywallScreen() {
                     <Text style={styles.planPrice}>
                       ₹0 <Text style={styles.planPeriod}>/ forever</Text>
                     </Text>
-                    <Text style={styles.planSubDesc}>Basic trial for single counter</Text>
+                    <Text style={styles.planSubDesc}>Basic starter limit for small shops</Text>
                   </View>
                   <View
                     style={[
@@ -442,7 +552,7 @@ export default function PaywallScreen() {
                     {billingPeriod === 'yearly' ? (
                       <Text style={styles.planPeriodSub}>₹75/mo • Save 25%</Text>
                     ) : (
-                      <Text style={styles.planSubDesc}>Flexible monthly starter billing</Text>
+                      <Text style={styles.planSubDesc}>Flexible monthly starter plan</Text>
                     )}
                   </View>
                   <View
@@ -479,7 +589,7 @@ export default function PaywallScreen() {
                 </View>
               </Pressable>
 
-              {/* 3. PRO UNLIMITED TIER CARD (HIGHLIGHTED STAR) */}
+              {/* 3. PRO UNLIMITED TIER CARD (THE STAR HERO) */}
               <Pressable
                 style={({ pressed }) => [
                   styles.planCard,
@@ -584,6 +694,54 @@ export default function PaywallScreen() {
               </Pressable>
             </View>
 
+            {/* ── Interactive 4 Key Feature Highlight Cards ── */}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeading}>Why Shop Owners Choose Pro</Text>
+              <Text style={styles.sectionSub}>Tools crafted to save 3+ hours daily</Text>
+            </View>
+
+            <View style={[styles.benefitsGrid, isDesktop && styles.benefitsGridDesktop]}>
+              <View style={[styles.benefitCard, isDesktop && styles.benefitCardDesktop]}>
+                <View style={[styles.benefitIconWrap, { backgroundColor: '#FEF3C7' }]}>
+                  <Ionicons name="infinite" size={22} color="#D97706" />
+                </View>
+                <Text style={styles.benefitTitle}>Zero Order Limits</Text>
+                <Text style={styles.benefitDesc}>
+                  Never get blocked during busy festive crowds. Record hundreds of orders every single day without interruption.
+                </Text>
+              </View>
+
+              <View style={[styles.benefitCard, isDesktop && styles.benefitCardDesktop]}>
+                <View style={[styles.benefitIconWrap, { backgroundColor: '#E0F2FE' }]}>
+                  <Ionicons name="logo-whatsapp" size={22} color="#0284C7" />
+                </View>
+                <Text style={styles.benefitTitle}>Recover Unpaid Dues Fast</Text>
+                <Text style={styles.benefitDesc}>
+                  Automated WhatsApp payment reminders help store owners collect credit balances 80% faster with 1-tap UPI links.
+                </Text>
+              </View>
+
+              <View style={[styles.benefitCard, isDesktop && styles.benefitCardDesktop]}>
+                <View style={[styles.benefitIconWrap, { backgroundColor: '#DCFCE7' }]}>
+                  <Ionicons name="trending-up-outline" size={22} color="#16A34A" />
+                </View>
+                <Text style={styles.benefitTitle}>Deep Profit Analytics</Text>
+                <Text style={styles.benefitDesc}>
+                  Track exact daily profits, revenue trends, top-selling inventory items, and export GST-ready Excel sheets for your CA.
+                </Text>
+              </View>
+
+              <View style={[styles.benefitCard, isDesktop && styles.benefitCardDesktop]}>
+                <View style={[styles.benefitIconWrap, { backgroundColor: '#F3E8FF' }]}>
+                  <Ionicons name="phone-portrait-outline" size={22} color="#9333EA" />
+                </View>
+                <Text style={styles.benefitTitle}>Multi-Device Sync</Text>
+                <Text style={styles.benefitDesc}>
+                  Give staff phones or tablets for counter billing while you monitor total sales, cash in hand, and inventory from home.
+                </Text>
+              </View>
+            </View>
+
             {/* ── Detailed Comparison Matrix ── */}
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionHeading}>Plan Comparison</Text>
@@ -640,50 +798,6 @@ export default function PaywallScreen() {
               ))}
             </View>
 
-            {/* ── Why Go Pro (Value Cards Grid) ── */}
-            <Text style={styles.sectionHeading}>Why Shop Owners Choose Pro</Text>
-            <View style={[styles.benefitsGrid, isDesktop && styles.benefitsGridDesktop]}>
-              <View style={[styles.benefitCard, isDesktop && styles.benefitCardDesktop]}>
-                <View style={[styles.benefitIconWrap, { backgroundColor: '#FEF3C7' }]}>
-                  <Ionicons name="infinite" size={22} color="#D97706" />
-                </View>
-                <Text style={styles.benefitTitle}>Scale Without Limits</Text>
-                <Text style={styles.benefitDesc}>
-                  Never hit a barrier during festive rushes. Add unlimited orders, products, and customer contacts as your sales surge.
-                </Text>
-              </View>
-
-              <View style={[styles.benefitCard, isDesktop && styles.benefitCardDesktop]}>
-                <View style={[styles.benefitIconWrap, { backgroundColor: '#E0F2FE' }]}>
-                  <Ionicons name="logo-whatsapp" size={22} color="#0284C7" />
-                </View>
-                <Text style={styles.benefitTitle}>Recover Unpaid Dues Fast</Text>
-                <Text style={styles.benefitDesc}>
-                  Automated WhatsApp payment reminders help store owners collect 80% faster without uncomfortable phone calls.
-                </Text>
-              </View>
-
-              <View style={[styles.benefitCard, isDesktop && styles.benefitCardDesktop]}>
-                <View style={[styles.benefitIconWrap, { backgroundColor: '#DCFCE7' }]}>
-                  <Ionicons name="trending-up-outline" size={22} color="#16A34A" />
-                </View>
-                <Text style={styles.benefitTitle}>Deep Profit Insights</Text>
-                <Text style={styles.benefitDesc}>
-                  Understand your exact daily profits, high-margin items, and export clean GST-ready Excel reports for your CA.
-                </Text>
-              </View>
-
-              <View style={[styles.benefitCard, isDesktop && styles.benefitCardDesktop]}>
-                <View style={[styles.benefitIconWrap, { backgroundColor: '#F3E8FF' }]}>
-                  <Ionicons name="phone-portrait-outline" size={22} color="#9333EA" />
-                </View>
-                <Text style={styles.benefitTitle}>Multi-Device Sync</Text>
-                <Text style={styles.benefitDesc}>
-                  Give your staff phones for billing while you monitor total store sales, cash counter, and inventory from home.
-                </Text>
-              </View>
-            </View>
-
             {/* ── Real Customer Testimonials ── */}
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionHeading}>Loved by Tamil Nadu Shop Owners</Text>
@@ -738,34 +852,34 @@ export default function PaywallScreen() {
                   ))}
                 </View>
                 <Text style={styles.testimonialQuote}>
-                  "The multi-phone live sync lets my billing staff create invoices on counter tablet while I can see total sales on my mobile anywhere."
+                  "The real-time sync between my counter billing tablet and my personal phone is a lifesaver. I can check daily collections from anywhere."
                 </Text>
                 <View style={styles.testimonialAuthorRow}>
                   <View style={styles.testimonialAvatar}>
                     <Text style={styles.testimonialAvatarText}>A</Text>
                   </View>
                   <View>
-                    <Text style={styles.testimonialAuthorName}>A. Farooq</Text>
-                    <Text style={styles.testimonialAuthorShop}>Star Textiles & Ready-mades, Chennai</Text>
+                    <Text style={styles.testimonialAuthorName}>V. Annamalai</Text>
+                    <Text style={styles.testimonialAuthorShop}>Annamalai Textiles, Chennai</Text>
                   </View>
                 </View>
               </View>
             </View>
 
-            {/* ── FAQ Section ── */}
+            {/* ── Interactive FAQs ── */}
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionHeading}>Frequently Asked Questions</Text>
-              <Text style={styles.sectionSub}>Got questions? We're here to help.</Text>
+              <Text style={styles.sectionSub}>Everything you need to know</Text>
             </View>
 
             <View style={styles.faqContainer}>
-              {faqs.map((faq, index) => {
-                const isOpen = expandedFaq === index;
+              {faqs.map((faq, idx) => {
+                const isOpen = expandedFaq === idx;
                 return (
                   <Pressable
-                    key={index}
+                    key={idx}
                     style={styles.faqCard}
-                    onPress={() => setExpandedFaq(isOpen ? null : index)}
+                    onPress={() => setExpandedFaq(isOpen ? null : idx)}
                   >
                     <View style={styles.faqHeader}>
                       <Text style={styles.faqQuestion}>{faq.q}</Text>
@@ -775,120 +889,102 @@ export default function PaywallScreen() {
                         color={colors.inkSoft}
                       />
                     </View>
-                    {isOpen && <Text style={styles.faqAnswer}>{faq.a}</Text>}
+                    {isOpen && (
+                      <View style={styles.faqBody}>
+                        <Text style={styles.faqAnswer}>{faq.a}</Text>
+                      </View>
+                    )}
                   </Pressable>
                 );
               })}
             </View>
 
-            {/* ── Web vs Mobile Purchase CTA ── */}
-            {Platform.OS === 'web' ? (
+            {/* ── Web CTA Card (For Web Users) ── */}
+            {Platform.OS === 'web' && (
               <View style={styles.webCtaCard}>
                 <View style={styles.webCtaIconWrap}>
-                  <Ionicons name="phone-portrait" size={32} color={colors.clayDeep} />
+                  <Ionicons name="phone-portrait" size={28} color={colors.clayDeep} />
                 </View>
-                <Text style={styles.webCtaTitle}>Upgrade on KadaiBook Mobile App</Text>
-                <Text style={styles.webCtaDesc}>
-                  In-app purchases are securely handled through Google Play & Apple App Store.
-                  Upgrade on your Android or iPhone, and your Pro features will immediately unlock here on the Web Dashboard too!
+                <Text style={styles.webCtaTitle}>Ready to Upgrade Your Shop?</Text>
+                <Text style={styles.webCtaSub}>
+                  Open KadaiBook on your Android phone or iPhone to subscribe with 1 tap via Google Play / App Store. All Pro features will instantly sync to this web account!
                 </Text>
 
-                <View style={styles.storeButtonsRow}>
+                <View style={styles.appStoreButtonsRow}>
                   <Pressable
-                    style={({ pressed }) => [
-                      styles.storeBadge,
-                      styles.storeBadgeGoogle,
-                      pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-                    ]}
+                    style={styles.storeBadgeBtn}
                     onPress={() => Linking.openURL(PLAY_STORE_URL)}
                   >
                     <Ionicons name="logo-google-playstore" size={20} color="#FFFFFF" />
                     <View>
                       <Text style={styles.storeBadgeSub}>GET IT ON</Text>
-                      <Text style={styles.storeBadgeMain}>Google Play</Text>
+                      <Text style={styles.storeBadgeTitle}>Google Play</Text>
                     </View>
                   </Pressable>
 
                   <Pressable
-                    style={({ pressed }) => [
-                      styles.storeBadge,
-                      styles.storeBadgeApple,
-                      pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-                    ]}
+                    style={[styles.storeBadgeBtn, { backgroundColor: '#000000' }]}
                     onPress={() => Linking.openURL(APP_STORE_URL)}
                   >
-                    <Ionicons name="logo-apple" size={22} color="#FFFFFF" />
+                    <Ionicons name="logo-apple" size={20} color="#FFFFFF" />
                     <View>
-                      <Text style={styles.storeBadgeSub}>Download on</Text>
-                      <Text style={styles.storeBadgeMain}>App Store</Text>
+                      <Text style={styles.storeBadgeSub}>Download on the</Text>
+                      <Text style={styles.storeBadgeTitle}>App Store</Text>
                     </View>
                   </Pressable>
                 </View>
               </View>
-            ) : (
+            )}
+
+            {/* ── Action / Upgrade Container (Mobile Native) ── */}
+            {Platform.OS !== 'web' && (
               <View style={styles.actionContainer}>
                 {selectedTier === 'free' ? (
-                  <View style={styles.freeActiveNotice}>
-                    <Text style={styles.freeActiveNoticeText}>
-                      You are viewing the Free plan (30 orders & customers limit). Select Basic or Pro above to upgrade!
+                  <View style={styles.freeActiveBanner}>
+                    <Ionicons name="checkmark-circle" size={20} color="#16A34A" />
+                    <Text style={styles.freeActiveBannerText}>
+                      You are using the Free Plan (30 orders/mo). Select Pro or Basic above anytime to upgrade.
                     </Text>
                   </View>
                 ) : (
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.upgradeButton,
-                      selectedTier === 'pro' && styles.upgradeButtonPro,
-                      purchasing && { opacity: 0.7 },
-                      pressed && { transform: [{ scale: 0.98 }] },
-                    ]}
-                    onPress={() => handlePurchase()}
-                    disabled={purchasing}
-                  >
-                    {purchasing ? (
-                      <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                      <>
-                        <Ionicons
-                          name={selectedTier === 'pro' ? 'sparkles' : 'arrow-up-circle'}
-                          size={20}
-                          color="#FFFFFF"
-                        />
-                        <Text style={styles.upgradeButtonText}>
-                          {selectedTier === 'pro'
-                            ? `Upgrade to Pro Unlimited • ${proPriceText}`
-                            : `Upgrade to Basic • ${basicPriceText}`}
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
+                  <>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.upgradeButton,
+                        purchasing && { opacity: 0.6 },
+                        pressed && { transform: [{ scale: 0.98 }] },
+                      ]}
+                      onPress={() => handlePurchase()}
+                      disabled={purchasing}
+                    >
+                      {purchasing ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <>
+                          <Ionicons name="sparkles" size={20} color="#FFFFFF" />
+                          <Text style={styles.upgradeButtonText}>
+                            {selectedTier === 'pro'
+                              ? `Unlock Pro Unlimited • ${proPriceText}`
+                              : `Get Basic Plan • ${basicPriceText}`}
+                          </Text>
+                          <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                        </>
+                      )}
+                    </Pressable>
+
+                    <Text style={styles.guaranteeText}>
+                      🔒 Cancel anytime in Google Play / App Store • 100% Secure Checkout
+                    </Text>
+
+                    <Pressable
+                      style={({ pressed }) => [styles.restoreButton, pressed && { opacity: 0.6 }]}
+                      onPress={handleRestore}
+                      disabled={purchasing}
+                    >
+                      <Text style={styles.restoreButtonText}>Already purchased? Restore Purchases</Text>
+                    </Pressable>
+                  </>
                 )}
-
-                {/* Trust Badges */}
-                <View style={styles.trustBadges}>
-                  <View style={styles.trustItem}>
-                    <Ionicons name="shield-checkmark" size={14} color="#16A34A" />
-                    <Text style={styles.trustText}>100% Secure Checkout</Text>
-                  </View>
-                  <View style={styles.trustDot} />
-                  <View style={styles.trustItem}>
-                    <Ionicons name="flash" size={14} color="#D97706" />
-                    <Text style={styles.trustText}>Instant Activation</Text>
-                  </View>
-                  <View style={styles.trustDot} />
-                  <View style={styles.trustItem}>
-                    <Ionicons name="refresh" size={14} color="#4F7C90" />
-                    <Text style={styles.trustText}>Cancel Anytime</Text>
-                  </View>
-                </View>
-
-                {/* Restore purchases */}
-                <Pressable
-                  style={styles.restoreBtn}
-                  onPress={handleRestore}
-                  disabled={purchasing}
-                >
-                  <Text style={styles.restoreBtnText}>Restore Previous Purchases</Text>
-                </Pressable>
               </View>
             )}
           </View>
@@ -901,30 +997,31 @@ export default function PaywallScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.paper,
+    backgroundColor: '#F8F6F0',
   },
   center: {
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   topHeader: {
-    width: '100%',
+    backgroundColor: 'rgba(248, 246, 240, 0.95)',
     borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    backgroundColor: colors.paperCard,
-    paddingHorizontal: 16,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
     paddingVertical: 12,
+    paddingHorizontal: 16,
+    zIndex: 10,
   },
   topHeaderInner: {
+    maxWidth: 1000,
     width: '100%',
-    maxWidth: 960,
-    alignSelf: 'center',
+    marginHorizontal: 'auto',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   topHeaderTitle: {
     fontFamily: fonts.bodyBold,
-    fontSize: 18,
+    fontSize: 16,
     color: colors.ink,
   },
   topHeaderSub: {
@@ -941,84 +1038,94 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     borderWidth: 1,
   },
-  statusPillPro: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#FDE68A',
+  statusPillFree: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
   },
   statusPillBasic: {
-    backgroundColor: '#E0F2FE',
+    backgroundColor: '#F0F9FF',
     borderColor: '#BAE6FD',
   },
-  statusPillFree: {
-    backgroundColor: '#DCFCE7',
-    borderColor: '#BBF7D0',
+  statusPillPro: {
+    backgroundColor: '#FEFCE8',
+    borderColor: '#FEF08A',
   },
   statusPillText: {
     fontFamily: fonts.bodyBold,
     fontSize: 11,
   },
-  statusPillTextPro: {
-    color: '#92400E',
-  },
-  statusPillTextBasic: {
-    color: '#0369A1',
-  },
   statusPillTextFree: {
     color: '#15803D',
   },
+  statusPillTextBasic: {
+    color: '#0284C7',
+  },
+  statusPillTextPro: {
+    color: '#A16207',
+  },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-    paddingBottom: 48,
-    alignItems: 'center',
+    paddingBottom: 60,
   },
   innerContainer: {
+    maxWidth: 1000,
     width: '100%',
-    maxWidth: 960,
-    alignSelf: 'center',
+    marginHorizontal: 'auto',
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
 
-  /* ── Hero Luxury Card ── */
+  /* ── Hero Dark Card ── */
   heroCard: {
-    backgroundColor: '#1C1917',
+    backgroundColor: '#14120E',
     borderRadius: 24,
-    paddingVertical: 32,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    marginBottom: 24,
+    padding: 28,
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#CA8A04',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    elevation: 5,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(202, 138, 4, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 8,
   },
-  heroGlow: {
+  heroGlowAmber: {
     position: 'absolute',
-    top: -60,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(217, 119, 6, 0.18)',
+    top: -80,
+    right: -80,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(202, 138, 4, 0.25)',
+    opacity: 0.8,
+  },
+  heroGlowRose: {
+    position: 'absolute',
+    bottom: -80,
+    left: -80,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(185, 102, 89, 0.22)',
+    opacity: 0.8,
   },
   heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
     gap: 6,
-    backgroundColor: 'rgba(254, 240, 138, 0.15)',
+    backgroundColor: 'rgba(254, 240, 138, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(254, 240, 138, 0.35)',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: 'rgba(253, 230, 138, 0.35)',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   heroBadgeText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 10.5,
+    fontSize: 11,
     color: '#FDE047',
     letterSpacing: 0.8,
   },
@@ -1026,82 +1133,203 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: 26,
     color: '#FFFFFF',
-    textAlign: 'center',
+    lineHeight: 32,
     marginBottom: 6,
-    lineHeight: 34,
+  },
+  heroTitleAccent: {
+    color: '#FBBF24',
   },
   heroTamilSubtitle: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13.5,
-    color: '#FCD34D',
-    textAlign: 'center',
-    marginBottom: 8,
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: '#FDE68A',
+    marginBottom: 10,
   },
   heroSubtitle: {
     fontFamily: fonts.body,
     fontSize: 13.5,
-    color: '#D6D3D1',
-    textAlign: 'center',
-    lineHeight: 21,
-    maxWidth: 500,
+    color: '#D4CDC0',
+    lineHeight: 20,
     marginBottom: 20,
   },
   heroTrustGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
     gap: 8,
   },
   heroTrustPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   heroTrustText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    color: '#F5F5F4',
+    fontSize: 11.5,
+    color: '#E6E1D8',
   },
 
-  /* ── Billing Toggle ── */
+  /* ── ROI & Profit Calculator ── */
+  roiCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E8E2D5',
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  roiHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  roiIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FEF9C3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FDE047',
+  },
+  roiTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    color: colors.ink,
+  },
+  roiSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+  },
+  roiTabsRow: {
+    flexDirection: 'row',
+    backgroundColor: '#F5EFE4',
+    padding: 4,
+    borderRadius: radius.md,
+    gap: 4,
+    marginBottom: 16,
+  },
+  roiTabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roiTabBtnActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  roiTabText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11.5,
+    color: colors.inkSoft,
+    textAlign: 'center',
+    lineHeight: 15,
+  },
+  roiTabTextActive: {
+    fontFamily: fonts.bodyBold,
+    color: colors.ink,
+  },
+  roiMetricsGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  roiMetricTile: {
+    flex: 1,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: radius.md,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roiMetricValue: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+    color: '#0369A1',
+    marginTop: 4,
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  roiMetricLabel: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: colors.inkSoft,
+    textAlign: 'center',
+  },
+  roiTamilCallout: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  roiTamilCalloutText: {
+    flex: 1,
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: '#854D0E',
+    lineHeight: 16,
+  },
+
+  /* ── Billing Toggle Switch ── */
   billingToggleWrapper: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   billingToggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F3EFE6',
-    borderRadius: radius.pill,
+    backgroundColor: '#EBE5D8',
     padding: 4,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: 'rgba(0,0,0,0.08)',
   },
   billingToggleBtn: {
     paddingVertical: 10,
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
     borderRadius: radius.pill,
   },
   billingToggleBtnActive: {
-    backgroundColor: colors.paperCard,
+    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
   },
   billingToggleBtnActiveYearly: {
     backgroundColor: '#FEF08A',
     shadowColor: '#CA8A04',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 4,
   },
   billingToggleText: {
     fontFamily: fonts.bodyMedium,
@@ -1122,38 +1350,37 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   discountPill: {
-    backgroundColor: '#16A34A',
-    paddingHorizontal: 6,
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: radius.pill,
   },
   discountPillText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 9,
+    fontSize: 9.5,
     color: '#FFFFFF',
-    letterSpacing: 0.5,
   },
 
-  /* ── Best Value Callout Banner ── */
+  /* ── Best Value Callout ── */
   bestValueBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     backgroundColor: '#FEFCE8',
     borderWidth: 1.5,
-    borderColor: '#FDE047',
-    borderRadius: radius.md,
-    padding: 14,
+    borderColor: '#FACC15',
+    borderRadius: radius.lg,
+    padding: 16,
+    gap: 14,
     marginBottom: 24,
     shadowColor: '#CA8A04',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 2,
   },
   bestValueBannerIconWrap: {
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     borderRadius: 10,
     backgroundColor: '#FEF08A',
     alignItems: 'center',
@@ -1161,28 +1388,27 @@ const styles = StyleSheet.create({
   },
   bestValueBannerTitle: {
     fontFamily: fonts.bodyBold,
-    fontSize: 13.5,
+    fontSize: 14.5,
     color: '#854D0E',
     marginBottom: 2,
   },
   bestValueBannerSub: {
     fontFamily: fonts.body,
     fontSize: 12,
-    color: '#A16207',
-    lineHeight: 17,
+    color: '#713F12',
+    lineHeight: 16,
   },
 
-  sectionHeading: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 18,
-    color: colors.ink,
-  },
+  /* ── Section Header ── */
   sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginTop: 16,
-    marginBottom: 14,
+    marginBottom: 16,
+    marginTop: 10,
+  },
+  sectionHeading: {
+    fontFamily: fonts.display,
+    fontSize: 20,
+    color: colors.ink,
+    marginBottom: 2,
   },
   sectionSub: {
     fontFamily: fonts.body,
@@ -1190,9 +1416,8 @@ const styles = StyleSheet.create({
     color: colors.inkSoft,
   },
 
-  /* ── Plan Cards ── */
+  /* ── Plans Container ── */
   plansContainer: {
-    flexDirection: 'column',
     gap: 16,
     marginBottom: 28,
   },
@@ -1201,16 +1426,16 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
   planCard: {
-    backgroundColor: colors.paperCard,
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.lg,
     borderWidth: 1.5,
-    borderColor: colors.line,
-    padding: 22,
+    borderColor: '#E8E2D5',
+    padding: 24,
     position: 'relative',
     shadowColor: '#2E2A24',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   planCardDesktop: {
@@ -1218,38 +1443,43 @@ const styles = StyleSheet.create({
   },
   planCardSelected: {
     borderColor: colors.clayDeep,
-    backgroundColor: '#FFFDF9',
+    backgroundColor: '#FFFAF8',
   },
   proPlanCard: {
     borderColor: '#EAB308',
     backgroundColor: '#FFFDF5',
-    paddingTop: 28,
+    paddingTop: 30,
+    shadowColor: '#CA8A04',
+    shadowOpacity: 0.15,
+    shadowRadius: 14,
+    elevation: 4,
   },
   proPlanCardSelected: {
     borderColor: '#CA8A04',
-    borderWidth: 2,
+    borderWidth: 2.5,
     backgroundColor: '#FEFCE8',
     shadowColor: '#CA8A04',
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    elevation: 6,
   },
   proRibbon: {
     position: 'absolute',
-    top: -1,
-    left: -1,
-    right: -1,
+    top: 0,
+    left: 0,
+    right: 0,
     backgroundColor: '#CA8A04',
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 5,
+    paddingVertical: 6,
   },
   proRibbonText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 10,
+    fontSize: 10.5,
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
@@ -1266,98 +1496,96 @@ const styles = StyleSheet.create({
   },
   planName: {
     fontFamily: fonts.bodyBold,
-    fontSize: 19,
+    fontSize: 20,
     color: colors.ink,
   },
   proPlanName: {
     color: '#854D0E',
   },
   currentBadge: {
-    backgroundColor: '#E0F2FE',
-    paddingHorizontal: 8,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
   },
   currentBadgeText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    color: '#0284C7',
+    fontSize: 9.5,
+    color: '#15803D',
   },
   starterBadge: {
-    backgroundColor: '#F3E8FF',
-    paddingHorizontal: 8,
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: radius.pill,
   },
   starterBadgeText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    color: '#7E22CE',
-  },
-  bestPlanTag: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: '#86EFAC',
-  },
-  bestPlanTagText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    color: '#15803D',
+    fontSize: 9.5,
+    color: '#0369A1',
   },
   activeProBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     backgroundColor: '#FEF08A',
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: '#FDE047',
   },
   activeProBadgeText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 10,
+    fontSize: 9.5,
     color: '#854D0E',
+  },
+  bestPlanTag: {
+    backgroundColor: '#FEF08A',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+  },
+  bestPlanTagText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9.5,
+    color: '#A16207',
   },
   planPrice: {
     fontFamily: fonts.bodyBold,
-    fontSize: 20,
+    fontSize: 22,
     color: colors.ink,
+  },
+  proPlanPrice: {
+    color: '#854D0E',
   },
   strikePrice: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 14,
     color: colors.inkSoft,
     textDecorationLine: 'line-through',
   },
   planPeriodSub: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 11.5,
+    fontSize: 12,
     color: '#15803D',
     marginTop: 2,
   },
   proPeriodSub: {
     fontFamily: fonts.bodyBold,
-    fontSize: 11.5,
+    fontSize: 12,
     color: '#A16207',
     marginTop: 2,
   },
   planSubDesc: {
     fontFamily: fonts.body,
-    fontSize: 11.5,
+    fontSize: 12,
     color: colors.inkSoft,
     marginTop: 2,
   },
-  proPlanPrice: {
-    color: '#92400E',
-  },
   planPeriod: {
     fontFamily: fonts.body,
-    fontSize: 12,
+    fontSize: 13,
     color: colors.inkSoft,
   },
   radioOuter: {
@@ -1365,7 +1593,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: colors.line,
+    borderColor: '#D4CDC0',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1379,7 +1607,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.clayDeep,
   },
   proRadioOuter: {
-    borderColor: '#FDE68A',
+    borderColor: '#FACC15',
   },
   proRadioOuterSelected: {
     borderColor: '#CA8A04',
@@ -1392,7 +1620,7 @@ const styles = StyleSheet.create({
   },
   planDivider: {
     height: 1,
-    backgroundColor: colors.line,
+    backgroundColor: '#EFEAE0',
     marginVertical: 14,
   },
   proPlanDivider: {
@@ -1403,45 +1631,49 @@ const styles = StyleSheet.create({
   },
   planFeatureItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
   },
   planFeatureText: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 13.5,
     color: colors.ink,
     flexShrink: 1,
-    lineHeight: 18,
+    lineHeight: 19,
   },
   proFeatureText: {
     fontFamily: fonts.bodyMedium,
-    color: '#713F12',
+    color: '#451A03',
   },
 
   /* ── Comparison Table ── */
   comparisonTable: {
-    backgroundColor: colors.paperCard,
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#E8E2D5',
     overflow: 'hidden',
     marginBottom: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   compHeaderRow: {
     flexDirection: 'row',
-    backgroundColor: '#F3EFE6',
+    backgroundColor: '#F5EFE4',
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.line,
+    borderBottomColor: '#E8E2D5',
     alignItems: 'center',
   },
   compHeaderCol: {
     flex: 1,
     fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.inkSoft,
-    textTransform: 'uppercase',
+    fontSize: 12.5,
+    color: colors.ink,
   },
   compColCenter: {
     textAlign: 'center',
@@ -1449,33 +1681,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   compProHeaderCol: {
-    backgroundColor: '#FEF3C7',
-    paddingVertical: 6,
-    borderRadius: 6,
+    backgroundColor: '#FEF08A',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: radius.sm,
   },
   compProHeaderText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 12,
+    fontSize: 12.5,
     color: '#854D0E',
     textAlign: 'center',
   },
   compRow: {
     flexDirection: 'row',
-    paddingVertical: 13,
+    paddingVertical: 12,
     paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.04)',
     alignItems: 'center',
   },
   compRowAlt: {
-    backgroundColor: '#FAF7F0',
+    backgroundColor: '#FAF8F4',
   },
   compCell: {
     flex: 1,
   },
   compCellFeature: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 13,
+    fontSize: 12.5,
     color: colors.ink,
-    flexShrink: 1,
   },
   compMuted: {
     fontFamily: fonts.body,
@@ -1488,21 +1722,19 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   compProCol: {
-    backgroundColor: '#FEFCE8',
-    paddingVertical: 4,
-    borderRadius: 4,
+    backgroundColor: '#FFFDF5',
+    paddingVertical: 2,
+    borderRadius: radius.sm,
   },
   compProText: {
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     color: '#854D0E',
-    textAlign: 'center',
   },
 
-  /* ── Value Benefits Grid ── */
+  /* ── Benefits Grid ── */
   benefitsGrid: {
-    flexDirection: 'column',
-    gap: 16,
+    gap: 12,
     marginBottom: 28,
   },
   benefitsGridDesktop: {
@@ -1510,12 +1742,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   benefitCard: {
-    backgroundColor: colors.paperCard,
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#E8E2D5',
     padding: 20,
     width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   benefitCardDesktop: {
     width: '48.8%',
@@ -1530,7 +1767,7 @@ const styles = StyleSheet.create({
   },
   benefitTitle: {
     fontFamily: fonts.bodyBold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.ink,
     marginBottom: 4,
   },
@@ -1541,22 +1778,26 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
 
-  /* ── Testimonials Grid ── */
+  /* ── Testimonials ── */
   testimonialsGrid: {
-    flexDirection: 'column',
-    gap: 14,
+    gap: 12,
     marginBottom: 28,
   },
   testimonialsGridDesktop: {
     flexDirection: 'row',
   },
   testimonialCard: {
-    backgroundColor: colors.paperCard,
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.line,
-    padding: 18,
+    borderColor: '#E8E2D5',
+    padding: 20,
     width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   testimonialCardDesktop: {
     flex: 1,
@@ -1580,9 +1821,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   testimonialAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#F5EBE1',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1603,190 +1844,172 @@ const styles = StyleSheet.create({
     color: colors.inkSoft,
   },
 
-  /* ── FAQ Section ── */
+  /* ── FAQ ── */
   faqContainer: {
     gap: 10,
     marginBottom: 28,
   },
   faqCard: {
-    backgroundColor: colors.paperCard,
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.line,
-    padding: 16,
+    borderColor: '#E8E2D5',
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   faqHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 12,
   },
   faqQuestion: {
     fontFamily: fonts.bodyBold,
-    fontSize: 13.5,
+    fontSize: 14,
     color: colors.ink,
     flex: 1,
+  },
+  faqBody: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#EFEAE0',
   },
   faqAnswer: {
     fontFamily: fonts.body,
     fontSize: 13,
     color: colors.inkSoft,
     lineHeight: 20,
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
   },
 
   /* ── Action / Upgrade Container ── */
   actionContainer: {
-    marginTop: 8,
-    alignItems: 'center',
-  },
-  freeActiveNotice: {
-    backgroundColor: '#F3EFE6',
-    padding: 16,
-    borderRadius: radius.md,
-    width: '100%',
-    alignItems: 'center',
-  },
-  freeActiveNoticeText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    color: colors.inkSoft,
-    textAlign: 'center',
+    marginTop: 10,
+    gap: 12,
   },
   upgradeButton: {
-    backgroundColor: colors.clayDeep,
-    width: '100%',
-    maxWidth: 480,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 16,
-    borderRadius: radius.pill,
-    shadowColor: colors.clayDeep,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  upgradeButtonPro: {
     backgroundColor: '#CA8A04',
+    paddingVertical: 16,
+    borderRadius: 16,
     shadowColor: '#CA8A04',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
   },
   upgradeButtonText: {
     fontFamily: fonts.bodyBold,
     fontSize: 16,
     color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
-  trustBadges: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 16,
-    marginBottom: 10,
-  },
-  trustItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  trustDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: colors.line,
-  },
-  trustText: {
+  guaranteeText: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.inkSoft,
+    textAlign: 'center',
   },
-  restoreBtn: {
+  restoreButton: {
+    alignItems: 'center',
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginTop: 4,
   },
-  restoreBtnText: {
+  restoreButtonText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
-    color: colors.clayDeep,
+    color: colors.inkSoft,
     textDecorationLine: 'underline',
+  },
+  freeActiveBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: radius.md,
+    padding: 16,
+  },
+  freeActiveBannerText: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: '#15803D',
+    lineHeight: 18,
   },
 
   /* ── Web CTA Card ── */
   webCtaCard: {
-    backgroundColor: colors.paperCard,
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 32,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E2D5',
     alignItems: 'center',
+    textAlign: 'center',
+    marginTop: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowRadius: 16,
+    elevation: 4,
   },
   webCtaIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: '#F5EBE1',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FBECE8',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   webCtaTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 21,
+    fontFamily: fonts.display,
+    fontSize: 22,
     color: colors.ink,
-    textAlign: 'center',
     marginBottom: 8,
+    textAlign: 'center',
   },
-  webCtaDesc: {
+  webCtaSub: {
     fontFamily: fonts.body,
     fontSize: 14,
     color: colors.inkSoft,
     textAlign: 'center',
     lineHeight: 22,
-    maxWidth: 520,
+    maxWidth: 580,
     marginBottom: 24,
   },
-  storeButtonsRow: {
+  appStoreButtonsRow: {
     flexDirection: 'row',
-    gap: 14,
     flexWrap: 'wrap',
     justifyContent: 'center',
-    width: '100%',
+    gap: 14,
   },
-  storeBadge: {
+  storeBadgeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    backgroundColor: '#0F172A',
+    paddingVertical: 12,
     paddingHorizontal: 22,
-    paddingVertical: 14,
     borderRadius: 14,
-    minWidth: 175,
-  },
-  storeBadgeGoogle: {
-    backgroundColor: '#1A73E8',
-  },
-  storeBadgeApple: {
-    backgroundColor: '#000000',
   },
   storeBadgeSub: {
     fontFamily: fonts.body,
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.8)',
+    fontSize: 9.5,
+    color: '#94A3B8',
     textTransform: 'uppercase',
   },
-  storeBadgeMain: {
+  storeBadgeTitle: {
     fontFamily: fonts.bodyBold,
-    fontSize: 16,
+    fontSize: 14,
     color: '#FFFFFF',
   },
 });

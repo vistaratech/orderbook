@@ -49,6 +49,8 @@ export default function SaaSSidebar({
 
   const [user, setUser] = useState<UserAccount | null>(null);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
+  const [isPro, setIsPro] = useState<boolean>(false);
+  const [isBasic, setIsBasic] = useState<boolean>(false);
   const [internalCollapsed, setInternalCollapsed] = useState<boolean>(false);
 
   // Sync internal collapsed state with AsyncStorage
@@ -73,9 +75,16 @@ export default function SaaSSidebar({
 
   const loadUserInfo = async () => {
     try {
-      const [authState, bp] = await Promise.all([getAuthState(), getBusinessProfile()]);
+      const [authState, bp, proStatus, basicStatus] = await Promise.all([
+        getAuthState(),
+        getBusinessProfile(),
+        checkProStatus(),
+        checkBasicStatus(),
+      ]);
       setUser(authState.user);
       setProfile(bp);
+      setIsPro(proStatus);
+      setIsBasic(basicStatus);
     } catch {}
   };
 
@@ -185,6 +194,13 @@ export default function SaaSSidebar({
     {
       group: 'PREFERENCES',
       items: [
+        {
+          key: 'PaywallScreen',
+          label: isPro ? '👑 Pro Active' : isBasic ? '⭐ Basic Plan' : '⚡ Upgrade & Plans',
+          icon: 'sparkles-outline' as const,
+          activeIcon: 'sparkles' as const,
+          action: () => handleNav('PaywallScreen', 'PaywallScreen'),
+        },
         {
           key: 'InvoiceTemplateCustomizer',
           label: t('invoice.templateTitle', 'Bill Templates'),
@@ -323,6 +339,47 @@ export default function SaaSSidebar({
           </View>
         ))}
       </ScrollView>
+
+      {/* ─── Pro Upgrade Sidebar Card ─── */}
+      {!isCollapsed && !isPro && (
+        <Pressable
+          style={({ pressed }) => [
+            styles.proUpgradeBanner,
+            pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+          ]}
+          onPress={() => navigation.navigate('PaywallScreen')}
+        >
+          <View style={styles.proUpgradeBadgeRow}>
+            <View style={styles.proUpgradeSparkle}>
+              <Ionicons name="sparkles" size={12} color="#854D0E" />
+            </View>
+            <Text style={styles.proUpgradeBadgeText}>PRO UNLIMITED</Text>
+            <View style={styles.proDiscountTag}>
+              <Text style={styles.proDiscountTagText}>50% OFF</Text>
+            </View>
+          </View>
+          <Text style={styles.proUpgradeTitle}>Unlock All Pro Tools</Text>
+          <Text style={styles.proUpgradeSub}>Unlimited orders, custom logos & GST reports</Text>
+          <View style={styles.proUpgradeBtn}>
+            <Text style={styles.proUpgradeBtnText}>Upgrade @ ₹125/mo</Text>
+            <Ionicons name="arrow-forward" size={11} color="#FFFFFF" />
+          </View>
+        </Pressable>
+      )}
+
+      {isCollapsed && !isPro && (
+        <Pressable
+          style={({ pressed }) => [
+            styles.proUpgradeMiniBtn,
+            pressed && { opacity: 0.85 },
+          ]}
+          onPress={() => navigation.navigate('PaywallScreen')}
+          // @ts-ignore
+          title="Upgrade to Pro"
+        >
+          <Ionicons name="sparkles" size={16} color="#854D0E" />
+        </Pressable>
+      )}
 
       {/* ─── Footer: User Account & Sign Out ─── */}
       <View style={[styles.userFooter, isCollapsed && styles.userFooterCollapsed]}>
@@ -612,5 +669,91 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 0,
+  },
+  /* Pro Upgrade Sidebar Banner */
+  proUpgradeBanner: {
+    marginHorizontal: 12,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: '#FEF9C3',
+    borderWidth: 1,
+    borderColor: '#FDE047',
+    shadowColor: '#CA8A04',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  proUpgradeBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 5,
+  },
+  proUpgradeSparkle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FEF08A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  proUpgradeBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    color: '#854D0E',
+    letterSpacing: 0.5,
+  },
+  proDiscountTag: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    marginLeft: 'auto',
+  },
+  proDiscountTagText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9,
+    color: '#FFFFFF',
+  },
+  proUpgradeTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: '#713F12',
+    marginBottom: 2,
+  },
+  proUpgradeSub: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: '#854D0E',
+    lineHeight: 14,
+    marginBottom: 8,
+  },
+  proUpgradeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: '#CA8A04',
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  proUpgradeBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: '#FFFFFF',
+  },
+  proUpgradeMiniBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#FEF9C3',
+    borderWidth: 1,
+    borderColor: '#FDE047',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 10,
   },
 });

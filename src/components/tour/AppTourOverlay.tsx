@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,21 @@ import {
 } from 'react-native';
 import Svg, { Defs, Mask, Rect } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
-import { useTour, TOUR_STEPS } from '../../context/TourContext';
+import { useTour, TOUR_STEPS, TourStep } from '../../context/TourContext';
 import { colors, fonts, radius, shadow } from '../../theme/theme';
+
+// ─── Friendly guide character emojis for each step ───
+const STEP_GUIDE: Record<string, string> = {
+  'welcome':             '👋',
+  'dashboard-metrics':   '📊',
+  'dashboard-pipeline':  '📦',
+  'new-order-action':    '🧾',
+  'orders-search-filter':'🔍',
+  'orders-list-area':    '📋',
+  'expenses-overview':   '💰',
+  'more-menu-hub':       '⚙️',
+  'tour-completion':     '🎉',
+};
 
 export default function AppTourOverlay() {
   const {
@@ -28,155 +41,213 @@ export default function AppTourOverlay() {
   const { width, height } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
-  // Animations
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  // ─── Animation Values ───
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const cardScaleAnim = useRef(new Animated.Value(0.94)).current;
+  const cardSlideAnim = useRef(new Animated.Value(0)).current;
+  const cardScaleAnim = useRef(new Animated.Value(0.92)).current;
+  const spotlightAnim = useRef(new Animated.Value(0)).current;
+  const guideAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
+  // Track previous step for transition direction
+  const prevStepRef = useRef(currentStepIndex);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // ─── Overlay entry animation ───
   useEffect(() => {
     if (isTourActive) {
+      fadeAnim.setValue(0);
+      cardScaleAnim.setValue(0.92);
+      cardSlideAnim.setValue(20);
+      guideAnim.setValue(0);
+
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 250,
+          duration: 300,
           useNativeDriver: true,
         }),
         Animated.spring(cardScaleAnim, {
           toValue: 1,
-          friction: 8,
-          tension: 60,
+          friction: 7,
+          tension: 50,
+          useNativeDriver: true,
+        }),
+        Animated.spring(cardSlideAnim, {
+          toValue: 0,
+          friction: 7,
+          tension: 50,
+          useNativeDriver: true,
+        }),
+        Animated.spring(guideAnim, {
+          toValue: 1,
+          friction: 6,
+          tension: 40,
+          delay: 150,
           useNativeDriver: true,
         }),
       ]).start();
-
-      const pulseLoop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.05,
-            duration: 900,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 900,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      pulseLoop.start();
-      return () => pulseLoop.stop();
     } else {
       fadeAnim.setValue(0);
-      cardScaleAnim.setValue(0.94);
+      cardScaleAnim.setValue(0.92);
+      cardSlideAnim.setValue(20);
     }
-  }, [isTourActive, pulseAnim, fadeAnim, cardScaleAnim]);
+  }, [isTourActive]);
 
-  if (!isTourActive) {
-    return null;
-  }
+  // ─── Smooth step transition animation ───
+  useEffect(() => {
+    if (!isTourActive) return;
+    const goingForward = currentStepIndex > prevStepRef.current;
+    prevStepRef.current = currentStepIndex;
+
+    setIsTransitioning(true);
+
+    // Animate card out then in
+    const slideOut = goingForward ? -16 : 16;
+    const slideIn = goingForward ? 16 : -16;
+
+    cardSlideAnim.setValue(slideIn);
+    cardScaleAnim.setValue(0.96);
+    spotlightAnim.setValue(0);
+
+    // Animate progress bar
+    const stepTotal = TOUR_STEPS.length;
+    Animated.timing(progressAnim, {
+      toValue: currentStepIndex / (stepTotal - 1),
+      duration: 350,
+      useNativeDriver: false,
+    }).start();
+
+    Animated.parallel([
+      Animated.spring(cardSlideAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 55,
+        useNativeDriver: true,
+      }),
+      Animated.spring(cardScaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 55,
+        useNativeDriver: true,
+      }),
+      Animated.timing(spotlightAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.sequence([
+        Animated.timing(guideAnim, {
+          toValue: 0.6,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.spring(guideAnim, {
+          toValue: 1,
+          friction: 5,
+          tension: 80,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => {
+      setIsTransitioning(false);
+    });
+  }, [currentStepIndex, isTourActive]);
+
+  if (!isTourActive) return null;
 
   const isWelcome = currentStep.isWelcome;
   const isCompletion = currentStep.isCompletion;
   const isCenteredModal = isWelcome || isCompletion;
   const hasTarget = !!targetRect && !isCenteredModal;
 
-  // Dimensions for spotlight cutout
-  const padding = 8;
-  const cutoutX = targetRect ? Math.max(0, targetRect.x - padding) : 0;
-  const cutoutY = targetRect ? Math.max(0, targetRect.y - padding) : 0;
-  const cutoutW = targetRect ? targetRect.width + padding * 2 : 0;
-  const cutoutH = targetRect ? targetRect.height + padding * 2 : 0;
+  // Spotlight cutout with more padding
+  const pad = 10;
+  const cutX = targetRect ? Math.max(0, targetRect.x - pad) : 0;
+  const cutY = targetRect ? Math.max(0, targetRect.y - pad) : 0;
+  const cutW = targetRect ? targetRect.width + pad * 2 : 0;
+  const cutH = targetRect ? targetRect.height + pad * 2 : 0;
 
-  // Compute Tooltip Card Position for targeted steps
-  const cardWidth = Math.min(width - 32, isDesktop ? 390 : 350);
+  // ─── Card positioning ───
+  const cardWidth = Math.min(width - 32, isDesktop ? 400 : 355);
   let cardLeft = (width - cardWidth) / 2;
   let cardTop = (height - 240) / 2;
 
   if (hasTarget && targetRect) {
     if (isDesktop && targetRect.x < 320) {
-      cardLeft = Math.min(width - cardWidth - 24, targetRect.x + targetRect.width + 20);
-      cardTop = Math.max(20, Math.min(height - 280, targetRect.y - 10));
+      cardLeft = Math.min(width - cardWidth - 24, targetRect.x + targetRect.width + 24);
+      cardTop = Math.max(20, Math.min(height - 300, targetRect.y - 10));
     } else {
       cardLeft = Math.max(16, Math.min(width - cardWidth - 16, (width - cardWidth) / 2));
-      const spaceBelow = height - (cutoutY + cutoutH);
-      const spaceAbove = cutoutY;
-
-      if (spaceBelow >= 250 || spaceBelow >= spaceAbove) {
-        cardTop = cutoutY + cutoutH + 16;
+      const below = height - (cutY + cutH);
+      const above = cutY;
+      if (below >= 260 || below >= above) {
+        cardTop = cutY + cutH + 18;
       } else {
-        cardTop = Math.max(16, cutoutY - 240);
+        cardTop = Math.max(16, cutY - 250);
       }
     }
   }
 
   const accent = currentStep.accentColor || colors.clayDeep;
+  const guideEmoji = STEP_GUIDE[currentStep.id] || '✨';
+  const stepNum = currentStep.stepNumber || 0;
+  const totalSteps = 7;
 
+  // ─── Render ───
   return (
-    <Animated.View style={[styles.overlayContainer, { opacity: fadeAnim }]} pointerEvents="box-none">
-      {/* ─── Backdrop / Dimmed Mask ─── */}
+    <Animated.View style={[styles.overlay, { opacity: fadeAnim }]} pointerEvents="box-none">
+      {/* ─── Backdrop ─── */}
       <View style={StyleSheet.absoluteFill} pointerEvents="auto">
         {hasTarget ? (
           <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
             <Defs>
-              <Mask id="spotlightMask" x="0" y="0" width="100%" height="100%">
-                <Rect x="0" y="0" width="100%" height="100%" fill="#ffffff" />
-                <Rect
-                  x={cutoutX}
-                  y={cutoutY}
-                  width={cutoutW}
-                  height={cutoutH}
-                  rx={16}
-                  ry={16}
-                  fill="#000000"
-                />
+              <Mask id="spotMask" x="0" y="0" width="100%" height="100%">
+                <Rect x="0" y="0" width="100%" height="100%" fill="#fff" />
+                <Rect x={cutX} y={cutY} width={cutW} height={cutH} rx={14} ry={14} fill="#000" />
               </Mask>
             </Defs>
             <Rect
-              x="0"
-              y="0"
-              width="100%"
-              height="100%"
-              fill="rgba(18, 16, 14, 0.76)"
-              mask="url(#spotlightMask)"
+              x="0" y="0" width="100%" height="100%"
+              fill="rgba(18, 16, 14, 0.72)"
+              mask="url(#spotMask)"
             />
           </Svg>
         ) : (
           <View
             style={[
               StyleSheet.absoluteFill,
-              styles.modalBackdrop,
+              styles.backdrop,
               Platform.OS === 'web'
-                ? ({
-                    backdropFilter: 'blur(10px)',
-                    WebkitBackdropFilter: 'blur(10px)',
-                  } as any)
+                ? ({ backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' } as any)
                 : {},
             ]}
           />
         )}
       </View>
 
-      {/* ─── Glowing Highlight Ring around Target (Steps 1 to 7) ─── */}
+      {/* ─── Subtle Spotlight Glow (not a chunky ring) ─── */}
       {hasTarget && (
         <Animated.View
           style={[
-            styles.spotlightRing,
+            styles.spotlightGlow,
             {
-              left: cutoutX,
-              top: cutoutY,
-              width: cutoutW,
-              height: cutoutH,
-              borderColor: accent,
-              transform: [{ scale: pulseAnim }],
+              left: cutX - 4,
+              top: cutY - 4,
+              width: cutW + 8,
+              height: cutH + 8,
+              opacity: spotlightAnim,
               ...(Platform.OS === 'web'
                 ? ({
-                    boxShadow: `0 0 20px ${accent}90, inset 0 0 10px ${accent}40`,
+                    boxShadow: `0 0 0 2px ${accent}50, 0 0 28px ${accent}30, 0 0 56px ${accent}15`,
                   } as any)
                 : {
+                    borderWidth: 2,
+                    borderColor: `${accent}60`,
                     shadowColor: accent,
-                    shadowOpacity: 0.8,
-                    shadowRadius: 10,
-                    elevation: 6,
+                    shadowOpacity: 0.5,
+                    shadowRadius: 20,
+                    elevation: 8,
                   }),
             },
           ]}
@@ -184,228 +255,244 @@ export default function AppTourOverlay() {
         />
       )}
 
-      {/* ─── Welcome & Completion Modals (Centered & Deluxe) ─── */}
+      {/* ─── Welcome & Completion Modals ─── */}
       {isCenteredModal ? (
-        <View style={styles.modalCenterWrapper} pointerEvents="box-none">
+        <View style={styles.modalCenter} pointerEvents="box-none">
           <Animated.View
             style={[
               styles.welcomeCard,
               {
-                width: Math.min(width - 32, isDesktop ? 470 : 360),
-                transform: [{ scale: cardScaleAnim }],
+                width: Math.min(width - 32, isDesktop ? 470 : 365),
+                transform: [
+                  { scale: cardScaleAnim },
+                  { translateY: cardSlideAnim },
+                ],
               },
             ]}
             pointerEvents="auto"
           >
-            {/* Floating Top Right Close Button */}
+            {/* Close button */}
             <Pressable
-              style={({ pressed }) => [styles.closeBtnFloating, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.6 }]}
               onPress={isCompletion ? finishTour : skipTour}
               hitSlop={12}
             >
-              <Ionicons name="close" size={20} color={colors.inkSoft} />
+              <Ionicons name="close" size={18} color={colors.inkSoft} />
             </Pressable>
 
             {isWelcome ? (
-              /* ── Welcome Screen Content ── */
               <View>
-                {/* Header Icon & Tag */}
-                <View style={styles.heroHeaderSection}>
-                  <View style={[styles.heroIconBadge, { backgroundColor: colors.clayDeep }]}>
+                {/* Hero row with guide emoji */}
+                <View style={styles.heroRow}>
+                  <Animated.View
+                    style={[
+                      styles.guideCircle,
+                      { backgroundColor: colors.clayDeep },
+                      { transform: [{ scale: guideAnim }] },
+                    ]}
+                  >
                     <Ionicons name="sparkles" size={26} color={colors.white} />
-                  </View>
-                  <View style={styles.badgePill}>
-                    <Text style={styles.badgePillText}>✨ 1-MINUTE INTERACTIVE TOUR</Text>
+                  </Animated.View>
+                  <View style={styles.heroBadge}>
+                    <Text style={styles.heroBadgeText}>✨ 1-MINUTE INTERACTIVE TOUR</Text>
                   </View>
                 </View>
 
-                {/* Title & Subtitle */}
                 <Text style={styles.welcomeTitle}>Welcome to KadaiBook! 👋</Text>
-                <Text style={styles.welcomeSubtitle}>
+                <Text style={styles.welcomeSub}>
                   Tamil Nadu's smart digital order book, retail billing & customer credit ledger.
                 </Text>
 
-                {/* 3 Core Value Highlights */}
-                <View style={styles.highlightsContainer}>
-                  <View style={styles.highlightItem}>
-                    <View style={[styles.highlightIcon, { backgroundColor: 'rgba(185, 102, 89, 0.14)' }]}>
-                      <Ionicons name="receipt" size={18} color={colors.clayDeep} />
-                    </View>
-                    <View style={styles.highlightTextWrap}>
-                      <Text style={styles.highlightHeading}>Lightning Billing & GST</Text>
-                      <Text style={styles.highlightDesc}>Generate printed or WhatsApp invoices in 10 seconds.</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.highlightItem}>
-                    <View style={[styles.highlightIcon, { backgroundColor: 'rgba(201, 154, 63, 0.14)' }]}>
-                      <Ionicons name="book" size={18} color="#C99A3F" />
-                    </View>
-                    <View style={styles.highlightTextWrap}>
-                      <Text style={styles.highlightHeading}>Customer Udhar Khata (கடன்)</Text>
-                      <Text style={styles.highlightDesc}>Track credit dues with automated WhatsApp payment reminders.</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.highlightItem}>
-                    <View style={[styles.highlightIcon, { backgroundColor: 'rgba(78, 138, 84, 0.14)' }]}>
-                      <Ionicons name="trending-up" size={18} color="#4E8A54" />
-                    </View>
-                    <View style={styles.highlightTextWrap}>
-                      <Text style={styles.highlightHeading}>Live Profit Analytics</Text>
-                      <Text style={styles.highlightDesc}>Real-time sales, store expenses, and order pipeline.</Text>
-                    </View>
-                  </View>
+                {/* Feature highlights */}
+                <View style={styles.highlights}>
+                  {[
+                    { icon: 'receipt', color: colors.clayDeep, bg: 'rgba(185,102,89,0.12)', title: 'Lightning Billing & GST', desc: 'Generate printed or WhatsApp invoices in 10 seconds.' },
+                    { icon: 'book', color: '#C99A3F', bg: 'rgba(201,154,63,0.12)', title: 'Customer Udhar Khata (கடன்)', desc: 'Track credit dues with automated WhatsApp payment reminders.' },
+                    { icon: 'trending-up', color: '#4E8A54', bg: 'rgba(78,138,84,0.12)', title: 'Live Profit Analytics', desc: 'Real-time sales, store expenses, and order pipeline.' },
+                  ].map((f, i) => (
+                    <Animated.View
+                      key={i}
+                      style={[
+                        styles.highlightRow,
+                        {
+                          opacity: fadeAnim,
+                          transform: [{ translateY: Animated.multiply(cardSlideAnim, new Animated.Value(1 + i * 0.3)) }],
+                        },
+                      ]}
+                    >
+                      <View style={[styles.highlightIconWrap, { backgroundColor: f.bg }]}>
+                        <Ionicons name={f.icon as any} size={17} color={f.color} />
+                      </View>
+                      <View style={styles.highlightText}>
+                        <Text style={styles.highlightTitle}>{f.title}</Text>
+                        <Text style={styles.highlightDesc}>{f.desc}</Text>
+                      </View>
+                    </Animated.View>
+                  ))}
                 </View>
 
-                {/* Time Indicator */}
-                <View style={styles.timeEstimateRow}>
-                  <Ionicons name="time-outline" size={14} color={colors.inkSoft} />
-                  <Text style={styles.timeEstimateText}>Takes ~45 seconds • 7 interactive highlights</Text>
+                {/* Time indicator */}
+                <View style={styles.timeRow}>
+                  <Ionicons name="time-outline" size={13} color={colors.inkSoft} />
+                  <Text style={styles.timeText}>Takes ~45 seconds • 7 interactive highlights</Text>
                 </View>
 
-                {/* Action Controls */}
-                <View style={styles.welcomeActionsCol}>
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.startTourBtn,
-                      pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
-                    ]}
-                    onPress={nextStep}
-                  >
-                    <Text style={styles.startTourBtnText}>Start Quick Tour</Text>
-                    <Ionicons name="arrow-forward" size={18} color={colors.white} />
-                  </Pressable>
+                {/* Actions */}
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.primaryBtn,
+                    pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+                  ]}
+                  onPress={nextStep}
+                >
+                  <Text style={styles.primaryBtnText}>Start Quick Tour</Text>
+                  <Ionicons name="arrow-forward" size={17} color={colors.white} />
+                </Pressable>
 
-                  <Pressable
-                    style={({ pressed }) => [styles.exploreLaterBtn, pressed && { opacity: 0.6 }]}
-                    onPress={skipTour}
-                  >
-                    <Text style={styles.exploreLaterText}>Maybe Later, Explore on My Own</Text>
-                  </Pressable>
-                </View>
+                <Pressable
+                  style={({ pressed }) => [styles.skipLink, pressed && { opacity: 0.5 }]}
+                  onPress={skipTour}
+                >
+                  <Text style={styles.skipLinkText}>Maybe Later, Explore on My Own</Text>
+                </Pressable>
               </View>
             ) : (
-              /* ── Completion Screen Content ── */
+              /* ── Completion ── */
               <View>
-                <View style={styles.heroHeaderSection}>
-                  <View style={[styles.heroIconBadge, { backgroundColor: '#4E8A54' }]}>
+                <View style={styles.heroRow}>
+                  <Animated.View
+                    style={[
+                      styles.guideCircle,
+                      { backgroundColor: '#4E8A54' },
+                      { transform: [{ scale: guideAnim }] },
+                    ]}
+                  >
                     <Ionicons name="checkmark-done" size={28} color={colors.white} />
-                  </View>
-                  <View style={[styles.badgePill, { backgroundColor: '#EAF5EC' }]}>
-                    <Text style={[styles.badgePillText, { color: '#2E7D32' }]}>ALL DONE 🎉</Text>
+                  </Animated.View>
+                  <View style={[styles.heroBadge, { backgroundColor: '#EAF5EC', borderColor: '#C2DFC7' }]}>
+                    <Text style={[styles.heroBadgeText, { color: '#2E7D32' }]}>ALL DONE 🎉</Text>
                   </View>
                 </View>
 
                 <Text style={styles.welcomeTitle}>You're All Set! 🚀</Text>
-                <Text style={styles.welcomeSubtitle}>
+                <Text style={styles.welcomeSub}>
                   Your digital storefront and ledger are ready. Start creating bills or recording customer orders right away.
                 </Text>
 
-                <View style={styles.completionTipBox}>
-                  <Ionicons name="bulb-outline" size={18} color="#C99A3F" />
-                  <Text style={styles.completionTipText}>
-                    Need a refresher? You can restart this interactive tour anytime from Settings or the sidebar.
+                <View style={styles.tipBox}>
+                  <Ionicons name="bulb-outline" size={17} color="#C99A3F" />
+                  <Text style={styles.tipText}>
+                    Need a refresher? Restart this interactive tour anytime from Settings or the sidebar.
                   </Text>
                 </View>
 
-                <View style={styles.welcomeActionsCol}>
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.startTourBtn,
-                      { backgroundColor: '#4E8A54' },
-                      pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
-                    ]}
-                    onPress={finishTour}
-                  >
-                    <Text style={styles.startTourBtnText}>Go to My Dashboard</Text>
-                    <Ionicons name="arrow-forward" size={18} color={colors.white} />
-                  </Pressable>
-                </View>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.primaryBtn,
+                    { backgroundColor: '#4E8A54' },
+                    pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+                  ]}
+                  onPress={finishTour}
+                >
+                  <Text style={styles.primaryBtnText}>Go to My Dashboard</Text>
+                  <Ionicons name="arrow-forward" size={17} color={colors.white} />
+                </Pressable>
               </View>
             )}
           </Animated.View>
         </View>
       ) : (
-        /* ─── Targeted Step Tooltip (Steps 1 to 7) ─── */
-        <View
+        /* ─── Targeted Step Tooltip (Steps 1–7) ─── */
+        <Animated.View
           style={[
             styles.tooltipCard,
             {
               width: cardWidth,
               left: cardLeft,
               top: cardTop,
+              transform: [
+                { scale: cardScaleAnim },
+                { translateY: cardSlideAnim },
+              ],
             },
           ]}
           pointerEvents="auto"
         >
-          {/* Header: Step Pill, Progress Dots, Close */}
-          <View style={styles.stepCardHeader}>
-            <View style={styles.stepBadgeGroup}>
-              <View style={[styles.stepBadge, { backgroundColor: `${accent}20` }]}>
-                <Text style={[styles.stepBadgeText, { color: accent }]}>
-                  {currentStep.badgeText || `STEP ${currentStep.stepNumber || 1} OF 7`}
+          {/* Top section: Guide + Progress */}
+          <View style={styles.tooltipTop}>
+            {/* Guide character bubble */}
+            <Animated.View
+              style={[
+                styles.guideCharBubble,
+                { transform: [{ scale: guideAnim }] },
+              ]}
+            >
+              <Text style={styles.guideCharEmoji}>{guideEmoji}</Text>
+            </Animated.View>
+
+            {/* Step info + Progress bar */}
+            <View style={styles.progressSection}>
+              <View style={styles.stepInfoRow}>
+                <Text style={[styles.stepBadgeLabel, { color: accent }]}>
+                  Step {stepNum} of {totalSteps}
+                </Text>
+                <Text style={styles.stepPercent}>
+                  {Math.round((stepNum / totalSteps) * 100)}%
                 </Text>
               </View>
-
-              {/* Sleek Step Progress Indicator */}
-              <View style={styles.progressDotsRow}>
-                {[1, 2, 3, 4, 5, 6, 7].map((num) => {
-                  const isCurrent = num === (currentStep.stepNumber || 1);
-                  const isPassed = num < (currentStep.stepNumber || 1);
-                  return (
-                    <View
-                      key={num}
-                      style={[
-                        styles.progressDot,
-                        isCurrent && [styles.progressDotActive, { backgroundColor: accent }],
-                        isPassed && { backgroundColor: `${accent}80` },
-                      ]}
-                    />
-                  );
-                })}
+              <View style={styles.progressTrack}>
+                <Animated.View
+                  style={[
+                    styles.progressFill,
+                    {
+                      backgroundColor: accent,
+                      width: progressAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'],
+                      }),
+                    },
+                  ]}
+                />
               </View>
             </View>
 
+            {/* Close */}
             <Pressable
-              style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.tooltipClose, pressed && { opacity: 0.6 }]}
               onPress={skipTour}
               hitSlop={12}
             >
-              <Ionicons name="close" size={18} color={colors.inkSoft} />
+              <Ionicons name="close" size={16} color={colors.inkSoft} />
             </Pressable>
           </View>
 
-          {/* Body: Icon + Title + Description */}
-          <View style={styles.stepBody}>
-            <View style={styles.stepTitleRow}>
-              <View style={[styles.stepIconWrap, { backgroundColor: `${accent}18` }]}>
-                <Ionicons name={currentStep.iconName as any} size={20} color={accent} />
+          {/* Body */}
+          <View style={styles.tooltipBody}>
+            <View style={styles.titleRow}>
+              <View style={[styles.stepIconCircle, { backgroundColor: `${accent}15` }]}>
+                <Ionicons name={currentStep.iconName as any} size={19} color={accent} />
               </View>
-              <Text style={styles.stepTitle}>{currentStep.title}</Text>
+              <Text style={styles.stepTitle} numberOfLines={2}>{currentStep.title}</Text>
             </View>
-            <Text style={styles.stepDescription}>{currentStep.description}</Text>
+            <Text style={styles.stepDesc}>{currentStep.description}</Text>
           </View>
 
-          {/* Footer Controls: Skip, Back, Next */}
-          <View style={styles.stepFooter}>
+          {/* Footer */}
+          <View style={styles.tooltipFooter}>
             <Pressable
-              style={({ pressed }) => [styles.skipTextBtn, pressed && { opacity: 0.6 }]}
+              style={({ pressed }) => [styles.footerSkip, pressed && { opacity: 0.5 }]}
               onPress={skipTour}
             >
-              <Text style={styles.skipText}>Skip Tour</Text>
+              <Text style={styles.footerSkipText}>Skip Tour</Text>
             </Pressable>
 
-            <View style={styles.navBtnsGroup}>
+            <View style={styles.navGroup}>
               {currentStepIndex > 1 && (
                 <Pressable
-                  style={({ pressed }) => [
-                    styles.backBtn,
-                    pressed && { opacity: 0.75, backgroundColor: colors.paper },
-                  ]}
+                  style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7, backgroundColor: colors.paper }]}
                   onPress={prevStep}
                 >
-                  <Ionicons name="chevron-back" size={16} color={colors.ink} />
+                  <Ionicons name="chevron-back" size={15} color={colors.ink} />
                   <Text style={styles.backBtnText}>Back</Text>
                 </Pressable>
               )}
@@ -414,119 +501,122 @@ export default function AppTourOverlay() {
                 style={({ pressed }) => [
                   styles.nextBtn,
                   { backgroundColor: accent },
-                  pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
                 ]}
                 onPress={nextStep}
+                disabled={isTransitioning}
               >
                 <Text style={styles.nextBtnText}>
-                  {currentStepIndex === TOUR_STEPS.length - 2 ? 'Finish Tour ✓' : 'Next Step'}
+                  {currentStepIndex === TOUR_STEPS.length - 2 ? 'Finish ✓' : 'Next'}
                 </Text>
                 {currentStepIndex < TOUR_STEPS.length - 2 && (
-                  <Ionicons name="arrow-forward" size={15} color={colors.white} />
+                  <Ionicons name="arrow-forward" size={14} color={colors.white} />
                 )}
               </Pressable>
             </View>
           </View>
-        </View>
+        </Animated.View>
       )}
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlayContainer: {
+  overlay: {
     position: 'absolute',
-    left: 0,
-    top: 0,
-    right: 0,
-    bottom: 0,
+    left: 0, top: 0, right: 0, bottom: 0,
     zIndex: 99999,
     elevation: 99999,
   },
-  modalBackdrop: {
-    backgroundColor: 'rgba(18, 16, 14, 0.68)',
+
+  backdrop: {
+    backgroundColor: 'rgba(18, 16, 14, 0.65)',
   },
-  modalCenterWrapper: {
+
+  // ─── Spotlight ───
+  spotlightGlow: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    borderRadius: 16,
+  },
+
+  // ─── Welcome / Completion Modal ───
+  modalCenter: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
     zIndex: 100000,
   },
+
   welcomeCard: {
     backgroundColor: '#FFFDF9',
-    borderRadius: 24,
+    borderRadius: 22,
     padding: 26,
     borderWidth: 1,
-    borderColor: 'rgba(220, 211, 192, 0.8)',
+    borderColor: 'rgba(220, 211, 192, 0.7)',
     ...(Platform.OS === 'web'
       ? ({
-          boxShadow: '0 24px 60px rgba(46, 42, 36, 0.28), 0 4px 16px rgba(46, 42, 36, 0.08)',
+          boxShadow: '0 24px 64px rgba(46, 42, 36, 0.22), 0 4px 16px rgba(46, 42, 36, 0.06)',
         } as any)
       : {
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.3,
-          shadowRadius: 20,
+          shadowOpacity: 0.28,
+          shadowRadius: 24,
           elevation: 16,
         }),
   },
-  closeBtnFloating: {
+
+  closeBtn: {
     position: 'absolute',
-    top: 18,
-    right: 18,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    top: 16,
+    right: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(246, 241, 231, 0.9)',
     borderWidth: 1,
-    borderColor: 'rgba(220, 211, 192, 0.6)',
+    borderColor: 'rgba(220, 211, 192, 0.5)',
     zIndex: 10,
   },
-  heroHeaderSection: {
+
+  heroRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     marginBottom: 16,
   },
-  heroIconBadge: {
+
+  guideCircle: {
     width: 48,
     height: 48,
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 6px 18px rgba(185, 102, 89, 0.32)',
-        } as any)
-      : {
-          shadowColor: '#B96659',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 4,
-        }),
+      ? ({ boxShadow: '0 6px 18px rgba(185, 102, 89, 0.3)' } as any)
+      : { shadowColor: '#B96659', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }),
   },
-  badgePill: {
+
+  heroBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(185, 102, 89, 0.12)',
+    backgroundColor: 'rgba(185, 102, 89, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(185, 102, 89, 0.25)',
+    borderColor: 'rgba(185, 102, 89, 0.2)',
   },
-  badgePillText: {
+
+  heroBadgeText: {
     fontFamily: fonts.bodyBold,
     fontSize: 10.5,
     color: colors.clayDeep,
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
+
   welcomeTitle: {
     fontFamily: fonts.display,
     fontSize: 22,
@@ -534,65 +624,72 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
     marginBottom: 6,
   },
-  welcomeSubtitle: {
+
+  welcomeSub: {
     fontFamily: fonts.bodyMedium,
     fontSize: 13.5,
     color: colors.inkSoft,
     lineHeight: 20,
     marginBottom: 18,
   },
-  highlightsContainer: {
-    gap: 10,
-    marginBottom: 18,
+
+  highlights: {
+    gap: 9,
+    marginBottom: 16,
   },
-  highlightItem: {
+
+  highlightRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 11,
     padding: 10,
-    borderRadius: 14,
-    backgroundColor: 'rgba(246, 241, 231, 0.55)',
+    borderRadius: 13,
+    backgroundColor: 'rgba(246, 241, 231, 0.5)',
     borderWidth: 1,
-    borderColor: 'rgba(220, 211, 192, 0.45)',
+    borderColor: 'rgba(220, 211, 192, 0.4)',
   },
-  highlightIcon: {
-    width: 36,
-    height: 36,
+
+  highlightIconWrap: {
+    width: 34,
+    height: 34,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  highlightTextWrap: {
+
+  highlightText: {
     flex: 1,
   },
-  highlightHeading: {
+
+  highlightTitle: {
     fontFamily: fonts.bodyBold,
     fontSize: 13,
     color: colors.ink,
-    marginBottom: 2,
+    marginBottom: 1,
   },
+
   highlightDesc: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.inkSoft,
     lineHeight: 16,
   },
-  timeEstimateRow: {
+
+  timeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     marginBottom: 18,
   },
-  timeEstimateText: {
+
+  timeText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
     color: colors.inkSoft,
   },
-  welcomeActionsCol: {
-    gap: 10,
-  },
-  startTourBtn: {
+
+  primaryBtn: {
     backgroundColor: colors.clayDeep,
     flexDirection: 'row',
     alignItems: 'center',
@@ -601,35 +698,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: radius.md,
     gap: 8,
+    marginBottom: 10,
     ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 6px 20px rgba(185, 102, 89, 0.38)',
-        } as any)
-      : {
-          shadowColor: colors.clayDeep,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 4,
-        }),
+      ? ({ boxShadow: '0 6px 20px rgba(185, 102, 89, 0.35)' } as any)
+      : { shadowColor: colors.clayDeep, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }),
   },
-  startTourBtnText: {
+
+  primaryBtnText: {
     fontFamily: fonts.bodyBold,
     fontSize: 14.5,
     color: colors.white,
     letterSpacing: -0.2,
   },
-  exploreLaterBtn: {
+
+  skipLink: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
-  exploreLaterText: {
+
+  skipLinkText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
     color: colors.inkSoft,
   },
-  completionTipBox: {
+
+  tipBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -638,9 +732,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF9EE',
     borderWidth: 1,
     borderColor: '#F3E5C8',
-    marginBottom: 20,
+    marginBottom: 18,
   },
-  completionTipText: {
+
+  tipText: {
     flex: 1,
     fontFamily: fonts.body,
     fontSize: 12.5,
@@ -648,68 +743,88 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  /* ─── Targeted Step Styles ─── */
-  spotlightRing: {
-    position: 'absolute',
-    borderRadius: 16,
-    borderWidth: 2.5,
-  },
+  // ─── Step Tooltip Card ───
   tooltipCard: {
     position: 'absolute',
     backgroundColor: '#FFFDF9',
     borderRadius: 18,
-    padding: 18,
+    padding: 0,
     borderWidth: 1,
     borderColor: colors.line,
+    overflow: 'hidden',
     ...(Platform.OS === 'web'
       ? ({
-          boxShadow: '0 16px 40px rgba(46, 42, 36, 0.22), 0 2px 8px rgba(46, 42, 36, 0.06)',
+          boxShadow: '0 16px 48px rgba(46, 42, 36, 0.2), 0 2px 8px rgba(46, 42, 36, 0.05)',
         } as any)
       : {
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: 0.22,
-          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.2,
+          shadowRadius: 20,
           elevation: 12,
         }),
   },
-  stepCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  stepBadgeGroup: {
+
+  tooltipTop: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
   },
-  stepBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+
+  guideCharBubble: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(246, 241, 231, 0.9)',
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  stepBadgeText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10.5,
-    letterSpacing: 0.5,
+
+  guideCharEmoji: {
+    fontSize: 20,
   },
-  progressDotsRow: {
+
+  progressSection: {
+    flex: 1,
+  },
+
+  stepInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    justifyContent: 'space-between',
+    marginBottom: 5,
   },
-  progressDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+
+  stepBadgeLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    letterSpacing: 0.3,
+  },
+
+  stepPercent: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10.5,
+    color: colors.inkSoft,
+  },
+
+  progressTrack: {
+    height: 4,
+    borderRadius: 2,
     backgroundColor: colors.line,
+    overflow: 'hidden',
   },
-  progressDotActive: {
-    width: 14,
-    borderRadius: 3,
+
+  progressFill: {
+    height: '100%' as any,
+    borderRadius: 2,
   },
-  closeBtn: {
+
+  tooltipClose: {
     width: 26,
     height: 26,
     borderRadius: 13,
@@ -717,73 +832,90 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.paper,
   },
-  stepBody: {
-    marginBottom: 16,
+
+  // Body
+  tooltipBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
-  stepTitleRow: {
+
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 8,
+    marginBottom: 7,
   },
-  stepIconWrap: {
-    width: 36,
-    height: 36,
+
+  stepIconCircle: {
+    width: 34,
+    height: 34,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   stepTitle: {
     fontFamily: fonts.bodyBold,
-    fontSize: 15.5,
+    fontSize: 15,
     color: colors.ink,
     flex: 1,
     letterSpacing: -0.3,
   },
-  stepDescription: {
+
+  stepDesc: {
     fontFamily: fonts.body,
     fontSize: 13,
     color: colors.inkSoft,
-    lineHeight: 19.5,
+    lineHeight: 19,
   },
-  stepFooter: {
+
+  // Footer
+  tooltipFooter: {
     borderTopWidth: 1,
     borderTopColor: colors.line,
-    paddingTop: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: 'rgba(246, 241, 231, 0.3)',
   },
-  navBtnsGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+
+  footerSkip: {
+    paddingVertical: 5,
+    paddingHorizontal: 2,
   },
-  skipTextBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-  },
-  skipText: {
+
+  footerSkipText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 12.5,
+    fontSize: 12,
     color: colors.inkSoft,
   },
+
+  navGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 7,
-    paddingHorizontal: 12,
+    paddingHorizontal: 11,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
-    gap: 4,
+    gap: 3,
     backgroundColor: colors.paperCard,
   },
+
   backBtnText: {
     fontFamily: fonts.bodyBold,
     fontSize: 12.5,
     color: colors.ink,
   },
+
   nextBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -793,17 +925,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     gap: 5,
     ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 4px 12px rgba(185, 102, 89, 0.32)',
-        } as any)
-      : {
-          shadowColor: colors.clayDeep,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 6,
-          elevation: 2,
-        }),
+      ? ({ boxShadow: '0 4px 14px rgba(185, 102, 89, 0.3)' } as any)
+      : { shadowColor: colors.clayDeep, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 2 }),
   },
+
   nextBtnText: {
     fontFamily: fonts.bodyBold,
     fontSize: 13,

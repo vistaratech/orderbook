@@ -36,7 +36,7 @@ import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
 import { formatCurrency, formatDate } from '../utils/format';
 import AppLogo from '../components/AppLogo';
 import { useLanguage } from '../i18n/LanguageContext';
-import { checkProStatus } from '../storage/subscriptionStorage';
+import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
 import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 import FadeInView from '../components/FadeInView';
 import LivePulseBadge from '../components/LivePulseBadge';
@@ -70,6 +70,7 @@ export default function DashboardScreen() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [isPro, setIsPro] = useState(false);
+  const [isBasic, setIsBasic] = useState(false);
 
   // Pipeline Status Quick-Update Modal State
   const [activePipelineStatus, setActivePipelineStatus] = useState<OrderStatus | null>(null);
@@ -78,16 +79,18 @@ export default function DashboardScreen() {
 
   const loadData = useCallback(async (forceSync = false) => {
     try {
-      const [o, e, lowStock, proStatus] = await Promise.all([
+      const [o, e, lowStock, proStatus, basicStatus] = await Promise.all([
         getOrders(forceSync),
         getExpenses(forceSync),
         getLowStockProducts(),
         checkProStatus(),
+        checkBasicStatus(),
       ]);
       setOrders(o);
       setExpenses(e);
       setLowStockProducts(lowStock);
       setIsPro(proStatus);
+      setIsBasic(basicStatus);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -229,6 +232,11 @@ export default function DashboardScreen() {
     ? orders.filter((o) => o.status === activePipelineStatus)
     : [];
 
+  const orderLimit = isBasic ? 150 : 30;
+  const orderWarning = isBasic ? 120 : 25;
+  const isOrderLimitReached = !isPro && orders.length >= orderLimit;
+  const isOrderWarning = !isPro && !isOrderLimitReached && orders.length >= orderWarning;
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       {/* ─── Fixed Top Header Bar ─── */}
@@ -305,9 +313,9 @@ export default function DashboardScreen() {
                   styles.subscriptionBanner,
                   isPro
                     ? styles.subscriptionBannerPro
-                    : orders.length >= 10
+                    : isOrderLimitReached
                     ? styles.subscriptionBannerDanger
-                    : orders.length >= 7
+                    : isOrderWarning
                     ? styles.subscriptionBannerWarning
                     : styles.subscriptionBannerFree,
                   pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
@@ -320,9 +328,9 @@ export default function DashboardScreen() {
                       styles.subBannerIconWrap,
                       isPro
                         ? styles.subBannerIconWrapPro
-                        : orders.length >= 10
+                        : isOrderLimitReached
                         ? styles.subBannerIconWrapDanger
-                        : orders.length >= 7
+                        : isOrderWarning
                         ? styles.subBannerIconWrapWarning
                         : null,
                     ]}
@@ -331,9 +339,9 @@ export default function DashboardScreen() {
                       name={
                         isPro
                           ? 'sparkles'
-                          : orders.length >= 10
+                          : isOrderLimitReached
                           ? 'alert-circle'
-                          : orders.length >= 7
+                          : isOrderWarning
                           ? 'warning'
                           : 'star'
                       }
@@ -341,9 +349,9 @@ export default function DashboardScreen() {
                       color={
                         isPro
                           ? '#CA8A04'
-                          : orders.length >= 10
+                          : isOrderLimitReached
                           ? colors.danger
-                          : orders.length >= 7
+                          : isOrderWarning
                           ? '#B45309'
                           : '#D97706'
                       }
@@ -353,19 +361,19 @@ export default function DashboardScreen() {
                     <Text style={styles.subBannerTitle}>
                       {isPro
                         ? 'KadaiBook Pro Plan Active'
-                        : orders.length >= 10
-                        ? '🚨 Free Order Limit Reached (10/10)'
-                        : orders.length >= 7
-                        ? `⚠️ Free Plan: ${orders.length}/10 Orders Used`
-                        : `KadaiBook Free Plan (${orders.length}/10 Orders)`}
+                        : isOrderLimitReached
+                        ? `🚨 Free Order Limit Reached (${orders.length}/${orderLimit})`
+                        : isOrderWarning
+                        ? `⚠️ Free Plan: ${orders.length}/${orderLimit} Orders Used`
+                        : `KadaiBook Free Plan (${orders.length}/${orderLimit} Orders)`}
                     </Text>
                     <Text style={styles.subBannerSub} numberOfLines={1}>
                       {isPro
                         ? 'All premium business & sync features unlocked'
-                        : orders.length >= 10
+                        : isOrderLimitReached
                         ? 'Free limit reached! Upgrade to Pro for unlimited orders.'
-                        : orders.length >= 7
-                        ? `Only ${Math.max(0, 10 - orders.length)} free orders left! Upgrade to Pro.`
+                        : isOrderWarning
+                        ? `Only ${Math.max(0, orderLimit - orders.length)} free orders left! Upgrade to Pro.`
                         : 'Upgrade to Pro for unlimited orders, sync & reports'}
                     </Text>
                   </View>
@@ -375,7 +383,7 @@ export default function DashboardScreen() {
                     styles.subBannerAction,
                     isPro
                       ? styles.subBannerActionPro
-                      : orders.length >= 10
+                      : isOrderLimitReached
                       ? styles.subBannerActionDanger
                       : null,
                   ]}

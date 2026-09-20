@@ -39,7 +39,7 @@ export async function assertSubscriptionLimit({
 
     if (type === 'order') {
       const orders = await getOrders();
-      const limit = isBasic ? 150 : 10;
+      const limit = isBasic ? 150 : 30;
       if (orders.length >= limit) {
         triggerGlobalSubscriptionModal({
           type: 'order',
@@ -55,7 +55,7 @@ export async function assertSubscriptionLimit({
       }
     } else if (type === 'customer') {
       const customers = await getCustomers();
-      const limit = isBasic ? 60 : 10;
+      const limit = isBasic ? 60 : 30;
       if (customers.length >= limit) {
         triggerGlobalSubscriptionModal({
           type: 'customer',

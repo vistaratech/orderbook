@@ -118,7 +118,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
 
         const isBasic = await checkBasicStatus();
         const orders = await getOrders();
-        const limit = isBasic ? 150 : 10;
+        const limit = isBasic ? 150 : 30;
 
         if (orders.length >= limit) {
           assertSubscriptionLimit({
@@ -126,7 +126,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
             actionName: 'create new orders',
             navigation,
           });
-        } else if (orders.length >= (isBasic ? 120 : 7)) {
+        } else if (orders.length >= (isBasic ? 120 : 25)) {
           setUpgradeNudge(
             `⚠️ Only ${Math.max(0, limit - orders.length)} free orders left (${orders.length}/${limit} used)! Upgrade to Pro.`
           );

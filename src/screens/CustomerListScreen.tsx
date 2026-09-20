@@ -242,9 +242,9 @@ export default function CustomerListScreen() {
     }
   };
 
-  const customerLimit = isBasic ? 60 : 10;
+  const customerLimit = isBasic ? 60 : 30;
   const isLimitReached = !isPro && customers.length >= customerLimit;
-  const isWarning = !isPro && !isLimitReached && customers.length >= (isBasic ? 45 : 7);
+  const isWarning = !isPro && !isLimitReached && customers.length >= (isBasic ? 45 : 25);
 
   return (
     <DesktopLayout currentTabName="CustomerList">

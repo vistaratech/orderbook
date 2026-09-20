@@ -61,7 +61,7 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
 
         const isBasic = await checkBasicStatus();
         const customers = await getCustomers();
-        const limit = isBasic ? 60 : 10;
+        const limit = isBasic ? 60 : 30;
 
         if (customers.length >= limit) {
           assertSubscriptionLimit({
@@ -69,7 +69,7 @@ export default function CustomerFormScreen({ navigation, route }: Props) {
             actionName: 'add new customers',
             navigation,
           });
-        } else if (customers.length >= (isBasic ? 45 : 7)) {
+        } else if (customers.length >= (isBasic ? 45 : 25)) {
           setUpgradeNudge(`⚠️ You've added ${customers.length} of ${limit} free customers. Upgrade to Pro for unlimited.`);
         }
       })();

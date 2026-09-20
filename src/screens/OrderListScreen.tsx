@@ -226,9 +226,9 @@ export default function OrderListScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.quotaBanner,
-              orders.length >= (isBasic ? 150 : 10)
+              orders.length >= (isBasic ? 150 : 30)
                 ? styles.quotaBannerDanger
-                : orders.length >= (isBasic ? 120 : 7)
+                : orders.length >= (isBasic ? 120 : 25)
                 ? styles.quotaBannerWarning
                 : styles.quotaBannerDefault,
               pressed && { opacity: 0.9 },
@@ -238,27 +238,27 @@ export default function OrderListScreen() {
             <View style={styles.quotaBannerLeft}>
               <Ionicons
                 name={
-                  orders.length >= (isBasic ? 150 : 10)
+                  orders.length >= (isBasic ? 150 : 30)
                     ? 'alert-circle'
-                    : orders.length >= (isBasic ? 120 : 7)
+                    : orders.length >= (isBasic ? 120 : 25)
                     ? 'warning'
                     : 'information-circle'
                 }
                 size={17}
                 color={
-                  orders.length >= (isBasic ? 150 : 10)
+                  orders.length >= (isBasic ? 150 : 30)
                     ? colors.danger
-                    : orders.length >= (isBasic ? 120 : 7)
+                    : orders.length >= (isBasic ? 120 : 25)
                     ? '#B45309'
                     : colors.clayDeep
                 }
               />
               <Text style={styles.quotaBannerText} numberOfLines={1}>
-                {orders.length >= (isBasic ? 150 : 10)
-                  ? `🚨 Free limit reached (${orders.length}/${isBasic ? 150 : 10} orders). Upgrade from ₹99/mo!`
-                  : orders.length >= (isBasic ? 120 : 7)
-                  ? `⚠️ Only ${Math.max(0, (isBasic ? 150 : 10) - orders.length)} free orders left. Upgrade from ₹99/mo!`
-                  : `📦 Free Plan: ${orders.length} of ${isBasic ? 150 : 10} free orders used (${Math.max(0, (isBasic ? 150 : 10) - orders.length)} left)`}
+                {orders.length >= (isBasic ? 150 : 30)
+                  ? `🚨 Free limit reached (${orders.length}/${isBasic ? 150 : 30} orders). Upgrade from ₹99/mo!`
+                  : orders.length >= (isBasic ? 120 : 25)
+                  ? `⚠️ Only ${Math.max(0, (isBasic ? 150 : 30) - orders.length)} free orders left. Upgrade from ₹99/mo!`
+                  : `📦 Free Plan: ${orders.length} of ${isBasic ? 150 : 30} free orders used (${Math.max(0, (isBasic ? 150 : 30) - orders.length)} left)`}
               </Text>
             </View>
             <View style={styles.quotaBannerBtn}>

@@ -40,6 +40,7 @@ export default function AppTourOverlay() {
 
   const { width, height } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
+  const useNative = Platform.OS !== 'web';
 
   // ─── Animation Values ───
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -65,26 +66,26 @@ export default function AppTourOverlay() {
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: useNative,
         }),
         Animated.spring(cardScaleAnim, {
           toValue: 1,
           friction: 7,
           tension: 50,
-          useNativeDriver: true,
+          useNativeDriver: useNative,
         }),
         Animated.spring(cardSlideAnim, {
           toValue: 0,
           friction: 7,
           tension: 50,
-          useNativeDriver: true,
+          useNativeDriver: useNative,
         }),
         Animated.spring(guideAnim, {
           toValue: 1,
           friction: 6,
           tension: 40,
           delay: 150,
-          useNativeDriver: true,
+          useNativeDriver: useNative,
         }),
       ]).start();
     } else {
@@ -115,7 +116,7 @@ export default function AppTourOverlay() {
     Animated.timing(progressAnim, {
       toValue: currentStepIndex / (stepTotal - 1),
       duration: 350,
-      useNativeDriver: false,
+      useNativeDriver: false, // width can't use native driver
     }).start();
 
     Animated.parallel([
@@ -123,30 +124,30 @@ export default function AppTourOverlay() {
         toValue: 0,
         friction: 8,
         tension: 55,
-        useNativeDriver: true,
+        useNativeDriver: useNative,
       }),
       Animated.spring(cardScaleAnim, {
         toValue: 1,
         friction: 8,
         tension: 55,
-        useNativeDriver: true,
+        useNativeDriver: useNative,
       }),
       Animated.timing(spotlightAnim, {
         toValue: 1,
         duration: 400,
-        useNativeDriver: true,
+        useNativeDriver: useNative,
       }),
       Animated.sequence([
         Animated.timing(guideAnim, {
           toValue: 0.6,
           duration: 100,
-          useNativeDriver: true,
+          useNativeDriver: useNative,
         }),
         Animated.spring(guideAnim, {
           toValue: 1,
           friction: 5,
           tension: 80,
-          useNativeDriver: true,
+          useNativeDriver: useNative,
         }),
       ]),
     ]).start(() => {

@@ -132,7 +132,7 @@ const linking = {
 
     // Protected route safety guard: unauthenticated users are routed to Login
     if (activeAuthRoute !== 'MainTabs') {
-      const publicRoutes = ['login', 'register', 'reset-password', 'onboarding'];
+      const publicRoutes = ['login', 'register', 'reset-password', 'onboarding', 'upgrade', 'pricing'];
       if (!publicRoutes.includes(cleanPath)) {
         return {
           routes: [{ name: activeAuthRoute }],

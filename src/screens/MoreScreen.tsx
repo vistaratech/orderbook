@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../navigation/types';
 import AppLogo from '../components/AppLogo';
 import { useLanguage } from '../i18n/LanguageContext';
+import { checkProStatus } from '../storage/subscriptionStorage';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -15,6 +16,11 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function MoreScreen() {
   const navigation = useNavigation<Nav>();
   const { t } = useLanguage();
+  const [isPro, setIsPro] = React.useState(false);
+
+  React.useEffect(() => {
+    checkProStatus().then(setIsPro).catch(() => {});
+  }, []);
 
   const menuItems = [
     {
@@ -50,10 +56,10 @@ export default function MoreScreen() {
       action: () => navigation.navigate('CustomerList'),
     },
     {
-      title: t('subscriptions.title', 'KadaiBook Pro'),
-      subtitle: t('subscriptions.subtitle', 'Manage your subscription & billing'),
-      icon: 'star' as const,
-      color: '#EAB308',
+      title: t('subscriptions.title', 'KadaiBook Pro Plans'),
+      subtitle: t('subscriptions.subtitle', 'Unlimited orders, WhatsApp reminders & reports'),
+      icon: 'sparkles' as const,
+      color: '#CA8A04',
       bg: '#FEF9C3',
       action: () => (navigation as any).navigate('PaywallScreen'),
     },
@@ -115,6 +121,41 @@ export default function MoreScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* ─── Featured Pro Upgrade Banner ─── */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.proBanner,
+            isPro && styles.proBannerActive,
+            pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+          ]}
+          onPress={() => (navigation as any).navigate('PaywallScreen')}
+        >
+          <View style={styles.proBannerIconWrap}>
+            <Ionicons name="sparkles" size={20} color={isPro ? '#854D0E' : '#CA8A04'} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.proBannerTitle}>
+                {isPro ? 'KadaiBook Pro Active' : 'Upgrade to KadaiBook Pro'}
+              </Text>
+              <View style={styles.proBannerPill}>
+                <Text style={styles.proBannerPillText}>
+                  {isPro ? 'PRO' : '50% OFF'}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.proBannerSub} numberOfLines={1}>
+              {isPro
+                ? 'All premium business features unlocked'
+                : 'Unlimited orders, WhatsApp reminders, GST & cloud sync'}
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={isPro ? '#854D0E' : '#CA8A04'}
+          />
+        </Pressable>
         <View style={styles.menuList}>
           {menuItems.map((item) => (
             <Pressable
@@ -189,6 +230,53 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.inkSoft,
     marginTop: 1,
+  },
+  proBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FEFCE8',
+    borderWidth: 1.5,
+    borderColor: '#FDE047',
+    borderRadius: radius.md,
+    padding: 14,
+    marginBottom: 16,
+    ...shadow.card,
+  },
+  proBannerActive: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A',
+  },
+  proBannerIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#FEF08A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  proBannerTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: '#854D0E',
+  },
+  proBannerPill: {
+    backgroundColor: '#16A34A',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.pill,
+  },
+  proBannerPillText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  proBannerSub: {
+    fontFamily: fonts.body,
+    fontSize: 11.5,
+    color: '#A16207',
+    marginTop: 2,
   },
   menuList: {
     gap: 12,

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,20 +10,20 @@ import {
 } from 'react-native';
 import Svg, { Defs, Mask, Rect } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
-import { useTour, TOUR_STEPS, TourStep } from '../../context/TourContext';
-import { colors, fonts, radius, shadow } from '../../theme/theme';
+import { useTour, TOUR_STEPS } from '../../context/TourContext';
+import { colors, fonts, radius } from '../../theme/theme';
 
 // ─── Friendly guide character emojis for each step ───
 const STEP_GUIDE: Record<string, string> = {
-  'welcome':             '👋',
-  'dashboard-metrics':   '📊',
-  'dashboard-pipeline':  '📦',
-  'new-order-action':    '🧾',
-  'orders-search-filter':'🔍',
-  'orders-list-area':    '📋',
-  'expenses-overview':   '💰',
-  'more-menu-hub':       '⚙️',
-  'tour-completion':     '🎉',
+  'welcome':              '👋',
+  'dashboard-metrics':    '📊',
+  'dashboard-pipeline':   '📦',
+  'new-order-action':     '🧾',
+  'orders-search-filter': '🔍',
+  'orders-list-area':     '📋',
+  'expenses-overview':    '💰',
+  'more-menu-hub':        '⚙️',
+  'tour-completion':      '🎉',
 };
 
 export default function AppTourOverlay() {
@@ -43,83 +43,105 @@ export default function AppTourOverlay() {
   const useNative = Platform.OS !== 'web';
 
   // ─── Animation Values ───
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
   const cardSlideAnim = useRef(new Animated.Value(0)).current;
-  const cardScaleAnim = useRef(new Animated.Value(0.92)).current;
-  const spotlightAnim = useRef(new Animated.Value(0)).current;
-  const guideAnim = useRef(new Animated.Value(0)).current;
+  const cardScaleAnim = useRef(new Animated.Value(1)).current;
+  const spotlightAnim = useRef(new Animated.Value(1)).current;
+  const guideAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   // Track previous step for transition direction
   const prevStepRef = useRef(currentStepIndex);
+  const isMountedRef = useRef(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // ─── Overlay entry animation ───
+  // ─── Web Escape key to safely close tour ───
+  useEffect(() => {
+    if (!isTourActive || Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        skipTour();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isTourActive, skipTour]);
+
+  // ─── Overlay Entrance Animation (when isTourActive becomes true) ───
   useEffect(() => {
     if (isTourActive) {
+      isMountedRef.current = true;
+      setIsTransitioning(false);
       fadeAnim.setValue(0);
       cardScaleAnim.setValue(0.92);
-      cardSlideAnim.setValue(20);
+      cardSlideAnim.setValue(16);
       guideAnim.setValue(0);
+      spotlightAnim.setValue(1);
+
+      const stepTotal = TOUR_STEPS.length;
+      progressAnim.setValue(currentStepIndex / Math.max(1, stepTotal - 1));
 
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 300,
+          duration: 250,
           useNativeDriver: useNative,
         }),
         Animated.spring(cardScaleAnim, {
           toValue: 1,
-          friction: 7,
-          tension: 50,
+          friction: 8,
+          tension: 55,
           useNativeDriver: useNative,
         }),
         Animated.spring(cardSlideAnim, {
           toValue: 0,
-          friction: 7,
-          tension: 50,
+          friction: 8,
+          tension: 55,
           useNativeDriver: useNative,
         }),
         Animated.spring(guideAnim, {
           toValue: 1,
           friction: 6,
-          tension: 40,
-          delay: 150,
+          tension: 45,
           useNativeDriver: useNative,
         }),
       ]).start();
     } else {
+      isMountedRef.current = false;
+      setIsTransitioning(false);
       fadeAnim.setValue(0);
-      cardScaleAnim.setValue(0.92);
-      cardSlideAnim.setValue(20);
     }
   }, [isTourActive]);
 
-  // ─── Smooth step transition animation ───
+  // ─── Smooth Step-to-Step Transitions ───
   useEffect(() => {
     if (!isTourActive) return;
+
+    // Skip if step hasn't changed (e.g. initial mount handled above)
+    if (prevStepRef.current === currentStepIndex) {
+      return;
+    }
+
     const goingForward = currentStepIndex > prevStepRef.current;
     prevStepRef.current = currentStepIndex;
 
     setIsTransitioning(true);
 
-    // Animate card out then in
-    const slideOut = goingForward ? -16 : 16;
-    const slideIn = goingForward ? 16 : -16;
-
+    const slideIn = goingForward ? 14 : -14;
     cardSlideAnim.setValue(slideIn);
     cardScaleAnim.setValue(0.96);
     spotlightAnim.setValue(0);
 
-    // Animate progress bar
+    // Update progress bar
     const stepTotal = TOUR_STEPS.length;
     Animated.timing(progressAnim, {
-      toValue: currentStepIndex / (stepTotal - 1),
-      duration: 350,
-      useNativeDriver: false, // width can't use native driver
+      toValue: currentStepIndex / Math.max(1, stepTotal - 1),
+      duration: 300,
+      useNativeDriver: false,
     }).start();
 
-    Animated.parallel([
+    // Run transition animations
+    const anim = Animated.parallel([
       Animated.spring(cardSlideAnim, {
         toValue: 0,
         friction: 8,
@@ -134,45 +156,49 @@ export default function AppTourOverlay() {
       }),
       Animated.timing(spotlightAnim, {
         toValue: 1,
-        duration: 400,
+        duration: 300,
         useNativeDriver: useNative,
       }),
-      Animated.sequence([
-        Animated.timing(guideAnim, {
-          toValue: 0.6,
-          duration: 100,
-          useNativeDriver: useNative,
-        }),
-        Animated.spring(guideAnim, {
-          toValue: 1,
-          friction: 5,
-          tension: 80,
-          useNativeDriver: useNative,
-        }),
-      ]),
-    ]).start(() => {
+      Animated.spring(guideAnim, {
+        toValue: 1,
+        friction: 6,
+        tension: 50,
+        useNativeDriver: useNative,
+      }),
+    ]);
+
+    anim.start(() => {
       setIsTransitioning(false);
     });
+
+    // Safety fallback timeout to ensure isTransitioning is NEVER stuck
+    const safetyTimer = setTimeout(() => {
+      setIsTransitioning(false);
+    }, 380);
+
+    return () => {
+      clearTimeout(safetyTimer);
+    };
   }, [currentStepIndex, isTourActive]);
 
   if (!isTourActive) return null;
 
-  const isWelcome = currentStep.isWelcome;
-  const isCompletion = currentStep.isCompletion;
+  const isWelcome = currentStep?.isWelcome;
+  const isCompletion = currentStep?.isCompletion;
   const isCenteredModal = isWelcome || isCompletion;
   const hasTarget = !!targetRect && !isCenteredModal;
 
-  // Spotlight cutout with more padding
+  // Spotlight cutout dimensions with safe padding
   const pad = 10;
   const cutX = targetRect ? Math.max(0, targetRect.x - pad) : 0;
   const cutY = targetRect ? Math.max(0, targetRect.y - pad) : 0;
   const cutW = targetRect ? targetRect.width + pad * 2 : 0;
   const cutH = targetRect ? targetRect.height + pad * 2 : 0;
 
-  // ─── Card positioning ───
+  // ─── Card Positioning Calculation ───
   const cardWidth = Math.min(width - 32, isDesktop ? 400 : 355);
-  let cardLeft = (width - cardWidth) / 2;
-  let cardTop = (height - 240) / 2;
+  let cardLeft = Math.max(16, (width - cardWidth) / 2);
+  let cardTop = Math.max(20, (height - 280) / 2);
 
   if (hasTarget && targetRect) {
     if (isDesktop && targetRect.x < 320) {
@@ -183,23 +209,27 @@ export default function AppTourOverlay() {
       const below = height - (cutY + cutH);
       const above = cutY;
       if (below >= 260 || below >= above) {
-        cardTop = cutY + cutH + 18;
+        cardTop = Math.min(height - 280, cutY + cutH + 18);
       } else {
-        cardTop = Math.max(16, cutY - 250);
+        cardTop = Math.max(20, cutY - 260);
       }
     }
   }
 
-  const accent = currentStep.accentColor || colors.clayDeep;
-  const guideEmoji = STEP_GUIDE[currentStep.id] || '✨';
-  const stepNum = currentStep.stepNumber || 0;
+  const accent = currentStep?.accentColor || colors.clayDeep;
+  const guideEmoji = (currentStep && STEP_GUIDE[currentStep.id]) || '✨';
+  const stepNum = currentStep?.stepNumber || 0;
   const totalSteps = 7;
 
-  // ─── Render ───
   return (
     <Animated.View style={[styles.overlay, { opacity: fadeAnim }]} pointerEvents="box-none">
-      {/* ─── Backdrop ─── */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="auto">
+      {/* ─── Backdrop: clicking backdrop safely dismisses tour ─── */}
+      <Pressable
+        style={StyleSheet.absoluteFill}
+        onPress={skipTour}
+        pointerEvents="auto"
+        accessibilityLabel="Dismiss Tour"
+      >
         {hasTarget ? (
           <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
             <Defs>
@@ -209,7 +239,10 @@ export default function AppTourOverlay() {
               </Mask>
             </Defs>
             <Rect
-              x="0" y="0" width="100%" height="100%"
+              x="0"
+              y="0"
+              width="100%"
+              height="100%"
               fill="rgba(18, 16, 14, 0.72)"
               mask="url(#spotMask)"
             />
@@ -225,9 +258,9 @@ export default function AppTourOverlay() {
             ]}
           />
         )}
-      </View>
+      </Pressable>
 
-      {/* ─── Subtle Spotlight Glow (not a chunky ring) ─── */}
+      {/* ─── Soft Spotlight Halo ─── */}
       {hasTarget && (
         <Animated.View
           style={[
@@ -256,7 +289,7 @@ export default function AppTourOverlay() {
         />
       )}
 
-      {/* ─── Welcome & Completion Modals ─── */}
+      {/* ─── Welcome & Completion Modals (Centered) ─── */}
       {isCenteredModal ? (
         <View style={styles.modalCenter} pointerEvents="box-none">
           <Animated.View
@@ -277,6 +310,7 @@ export default function AppTourOverlay() {
               style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.6 }]}
               onPress={isCompletion ? finishTour : skipTour}
               hitSlop={12}
+              accessibilityLabel="Close"
             >
               <Ionicons name="close" size={18} color={colors.inkSoft} />
             </Pressable>
@@ -311,16 +345,7 @@ export default function AppTourOverlay() {
                     { icon: 'book', color: '#C99A3F', bg: 'rgba(201,154,63,0.12)', title: 'Customer Udhar Khata (கடன்)', desc: 'Track credit dues with automated WhatsApp payment reminders.' },
                     { icon: 'trending-up', color: '#4E8A54', bg: 'rgba(78,138,84,0.12)', title: 'Live Profit Analytics', desc: 'Real-time sales, store expenses, and order pipeline.' },
                   ].map((f, i) => (
-                    <Animated.View
-                      key={i}
-                      style={[
-                        styles.highlightRow,
-                        {
-                          opacity: fadeAnim,
-                          transform: [{ translateY: Animated.multiply(cardSlideAnim, new Animated.Value(1 + i * 0.3)) }],
-                        },
-                      ]}
-                    >
+                    <View key={i} style={styles.highlightRow}>
                       <View style={[styles.highlightIconWrap, { backgroundColor: f.bg }]}>
                         <Ionicons name={f.icon as any} size={17} color={f.color} />
                       </View>
@@ -328,7 +353,7 @@ export default function AppTourOverlay() {
                         <Text style={styles.highlightTitle}>{f.title}</Text>
                         <Text style={styles.highlightDesc}>{f.desc}</Text>
                       </View>
-                    </Animated.View>
+                    </View>
                   ))}
                 </View>
 
@@ -358,7 +383,7 @@ export default function AppTourOverlay() {
                 </Pressable>
               </View>
             ) : (
-              /* ── Completion ── */
+              /* ── Completion Modal ── */
               <View>
                 <View style={styles.heroRow}>
                   <Animated.View
@@ -462,6 +487,7 @@ export default function AppTourOverlay() {
               style={({ pressed }) => [styles.tooltipClose, pressed && { opacity: 0.6 }]}
               onPress={skipTour}
               hitSlop={12}
+              accessibilityLabel="Close Tour"
             >
               <Ionicons name="close" size={16} color={colors.inkSoft} />
             </Pressable>
@@ -471,11 +497,11 @@ export default function AppTourOverlay() {
           <View style={styles.tooltipBody}>
             <View style={styles.titleRow}>
               <View style={[styles.stepIconCircle, { backgroundColor: `${accent}15` }]}>
-                <Ionicons name={currentStep.iconName as any} size={19} color={accent} />
+                <Ionicons name={(currentStep?.iconName as any) || 'information-circle'} size={19} color={accent} />
               </View>
-              <Text style={styles.stepTitle} numberOfLines={2}>{currentStep.title}</Text>
+              <Text style={styles.stepTitle} numberOfLines={2}>{currentStep?.title}</Text>
             </View>
-            <Text style={styles.stepDesc}>{currentStep.description}</Text>
+            <Text style={styles.stepDesc}>{currentStep?.description}</Text>
           </View>
 
           {/* Footer */}
@@ -525,7 +551,10 @@ export default function AppTourOverlay() {
 const styles = StyleSheet.create({
   overlay: {
     position: 'absolute',
-    left: 0, top: 0, right: 0, bottom: 0,
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
     zIndex: 99999,
     elevation: 99999,
   },
@@ -534,16 +563,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(18, 16, 14, 0.65)',
   },
 
-  // ─── Spotlight ───
   spotlightGlow: {
     position: 'absolute',
     borderRadius: 16,
   },
 
-  // ─── Welcome / Completion Modal ───
   modalCenter: {
     position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,

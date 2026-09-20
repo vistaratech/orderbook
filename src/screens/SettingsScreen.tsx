@@ -179,10 +179,14 @@ export default function SettingsScreen() {
 
   const handleStartAppTour = async () => {
     await resetTour();
-    navigation.navigate('MainTabs');
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('MainTabs');
+    }
     setTimeout(() => {
       startTour(0);
-    }, 350);
+    }, 150);
   };
 
   const handleExport = async () => {

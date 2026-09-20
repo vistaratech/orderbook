@@ -24,6 +24,7 @@ import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage
 import { addDataListener } from '../storage/firebaseSync';
 import { useLanguage } from '../i18n/LanguageContext';
 import { useTour } from '../context/TourContext';
+import { resetTour } from '../storage/tourStorage';
 import TourTarget from './tour/TourTarget';
 import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 
@@ -348,7 +349,16 @@ export default function SaaSSidebar({
           isCollapsed && styles.tourSidebarBtnCollapsed,
           pressed && { opacity: 0.8 },
         ]}
-        onPress={() => startTour(0)}
+        onPress={async () => {
+          if (navigation.canGoBack()) {
+            navigation.navigate('MainTabs');
+          }
+          if (onSelectTab) {
+            onSelectTab('DashboardTab');
+          }
+          await resetTour();
+          startTour(0);
+        }}
         // @ts-ignore
         title="Interactive Tour"
       >

@@ -9,6 +9,8 @@ import { RootStackParamList } from '../navigation/types';
 import AppLogo from '../components/AppLogo';
 import TourTarget from '../components/tour/TourTarget';
 import { useLanguage } from '../i18n/LanguageContext';
+import { useTour } from '../context/TourContext';
+import { resetTour } from '../storage/tourStorage';
 import { colors, fonts, radius, shadow } from '../theme/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -16,6 +18,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function MoreScreen() {
   const navigation = useNavigation<Nav>();
   const { t } = useLanguage();
+  const { startTour } = useTour();
 
   const menuItems = [
     {
@@ -89,6 +92,20 @@ export default function MoreScreen() {
       color: '#0284C7',
       bg: '#E0F2FE',
       action: () => navigation.navigate('InvoiceTemplateCustomizer'),
+    },
+    {
+      title: 'Interactive App Tour',
+      subtitle: 'Retake the quick 1-minute visual guide',
+      icon: 'sparkles' as const,
+      color: colors.clayDeep,
+      bg: 'rgba(185, 102, 89, 0.12)',
+      action: async () => {
+        await resetTour();
+        (navigation as any).navigate('MainTabs', { screen: 'DashboardTab' });
+        setTimeout(() => {
+          startTour(0);
+        }, 150);
+      },
     },
     {
       title: t('more.settingsAndBackup'),

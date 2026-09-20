@@ -279,10 +279,16 @@ export function TourProvider({ children }: { children: ReactNode }) {
         tabSwitcherRef.current(nextStepObj.tab);
       }
 
-      // Delay measurement slightly to allow layout animations and rendering to complete
-      setTimeout(() => {
-        measureCurrentTarget();
-      }, 220);
+      // Staggered measurements to ensure DOM/native layout is fully mounted and rendered
+      const t1 = setTimeout(() => { measureCurrentTarget(); }, 120);
+      const t2 = setTimeout(() => { measureCurrentTarget(); }, 280);
+      const t3 = setTimeout(() => { measureCurrentTarget(); }, 550);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
     },
     [measureCurrentTarget]
   );
@@ -310,18 +316,35 @@ export function TourProvider({ children }: { children: ReactNode }) {
   }, [currentStepIndex, activateStep]);
 
   const skipTour = useCallback(async () => {
-    setIsTourActive(false);
-    setTargetRect(null);
-    await setTourCompleted(true);
+    try {
+      setIsTourActive(false);
+      setTargetRect(null);
+      setCurrentStepIndex(0);
+      await setTourCompleted(true);
+    } catch (e) {
+      console.warn('Error skipping tour:', e);
+    } finally {
+      setIsTourActive(false);
+      setTargetRect(null);
+      setCurrentStepIndex(0);
+    }
   }, []);
 
   const finishTour = useCallback(async () => {
-    setIsTourActive(false);
-    setTargetRect(null);
-    await setTourCompleted(true);
-    // Return to dashboard upon completion
-    if (tabSwitcherRef.current) {
-      tabSwitcherRef.current('DashboardTab');
+    try {
+      setIsTourActive(false);
+      setTargetRect(null);
+      setCurrentStepIndex(0);
+      await setTourCompleted(true);
+      if (tabSwitcherRef.current) {
+        tabSwitcherRef.current('DashboardTab');
+      }
+    } catch (e) {
+      console.warn('Error finishing tour:', e);
+    } finally {
+      setIsTourActive(false);
+      setTargetRect(null);
+      setCurrentStepIndex(0);
     }
   }, []);
 

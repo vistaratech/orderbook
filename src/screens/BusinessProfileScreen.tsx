@@ -176,7 +176,6 @@ export default function BusinessProfileScreen() {
           </View>
           <View style={styles.bannerTextBlock}>
             <Text style={styles.bannerTitle}>{t('profile.title')}</Text>
-            <Text style={styles.bannerSubtitle}>{t('profile.subtitle')}</Text>
           </View>
         </View>
 

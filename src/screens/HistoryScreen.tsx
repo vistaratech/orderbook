@@ -286,7 +286,6 @@ export default function HistoryScreen() {
               <GlassBackButton label={t('common.back')} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.title}>{t('history.title')}</Text>
-                <Text style={styles.subtitle}>{t('history.subtitle')}</Text>
               </View>
             </View>
           </View>

@@ -261,7 +261,6 @@ export default function ProductListScreen() {
                   </Text>
                 </View>
               </View>
-              <Text style={styles.subtitle}>{t('products.subtitle')}</Text>
             </View>
             <Pressable
               style={({ pressed }) => [styles.newProductHeaderBtn, pressed && { opacity: 0.8 }]}

@@ -278,7 +278,6 @@ export default function CustomerListScreen() {
                   </Text>
                 </View>
               </View>
-              <Text style={styles.subtitle}>{t('customers.subtitle')}</Text>
             </View>
           </View>
 

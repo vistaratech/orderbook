@@ -108,7 +108,6 @@ export default function MoreScreen() {
             <AppLogo size={40} variant="icon" />
             <View>
               <Text style={styles.title}>{t('more.title')}</Text>
-              <Text style={styles.subtitle}>{t('more.subtitle')}</Text>
             </View>
           </View>
         </View>

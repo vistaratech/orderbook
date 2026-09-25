@@ -176,7 +176,6 @@ export default function ExpensesScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>{t('expenses.title')}</Text>
-            <Text style={styles.subtitle}>{t('expenses.subtitle')}</Text>
           </View>
         </View>
 

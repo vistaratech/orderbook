@@ -338,7 +338,6 @@ export default function SettingsScreen() {
           <GlassBackButton label={t('common.back')} />
           <View style={{ flex: 1 }}>
             <Text style={styles.topHeaderTitle}>{t('settings.title')}</Text>
-            <Text style={styles.topHeaderSub}>{t('settings.subtitle')}</Text>
           </View>
         </View>
 
@@ -359,7 +358,6 @@ export default function SettingsScreen() {
                 <Text style={styles.activeLangBadgeText}>{currentLangOption.nativeLabel}</Text>
               </View>
             </View>
-            <Text style={styles.sectionSub}>{t('settings.languageSubtitle')}</Text>
 
             <View style={styles.langGrid}>
               {availableLanguages.map((item) => {

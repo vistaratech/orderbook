@@ -250,7 +250,6 @@ Generated from KadaiBook • kadaibook.in`;
         <View style={styles.header}>
           <View style={styles.headerTitleWrap}>
             <Text style={styles.title}>{t('reports.title')}</Text>
-            <Text style={styles.subtitle}>{t('reports.subtitle')}</Text>
           </View>
           <Pressable
             style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.8 }]}

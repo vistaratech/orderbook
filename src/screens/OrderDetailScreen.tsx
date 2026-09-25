@@ -901,164 +901,169 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
               },
             ]}
           >
-            <Pressable
-              style={styles.pdfModalCloseBtn}
-              onPress={() => setShowPdfModal(false)}
-              hitSlop={8}
-            >
-              <Ionicons name="close" size={22} color={colors.ink} />
-            </Pressable>
+            <View style={styles.pdfModalHeaderInner}>
+              <Pressable
+                style={styles.pdfModalCloseBtn}
+                onPress={() => setShowPdfModal(false)}
+                hitSlop={8}
+              >
+                <Ionicons name="close" size={22} color={colors.ink} />
+              </Pressable>
 
-            <View style={styles.pdfModalTitleCenter}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={styles.pdfModalTitle}>Invoice Preview</Text>
-                <View
-                  style={[
-                    styles.pdfModalStatusBadge,
-                    { backgroundColor: balance <= 0 ? '#DCFCE7' : '#FEF3C7' },
-                  ]}
-                >
-                  <Text
+              <View style={styles.pdfModalTitleCenter}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.pdfModalTitle}>Invoice Preview</Text>
+                  <View
                     style={[
-                      styles.pdfModalStatusText,
-                      { color: balance <= 0 ? '#15803D' : '#B45309' },
+                      styles.pdfModalStatusBadge,
+                      { backgroundColor: balance <= 0 ? '#DCFCE7' : '#FEF3C7' },
                     ]}
                   >
-                    {balance <= 0 ? 'PAID' : `DUE ${formatCurrency(balance)}`}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.pdfModalStatusText,
+                        { color: balance <= 0 ? '#15803D' : '#B45309' },
+                      ]}
+                    >
+                      {balance <= 0 ? 'PAID' : `DUE ${formatCurrency(balance)}`}
+                    </Text>
+                  </View>
                 </View>
+                <Text style={styles.pdfModalSubtitle} numberOfLines={1}>
+                  {order.orderNumber} • {order.customerName || 'Walk-in'}
+                </Text>
               </View>
-              <Text style={styles.pdfModalSubtitle} numberOfLines={1}>
-                {order.orderNumber} • {order.customerName || 'Walk-in'}
-              </Text>
-            </View>
 
-            <Pressable
-              style={styles.pdfModalCustomizePill}
-              onPress={() => {
-                setShowPdfModal(false);
-                navigation.navigate('InvoiceTemplateCustomizer');
-              }}
-            >
-              <Ionicons name="options-outline" size={14} color={colors.clayDeep} />
-              <Text style={styles.pdfModalCustomizeText}>Studio</Text>
-            </Pressable>
+              <Pressable
+                style={styles.pdfModalCustomizePill}
+                onPress={() => {
+                  setShowPdfModal(false);
+                  navigation.navigate('InvoiceTemplateCustomizer');
+                }}
+              >
+                <Ionicons name="options-outline" size={14} color={colors.clayDeep} />
+                <Text style={styles.pdfModalCustomizeText}>Studio</Text>
+              </Pressable>
+            </View>
           </View>
 
           {/* ─── Interactive Template & Paper Switcher Ribbon ─── */}
           <View style={styles.pdfRibbonSection}>
-            {/* Template Presets Horizontal Scroller */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.pdfTemplateChipsRow}
-            >
-              {Object.values(INVOICE_THEME_PRESETS).map((tmpl) => {
-                const isSelected = selectedTemplate === tmpl.id;
-                return (
-                  <Pressable
-                    key={tmpl.id}
-                    style={[
-                      styles.pdfThemeChip,
-                      isSelected && styles.pdfThemeChipActive,
-                      isSelected && {
-                        borderColor: tmpl.primaryColor,
-                        backgroundColor: tmpl.primaryColor + '14',
-                      },
-                    ]}
-                    onPress={() => {
-                      setSelectedTemplate(tmpl.id as InvoiceTemplateId);
-                      if (tmpl.id === 'thermal_pos' && !selectedPaperSize.startsWith('thermal')) {
-                        setSelectedPaperSize('thermal_80mm');
-                      }
-                    }}
-                  >
-                    <View
-                      style={[
-                        styles.pdfThemeDot,
-                        { backgroundColor: tmpl.primaryColor },
-                        isSelected && { borderColor: '#FFFFFF', borderWidth: 1.5 },
-                      ]}
-                    />
-                    <Text
-                      style={[
-                        styles.pdfThemeChipText,
-                        isSelected && {
-                          color: tmpl.primaryColor,
-                          fontFamily: fonts.bodyBold,
-                        },
-                      ]}
-                    >
-                      {tmpl.name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            {/* Paper Size & Layout Format Pills */}
-            <View style={styles.pdfPaperPillsRow}>
-              <View style={styles.pdfPaperGroup}>
-                <Text style={styles.pdfPaperLabel}>Format:</Text>
-                {[
-                  { id: 'a4', label: '📄 A4' },
-                  { id: 'a5', label: '📑 A5' },
-                  { id: 'thermal_80mm', label: '🧾 80mm POS' },
-                  { id: 'thermal_58mm', label: '58mm' },
-                ].map((p) => {
-                  const isSelected = selectedPaperSize === p.id;
+            <View style={styles.pdfRibbonInner}>
+              {/* Template Presets Horizontal Scroller */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.pdfTemplateChipsRow}
+              >
+                {Object.values(INVOICE_THEME_PRESETS).map((tmpl) => {
+                  const isSelected = selectedTemplate === tmpl.id;
                   return (
                     <Pressable
-                      key={p.id}
+                      key={tmpl.id}
                       style={[
-                        styles.pdfPaperPill,
-                        isSelected && styles.pdfPaperPillActive,
+                        styles.pdfThemeChip,
+                        isSelected && styles.pdfThemeChipActive,
+                        isSelected && {
+                          borderColor: tmpl.primaryColor,
+                          backgroundColor: tmpl.primaryColor + '14',
+                        },
                       ]}
-                      onPress={() => setSelectedPaperSize(p.id as PaperSize)}
+                      onPress={() => {
+                        setSelectedTemplate(tmpl.id as InvoiceTemplateId);
+                        if (tmpl.id === 'thermal_pos' && !selectedPaperSize.startsWith('thermal')) {
+                          setSelectedPaperSize('thermal_80mm');
+                        }
+                      }}
                     >
+                      <View
+                        style={[
+                          styles.pdfThemeDot,
+                          { backgroundColor: tmpl.primaryColor },
+                          isSelected && { borderColor: '#FFFFFF', borderWidth: 1.5 },
+                        ]}
+                      />
                       <Text
                         style={[
-                          styles.pdfPaperPillText,
-                          isSelected && styles.pdfPaperPillTextActive,
+                          styles.pdfThemeChipText,
+                          isSelected && {
+                            color: tmpl.primaryColor,
+                            fontFamily: fonts.bodyBold,
+                          },
                         ]}
                       >
-                        {p.label}
+                        {tmpl.name}
                       </Text>
                     </Pressable>
                   );
                 })}
-              </View>
+              </ScrollView>
 
-              <Pressable
-                style={[
-                  styles.pdfCompactPill,
-                  isCompactMode && styles.pdfCompactPillActive,
-                ]}
-                onPress={() => setIsCompactMode((prev) => !prev)}
-              >
-                <Ionicons
-                  name={isCompactMode ? 'contract' : 'expand'}
-                  size={12}
-                  color={isCompactMode ? colors.white : colors.inkSoft}
-                />
-                <Text
+              {/* Paper Size & Layout Format Pills */}
+              <View style={styles.pdfPaperPillsRow}>
+                <View style={styles.pdfPaperGroup}>
+                  <Text style={styles.pdfPaperLabel}>Format:</Text>
+                  {[
+                    { id: 'a4', label: '📄 A4' },
+                    { id: 'a5', label: '📑 A5' },
+                    { id: 'thermal_80mm', label: '🧾 80mm POS' },
+                    { id: 'thermal_58mm', label: '58mm' },
+                  ].map((p) => {
+                    const isSelected = selectedPaperSize === p.id;
+                    return (
+                      <Pressable
+                        key={p.id}
+                        style={[
+                          styles.pdfPaperPill,
+                          isSelected && styles.pdfPaperPillActive,
+                        ]}
+                        onPress={() => setSelectedPaperSize(p.id as PaperSize)}
+                      >
+                        <Text
+                          style={[
+                            styles.pdfPaperPillText,
+                            isSelected && styles.pdfPaperPillTextActive,
+                          ]}
+                        >
+                          {p.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <Pressable
                   style={[
-                    styles.pdfCompactPillText,
-                    isCompactMode && styles.pdfCompactPillTextActive,
+                    styles.pdfCompactPill,
+                    isCompactMode && styles.pdfCompactPillActive,
                   ]}
+                  onPress={() => setIsCompactMode((prev) => !prev)}
                 >
-                  {isCompactMode ? 'Compact: ON' : 'Compact'}
-                </Text>
-              </Pressable>
+                  <Ionicons
+                    name={isCompactMode ? 'contract' : 'expand'}
+                    size={12}
+                    color={isCompactMode ? colors.white : colors.inkSoft}
+                  />
+                  <Text
+                    style={[
+                      styles.pdfCompactPillText,
+                      isCompactMode && styles.pdfCompactPillTextActive,
+                    ]}
+                  >
+                    {isCompactMode ? 'Compact: ON' : 'Compact'}
+                  </Text>
+                </Pressable>
+              </View>
             </View>
           </View>
 
           {/* ─── Main Preview Stage Canvas ─── */}
           {Platform.OS === 'web' ? (
-            <View style={styles.pdfStageContainer}>
+            <View style={[styles.pdfStageContainer, !isDesktop && { padding: 0 }]}>
               <View
                 style={[
                   styles.pdfPaperWrapperWeb,
+                  !isDesktop && { borderRadius: 0, borderWidth: 0, boxShadow: 'none' },
                   selectedPaperSize.startsWith('thermal') || selectedTemplate === 'thermal_pos'
                     ? { maxWidth: selectedPaperSize === 'thermal_58mm' ? 240 : 320 }
                     : selectedPaperSize === 'a5'
@@ -1073,10 +1078,10 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
                   style={{
                     width: '100%',
                     height: '100%',
-                    minHeight: '640px',
+                    minHeight: isDesktop ? '640px' : '520px',
                     border: 'none',
                     backgroundColor: '#FFFFFF',
-                    borderRadius: '8px',
+                    borderRadius: isDesktop ? '8px' : '0px',
                     display: 'block',
                   }}
                 />
@@ -1372,35 +1377,37 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
 
           {/* ─── Sticky Bottom Action Bar ─── */}
           <View style={[styles.pdfStickyBottomBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-            <Pressable
-              style={({ pressed }) => [styles.pdfActionBtn, styles.pdfActionWhatsApp, pressed && { opacity: 0.85 }]}
-              onPress={whatsappCustomer}
-            >
-              <Ionicons name="logo-whatsapp" size={18} color={colors.white} />
-              <Text style={styles.pdfActionBtnTextWhite}>WhatsApp Bill</Text>
-            </Pressable>
+            <View style={styles.pdfStickyBottomInner}>
+              <Pressable
+                style={({ pressed }) => [styles.pdfActionBtn, styles.pdfActionWhatsApp, pressed && { opacity: 0.85 }]}
+                onPress={whatsappCustomer}
+              >
+                <Ionicons name="logo-whatsapp" size={18} color={colors.white} />
+                <Text style={styles.pdfActionBtnTextWhite}>WhatsApp Bill</Text>
+              </Pressable>
 
-            <Pressable
-              style={({ pressed }) => [styles.pdfActionBtn, styles.pdfActionPdf, pressed && { opacity: 0.85 }]}
-              onPress={sharePdfCustomer}
-            >
-              <Ionicons name="document-text-outline" size={18} color={colors.white} />
-              <Text style={styles.pdfActionBtnTextWhite}>Share PDF</Text>
-            </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.pdfActionBtn, styles.pdfActionPdf, pressed && { opacity: 0.85 }]}
+                onPress={sharePdfCustomer}
+              >
+                <Ionicons name="document-text-outline" size={18} color={colors.white} />
+                <Text style={styles.pdfActionBtnTextWhite}>Share PDF</Text>
+              </Pressable>
 
-            <Pressable
-              style={({ pressed }) => [styles.pdfActionBtn, styles.pdfActionPrint, pressed && { opacity: 0.85 }]}
-              onPress={async () => {
-                if (order) {
-                  const isProAllowed = await checkTemplatePro();
-                  if (!isProAllowed) return;
-                  printPdfInvoice(order, activeBusinessProfile, activeConfig);
-                }
-              }}
-            >
-              <Ionicons name="print-outline" size={18} color={colors.ink} />
-              <Text style={styles.pdfActionBtnTextInk}>Print</Text>
-            </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.pdfActionBtn, styles.pdfActionPrint, pressed && { opacity: 0.85 }]}
+                onPress={async () => {
+                  if (order) {
+                    const isProAllowed = await checkTemplatePro();
+                    if (!isProAllowed) return;
+                    printPdfInvoice(order, activeBusinessProfile, activeConfig);
+                  }
+                }}
+              >
+                <Ionicons name="print-outline" size={18} color={colors.ink} />
+                <Text style={styles.pdfActionBtnTextInk}>Print</Text>
+              </Pressable>
+            </View>
           </View>
         </SafeAreaView>
       </Modal>
@@ -2009,15 +2016,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
   },
   pdfModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
     backgroundColor: colors.paperCard,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     zIndex: 10,
+  },
+  pdfModalHeaderInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    maxWidth: 860,
+    width: '100%',
+    alignSelf: 'center',
   },
   pdfModalCloseBtn: {
     width: 38,
@@ -2077,6 +2089,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     paddingVertical: 8,
+  },
+  pdfRibbonInner: {
+    maxWidth: 860,
+    width: '100%',
+    alignSelf: 'center',
   },
   pdfTemplateChipsRow: {
     flexDirection: 'row',
@@ -2515,14 +2532,19 @@ const styles = StyleSheet.create({
 
   // Floating Action Bottom Bar
   pdfStickyBottomBar: {
-    flexDirection: 'row',
-    gap: 8,
     paddingHorizontal: 16,
     paddingTop: 10,
     backgroundColor: colors.paperCard,
     borderTopWidth: 1,
     borderTopColor: colors.line,
     ...shadow.card,
+  },
+  pdfStickyBottomInner: {
+    flexDirection: 'row',
+    gap: 10,
+    maxWidth: 860,
+    width: '100%',
+    alignSelf: 'center',
   },
   pdfActionBtn: {
     flex: 1,

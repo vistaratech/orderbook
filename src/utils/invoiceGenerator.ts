@@ -369,35 +369,40 @@ function generateStandardInvoiceHtml(
       )}`
     : '';
 
+  const hasHsn = cfg.showHsn && order.items.some((it) => !!it.hsnCode && it.hsnCode.trim() !== '' && it.hsnCode !== '-');
+  const hasUnit = cfg.showUnit && order.items.some((it) => !!it.unit && it.unit.trim() !== '' && it.unit !== '-');
+  const hasGst = cfg.showGSTRate && order.items.some((it) => typeof it.taxRate === 'number' && it.taxRate > 0);
+  const hasDiscount = cfg.showDiscount && order.items.some((it) => typeof it.discount === 'number' && it.discount > 0);
+
   const itemRowsHtml = order.items
     .map((item, idx) => {
       const sNoCell = cfg.showItemSerialNo
-        ? `<td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #64748B;">${
+        ? `<td style="padding: 6px 6px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #64748B; width: 26px;">${
             idx + 1
           }</td>`
         : '';
-      const hsnCell = cfg.showHsn
-        ? `<td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #64748B;">${
+      const hsnCell = hasHsn
+        ? `<td style="padding: 6px 6px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #64748B;">${
             item.hsnCode || '-'
           }</td>`
         : '';
-      const unitCell = cfg.showUnit
-        ? `<td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #64748B;">${
+      const unitCell = hasUnit
+        ? `<td style="padding: 6px 6px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #64748B;">${
             item.unit || '-'
           }</td>`
         : '';
       const rateCell = cfg.showRate
-        ? `<td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: right; font-size: 11.5px; color: #334155;">${formatCurrency(
+        ? `<td style="padding: 6px 6px; border-bottom: 1px solid #F1F5F9; text-align: right; font-size: 11px; color: #334155; white-space: nowrap;">${formatCurrency(
             item.price
           )}</td>`
         : '';
-      const gstCell = cfg.showGSTRate
-        ? `<td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #475569;">${
+      const gstCell = hasGst
+        ? `<td style="padding: 6px 6px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #475569;">${
             item.taxRate ? `${item.taxRate}%` : '0%'
           }</td>`
         : '';
-      const discCell = cfg.showDiscount
-        ? `<td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: right; font-size: 11px; color: #16A34A;">${
+      const discCell = hasDiscount
+        ? `<td style="padding: 6px 6px; border-bottom: 1px solid #F1F5F9; text-align: right; font-size: 11px; color: #16A34A; white-space: nowrap;">${
             item.discount ? `-${formatCurrency(item.discount)}` : '-'
           }</td>`
         : '';
@@ -405,18 +410,18 @@ function generateStandardInvoiceHtml(
       return `
     <tr style="background-color: ${idx % 2 === 1 ? '#F8FAFC' : '#FFFFFF'};">
       ${sNoCell}
-      <td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; font-weight: 600; font-size: 12px; color: #0F172A;">${
+      <td style="padding: 6px 6px; border-bottom: 1px solid #F1F5F9; font-weight: 600; font-size: 11.5px; color: #0F172A;">${
         item.name || 'Item'
       }</td>
       ${hsnCell}
-      <td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 12px; color: #334155;">${
+      <td style="padding: 6px 6px; border-bottom: 1px solid #F1F5F9; text-align: center; font-size: 11px; color: #334155; white-space: nowrap;">${
         item.qty
       }</td>
       ${unitCell}
       ${rateCell}
       ${gstCell}
       ${discCell}
-      <td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; text-align: right; font-weight: 700; font-size: 12px; color: #0F172A;">${formatCurrency(
+      <td style="padding: 6px 6px; border-bottom: 1px solid #F1F5F9; text-align: right; font-weight: 700; font-size: 11.5px; color: #0F172A; white-space: nowrap;">${formatCurrency(
         item.qty * item.price - (item.discount || 0)
       )}</td>
     </tr>`;
@@ -742,28 +747,50 @@ function generateStandardInvoiceHtml(
     }
     @media screen and (max-width: 600px) {
       body {
-        padding: 6px !important;
+        padding: 0 !important;
+        background-color: #FFFFFF !important;
+      }
+      .invoice-sheet {
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
       }
       .sheet-header {
         flex-direction: column !important;
-        gap: 10px !important;
-        padding: 12px 14px !important;
+        gap: 8px !important;
+        padding: 10px 12px !important;
       }
       .header-right {
         align-items: flex-start !important;
         min-width: unset !important;
         width: 100% !important;
         border-top: 1px dashed #E2E8F0;
-        padding-top: 8px;
-        margin-top: 4px;
+        padding-top: 6px;
+        margin-top: 2px;
       }
       .meta-text {
         text-align: left !important;
       }
+      .buyer-strip {
+        padding: 8px 12px !important;
+      }
+      .table-container {
+        padding: 4px 6px !important;
+      }
+      th {
+        font-size: 9px !important;
+        padding: 5px 4px !important;
+      }
+      td {
+        padding: 5px 4px !important;
+        font-size: 10.5px !important;
+      }
       .totals-section {
         flex-direction: column !important;
-        gap: 12px !important;
-        padding: 10px 14px !important;
+        gap: 10px !important;
+        padding: 8px 12px !important;
       }
       .totals-card {
         width: 100% !important;
@@ -771,12 +798,12 @@ function generateStandardInvoiceHtml(
       .footer-terms-section {
         flex-direction: column !important;
         align-items: flex-start !important;
-        gap: 12px !important;
+        gap: 10px !important;
+        padding: 8px 12px !important;
       }
       .signatory-box {
         width: 100% !important;
         text-align: left !important;
-        margin-top: 8px;
       }
     }
   </style>
@@ -822,15 +849,15 @@ function generateStandardInvoiceHtml(
       <table>
         <thead>
           <tr>
-            ${cfg.showItemSerialNo ? '<th style="text-align: center; width: 30px;">#</th>' : ''}
+            ${cfg.showItemSerialNo ? '<th style="text-align: center; width: 26px;">#</th>' : ''}
             <th style="text-align: left;">Item Description</th>
-            ${cfg.showHsn ? '<th style="text-align: center; width: 50px;">HSN</th>' : ''}
-            <th style="text-align: center; width: 40px;">Qty</th>
-            ${cfg.showUnit ? '<th style="text-align: center; width: 40px;">Unit</th>' : ''}
-            ${cfg.showRate ? '<th style="text-align: right; width: 65px;">Rate</th>' : ''}
-            ${cfg.showGSTRate ? '<th style="text-align: center; width: 45px;">GST</th>' : ''}
-            ${cfg.showDiscount ? '<th style="text-align: right; width: 50px;">Disc</th>' : ''}
-            <th style="text-align: right; width: 75px;">Total</th>
+            ${hasHsn ? '<th style="text-align: center; width: 45px;">HSN</th>' : ''}
+            <th style="text-align: center; width: 36px;">Qty</th>
+            ${hasUnit ? '<th style="text-align: center; width: 38px;">Unit</th>' : ''}
+            ${cfg.showRate ? '<th style="text-align: right; width: 62px;">Rate</th>' : ''}
+            ${hasGst ? '<th style="text-align: center; width: 38px;">GST</th>' : ''}
+            ${hasDiscount ? '<th style="text-align: right; width: 44px;">Disc</th>' : ''}
+            <th style="text-align: right; width: 68px;">Total</th>
           </tr>
         </thead>
         <tbody>

@@ -60,7 +60,7 @@ const DISPATCH_METHODS = [
 const PAYMENT_STATUSES: PaymentStatus[] = ['Pending', 'Partial', 'Paid'];
 
 function emptyItem(defaultUnit = 'Pcs'): OrderItem {
-  return { id: generateId('itm_'), name: '', qty: 1, price: 0, unit: defaultUnit };
+  return { id: generateId('itm_'), name: '', qty: 1, price: 0, unit: defaultUnit, taxRate: 0, hsnCode: '' };
 }
 
 export default function OrderFormScreen({ navigation, route }: Props) {
@@ -94,6 +94,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
   const [status, setStatus] = useState<OrderStatus>('Placed');
   const [saving, setSaving] = useState(false);
   const [defaultUnit, setDefaultUnit] = useState('Pcs');
+  const [isInterState, setIsInterState] = useState(false);
   const [upgradeNudge, setUpgradeNudge] = useState<string | null>(null);
 
   // Modals & Pickers
@@ -138,6 +139,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
         setCustomerNote(order.customerNote || '');
         setAdvance(order.advance ? String(order.advance) : '');
         setStatus(order.status);
+        setIsInterState(!!order.isInterState);
       });
     } else if (fromEstimateId) {
       nextOrderNumber().then(setOrderNumber);
@@ -179,9 +181,33 @@ export default function OrderFormScreen({ navigation, route }: Props) {
   }, [editingId, fromEstimateId]);
 
   // Calculations
-  const total = useMemo(() => {
-    return items.reduce((sum, it) => sum + (it.qty || 0) * (it.price || 0), 0);
+  const subtotal = useMemo(() => {
+    return items.reduce((sum, it) => sum + (it.qty || 0) * (it.price || 0) - (it.discount || 0), 0);
   }, [items]);
+
+  const totalTax = useMemo(() => {
+    return items.reduce((sum, it) => {
+      const taxable = Math.max(0, (it.qty || 0) * (it.price || 0) - (it.discount || 0));
+      const rate = it.taxRate || 0;
+      return sum + (taxable * rate) / 100;
+    }, 0);
+  }, [items]);
+
+  const cgst = useMemo(() => {
+    return isInterState ? 0 : Math.round((totalTax / 2) * 100) / 100;
+  }, [totalTax, isInterState]);
+
+  const sgst = useMemo(() => {
+    return isInterState ? 0 : Math.round((totalTax / 2) * 100) / 100;
+  }, [totalTax, isInterState]);
+
+  const igst = useMemo(() => {
+    return isInterState ? Math.round(totalTax * 100) / 100 : 0;
+  }, [totalTax, isInterState]);
+
+  const total = useMemo(() => {
+    return Math.round((subtotal + totalTax) * 100) / 100;
+  }, [subtotal, totalTax]);
 
   const advanceNum = parseFloat(advance) || 0;
   const balance = Math.max(0, total - advanceNum);
@@ -276,6 +302,8 @@ export default function OrderFormScreen({ navigation, route }: Props) {
       name: p.name,
       price: p.defaultPrice || 0,
       unit: p.unit || defaultUnit,
+      taxRate: p.taxRate || 0,
+      hsnCode: p.hsnCode || '',
     });
     setActiveItemSuggestIndex(null);
   };
@@ -290,6 +318,8 @@ export default function OrderFormScreen({ navigation, route }: Props) {
             name: p.name,
             price: p.defaultPrice || 0,
             unit: p.unit || defaultUnit,
+            taxRate: p.taxRate || 0,
+            hsnCode: p.hsnCode || '',
             qty: 1,
           },
         ];
@@ -301,6 +331,8 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           name: p.name,
           price: p.defaultPrice || 0,
           unit: p.unit || defaultUnit,
+          taxRate: p.taxRate || 0,
+          hsnCode: p.hsnCode || '',
           qty: 1,
         },
       ];
@@ -448,6 +480,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
       advance: advanceNum,
       status,
       estimateId: fromEstimateId,
+      isInterState,
     });
 
     setSaving(false);
@@ -634,6 +667,42 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               </View>
             </View>
 
+            {/* GST Supply Mode Selector Bar */}
+            <View style={styles.gstSupplyBar}>
+              <View style={styles.gstSupplyBarLeft}>
+                <Ionicons name="receipt-outline" size={15} color={colors.clayDeep} />
+                <Text style={styles.gstSupplyBarLabel}>GST Supply Type:</Text>
+              </View>
+              <View style={styles.gstSupplyPills}>
+                <Pressable
+                  style={[styles.gstSupplyPill, !isInterState && styles.gstSupplyPillActive]}
+                  onPress={() => setIsInterState(false)}
+                >
+                  <Ionicons
+                    name="business-outline"
+                    size={12}
+                    color={!isInterState ? colors.white : colors.inkSoft}
+                  />
+                  <Text style={[styles.gstSupplyPillText, !isInterState && styles.gstSupplyPillTextActive]}>
+                    Intra-State (CGST+SGST)
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.gstSupplyPill, isInterState && styles.gstSupplyPillActiveInter]}
+                  onPress={() => setIsInterState(true)}
+                >
+                  <Ionicons
+                    name="airplane-outline"
+                    size={12}
+                    color={isInterState ? colors.white : colors.inkSoft}
+                  />
+                  <Text style={[styles.gstSupplyPillText, isInterState && styles.gstSupplyPillTextActive]}>
+                    Inter-State (IGST)
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
             {/* Custom columns active pill tags */}
             {customColumns.length > 0 && (
               <View style={styles.activeColumnsRow}>
@@ -789,6 +858,44 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                       <View style={styles.itemSubtotalWrap}>
                         <Text style={styles.itemFieldMicroLabel}>Total</Text>
                         <Text style={styles.itemSubtotalText}>{formatCurrency(itemSubtotal)}</Text>
+                      </View>
+                    </View>
+
+                    {/* GST Rate Selector on Item Card */}
+                    <View style={styles.itemGstRow}>
+                      <View style={styles.itemGstLabelWrap}>
+                        <Text style={styles.itemFieldMicroLabel}>GST Rate:</Text>
+                        {item.taxRate && item.taxRate > 0 ? (
+                          <Text style={styles.itemGstSplitBadge}>
+                            {!isInterState
+                              ? `(CGST ${item.taxRate / 2}% + SGST ${item.taxRate / 2}%)`
+                              : `(IGST ${item.taxRate}%)`}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <View style={styles.gstRateChips}>
+                        {([0, 5, 12, 18, 28] as const).map((r) => {
+                          const isSelected = (item.taxRate || 0) === r;
+                          return (
+                            <Pressable
+                              key={r}
+                              style={[
+                                styles.gstRateChip,
+                                isSelected && styles.gstRateChipActive,
+                              ]}
+                              onPress={() => updateItem(item.id, { taxRate: r })}
+                            >
+                              <Text
+                                style={[
+                                  styles.gstRateChipText,
+                                  isSelected && styles.gstRateChipTextActive,
+                                ]}
+                              >
+                                {r === 0 ? '0%' : `${r}%`}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
                       </View>
                     </View>
 
@@ -967,7 +1074,34 @@ export default function OrderFormScreen({ navigation, route }: Props) {
             {/* Financial Ledger Calculation Summary */}
             <View style={styles.financialSummaryCard}>
               <View style={styles.financialRow}>
-                <Text style={styles.financialLabel}>{t('orders.totalBill', 'Total Bill')}</Text>
+                <Text style={styles.financialLabel}>Taxable Subtotal</Text>
+                <Text style={styles.financialVal}>{formatCurrency(subtotal)}</Text>
+              </View>
+
+              {totalTax > 0 && !isInterState && (
+                <>
+                  <View style={styles.financialRow}>
+                    <Text style={[styles.financialLabel, { color: '#2563EB' }]}>Central GST (CGST)</Text>
+                    <Text style={[styles.financialVal, { color: '#2563EB' }]}>+{formatCurrency(cgst)}</Text>
+                  </View>
+                  <View style={styles.financialRow}>
+                    <Text style={[styles.financialLabel, { color: '#2563EB' }]}>State GST (SGST)</Text>
+                    <Text style={[styles.financialVal, { color: '#2563EB' }]}>+{formatCurrency(sgst)}</Text>
+                  </View>
+                </>
+              )}
+
+              {totalTax > 0 && isInterState && (
+                <View style={styles.financialRow}>
+                  <Text style={[styles.financialLabel, { color: '#4338CA' }]}>Integrated GST (IGST)</Text>
+                  <Text style={[styles.financialVal, { color: '#4338CA' }]}>+{formatCurrency(igst)}</Text>
+                </View>
+              )}
+
+              <View style={[styles.financialRow, { borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 8, marginTop: 2 }]}>
+                <Text style={[styles.financialLabel, { fontFamily: fonts.bodyBold, fontSize: 14 }]}>
+                  {t('orders.totalBill', 'Total Bill')}
+                </Text>
                 <Text style={styles.financialTotalVal}>{formatCurrency(total)}</Text>
               </View>
 
@@ -2504,5 +2638,117 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.white,
+  },
+
+  // ── GST Supply Mode & Tax Chips UI ──
+  gstSupplyBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: radius.md,
+    padding: 8,
+    marginBottom: 12,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  gstSupplyBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  gstSupplyBarLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  gstSupplyPills: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  gstSupplyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  gstSupplyPillActive: {
+    backgroundColor: '#2563EB',
+    borderColor: '#2563EB',
+  },
+  gstSupplyPillActiveInter: {
+    backgroundColor: '#4338CA',
+    borderColor: '#4338CA',
+  },
+  gstSupplyPillText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  gstSupplyPillTextActive: {
+    color: colors.white,
+    fontFamily: fonts.bodyBold,
+  },
+  itemGstRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.line + '60',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  itemGstLabelWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  itemGstSplitBadge: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    color: '#2563EB',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
+  gstRateChips: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  gstRateChip: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  gstRateChipActive: {
+    backgroundColor: colors.clayDeep,
+    borderColor: colors.clayDeep,
+  },
+  gstRateChipText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  gstRateChipTextActive: {
+    fontFamily: fonts.bodyBold,
+    color: colors.white,
+  },
+  financialVal: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.ink,
   },
 });

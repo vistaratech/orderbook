@@ -87,12 +87,31 @@ export function generateWhatsAppInvoiceText(
       ? `*Terms:*\n${config.termsAndConditions}\n========================================\n`
       : '';
 
+  let gstBreakdownText = '';
+  let totalTaxAmt = 0;
+  order.items.forEach((it) => {
+    const taxable = Math.max(0, (it.qty || 0) * (it.price || 0) - (it.discount || 0));
+    const rate = it.taxRate || 0;
+    totalTaxAmt += (taxable * rate) / 100;
+  });
+  totalTaxAmt = Math.round(totalTaxAmt * 100) / 100;
+
+  if (totalTaxAmt > 0 && config?.showGSTRate !== false) {
+    if (order.isInterState) {
+      gstBreakdownText = `*IGST (Inter-State):* +${formatCurrency(totalTaxAmt)}\n`;
+    } else {
+      const halfTax = Math.round((totalTaxAmt / 2) * 100) / 100;
+      gstBreakdownText = `*CGST:* +${formatCurrency(halfTax)}\n*SGST:* +${formatCurrency(halfTax)}\n*Total GST:* +${formatCurrency(totalTaxAmt)}\n`;
+    }
+  }
+
   return `*${invoiceTitle.toUpperCase()}*
 ========================================
 *${businessName.toUpperCase()}*
 ${business?.tagline && config?.showTagline !== false ? `_${business.tagline}_\n` : ''}${business?.address && config?.showBusinessAddress !== false ? `Address: ${business.address}\n` : ''}${business?.phone && config?.showBusinessPhone !== false ? `Phone: ${business.phone}\n` : ''}${business?.gstin && config?.showGstin !== false ? `GSTIN: ${business.gstin}\n` : ''}========================================
 *Bill No:* ${order.orderNumber}
 *Date:* ${formatDate(order.orderDate)}
+*Supply Type:* ${order.isInterState ? 'Inter-State (IGST)' : 'Intra-State (CGST + SGST)'}
 *Customer:* ${order.customerName || 'Walk-in Customer'} ${
     order.phoneNumber && config?.showCustomerPhone !== false ? `(${order.phoneNumber})` : ''
   }
@@ -101,7 +120,7 @@ ${business?.tagline && config?.showTagline !== false ? `_${business.tagline}_\n`
 ${itemRows || 'No items recorded'}
 
 ----------------------------------------
-*Grand Total:* *${formatCurrency(total)}*
+${gstBreakdownText}*Grand Total:* *${formatCurrency(total)}*
 *Advance Paid:* ${formatCurrency(order.advance)}
 *Payment Status:* ${paymentStatus}
 ========================================
@@ -349,8 +368,10 @@ function generateStandardInvoiceHtml(
   });
 
   totalTaxAmount = Math.round(totalTaxAmount * 100) / 100;
-  const cgstAmount = Math.round((totalTaxAmount / 2) * 100) / 100;
-  const sgstAmount = Math.round((totalTaxAmount / 2) * 100) / 100;
+  const isInterState = !!order.isInterState;
+  const cgstAmount = isInterState ? 0 : Math.round((totalTaxAmount / 2) * 100) / 100;
+  const sgstAmount = isInterState ? 0 : Math.round((totalTaxAmount / 2) * 100) / 100;
+  const igstAmount = isInterState ? totalTaxAmount : 0;
 
   // UPI dynamic payment link & QR
   const upiId = cfg.upiId || business?.upiId;
@@ -828,7 +849,7 @@ function generateStandardInvoiceHtml(
         <div class="title-badge">${(cfg.invoiceTitle || 'TAX INVOICE').toUpperCase()}</div>
         <div class="meta-text"><b>Bill #:</b> ${order.orderNumber}</div>
         <div class="meta-text"><b>Date:</b> ${formatDate(order.orderDate)}</div>
-        <div class="meta-text"><b>Place:</b> Tamil Nadu (33)</div>
+        <div class="meta-text"><b>Supply:</b> ${isInterState ? 'Inter-State (IGST)' : 'Intra-State (CGST + SGST)'}</div>
       </div>
     </div>
 
@@ -896,8 +917,19 @@ function generateStandardInvoiceHtml(
         }
         ${
           cfg.showGSTRate && totalTaxAmount > 0
-            ? `<div class="calc-row"><span>CGST (2.5%):</span><b>+${formatCurrency(cgstAmount)}</b></div>
-               <div class="calc-row"><span>SGST (2.5%):</span><b>+${formatCurrency(sgstAmount)}</b></div>`
+            ? isInterState
+              ? `<div class="calc-row" style="color: #4338CA;">
+                   <span>Integrated GST (IGST):</span>
+                   <b>+${formatCurrency(igstAmount)}</b>
+                 </div>`
+              : `<div class="calc-row" style="color: #2563EB;">
+                   <span>Central GST (CGST):</span>
+                   <b>+${formatCurrency(cgstAmount)}</b>
+                 </div>
+                 <div class="calc-row" style="color: #2563EB;">
+                   <span>State GST (SGST):</span>
+                   <b>+${formatCurrency(sgstAmount)}</b>
+                 </div>`
             : ''
         }
         <div class="calc-row total">

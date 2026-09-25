@@ -22,7 +22,17 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../navigation/types';
-import { Order, PaymentEntry, orderTotal, orderBalance } from '../types/order';
+import {
+  Order,
+  PaymentEntry,
+  orderTotal,
+  orderBalance,
+  orderSubtotal,
+  orderTotalTax,
+  orderCGST,
+  orderSGST,
+  orderIGST,
+} from '../types/order';
 import {
   getOrder,
   deleteOrder,
@@ -202,6 +212,12 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
 
   const total = orderTotal(order);
   const balance = orderBalance(order);
+  const subtotal = orderSubtotal(order);
+  const totalTax = orderTotalTax(order);
+  const isInterState = order.isInterState ?? false;
+  const cgst = orderCGST(order);
+  const sgst = orderSGST(order);
+  const igst = orderIGST(order);
 
   const handleDelete = () => {
     confirmAction({
@@ -561,6 +577,20 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
               </View>
             </View>
 
+            <View style={styles.metaBox}>
+              <Text style={styles.metaLabel}>GST Supply Type</Text>
+              <View style={styles.metaValueRow}>
+                <Ionicons
+                  name={isInterState ? 'airplane-outline' : 'business-outline'}
+                  size={14}
+                  color={isInterState ? '#4338CA' : '#2563EB'}
+                />
+                <Text style={[styles.metaValueText, { color: isInterState ? '#4338CA' : '#2563EB', fontFamily: fonts.bodyBold }]}>
+                  {isInterState ? 'Inter-State (IGST)' : 'Intra-State (CGST+SGST)'}
+                </Text>
+              </View>
+            </View>
+
             {order.trackingNumber ? (
               <View style={styles.metaBox}>
                 <Text style={styles.metaLabel}>Tracking Number</Text>
@@ -645,8 +675,26 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
           <View style={styles.itemsSummaryBox}>
             <View style={styles.summaryLine}>
               <Text style={styles.summaryLineLabel}>{t('orders.totalAmount', 'Subtotal')}</Text>
-              <Text style={styles.summaryLineVal}>{formatCurrency(total)}</Text>
+              <Text style={styles.summaryLineVal}>{formatCurrency(subtotal)}</Text>
             </View>
+            {totalTax > 0 && !isInterState && (
+              <>
+                <View style={styles.summaryLine}>
+                  <Text style={[styles.summaryLineLabel, { color: '#2563EB' }]}>CGST (Central Tax)</Text>
+                  <Text style={[styles.summaryLineVal, { color: '#2563EB' }]}>+{formatCurrency(cgst)}</Text>
+                </View>
+                <View style={styles.summaryLine}>
+                  <Text style={[styles.summaryLineLabel, { color: '#2563EB' }]}>SGST (State Tax)</Text>
+                  <Text style={[styles.summaryLineVal, { color: '#2563EB' }]}>+{formatCurrency(sgst)}</Text>
+                </View>
+              </>
+            )}
+            {totalTax > 0 && isInterState && (
+              <View style={styles.summaryLine}>
+                <Text style={[styles.summaryLineLabel, { color: '#4338CA' }]}>IGST (Integrated Tax)</Text>
+                <Text style={[styles.summaryLineVal, { color: '#4338CA' }]}>+{formatCurrency(igst)}</Text>
+              </View>
+            )}
             <View style={styles.summaryLine}>
               <Text style={styles.summaryLineLabel}>{t('orders.advancePaid', 'Advance Received')}</Text>
               <Text style={[styles.summaryLineVal, { color: colors.inflow }]}>
@@ -1321,7 +1369,29 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
                     <View style={styles.pdfTotalsCard}>
                       <View style={styles.pdfCalcRow}>
                         <Text style={styles.pdfCalcLabel}>Subtotal:</Text>
-                        <Text style={styles.pdfCalcVal}>{formatCurrency(total)}</Text>
+                        <Text style={styles.pdfCalcVal}>{formatCurrency(subtotal)}</Text>
+                      </View>
+                      {totalTax > 0 && !isInterState && (
+                        <>
+                          <View style={styles.pdfCalcRow}>
+                            <Text style={[styles.pdfCalcLabel, { color: '#2563EB' }]}>CGST:</Text>
+                            <Text style={[styles.pdfCalcVal, { color: '#2563EB' }]}>+{formatCurrency(cgst)}</Text>
+                          </View>
+                          <View style={styles.pdfCalcRow}>
+                            <Text style={[styles.pdfCalcLabel, { color: '#2563EB' }]}>SGST:</Text>
+                            <Text style={[styles.pdfCalcVal, { color: '#2563EB' }]}>+{formatCurrency(sgst)}</Text>
+                          </View>
+                        </>
+                      )}
+                      {totalTax > 0 && isInterState && (
+                        <View style={styles.pdfCalcRow}>
+                          <Text style={[styles.pdfCalcLabel, { color: '#4338CA' }]}>IGST:</Text>
+                          <Text style={[styles.pdfCalcVal, { color: '#4338CA' }]}>+{formatCurrency(igst)}</Text>
+                        </View>
+                      )}
+                      <View style={[styles.pdfCalcRow, { borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 3, marginTop: 2 }]}>
+                        <Text style={[styles.pdfCalcLabel, { fontFamily: fonts.bodyBold }]}>Grand Total:</Text>
+                        <Text style={[styles.pdfCalcVal, { fontFamily: fonts.bodyBold }]}>{formatCurrency(total)}</Text>
                       </View>
                       <View style={styles.pdfCalcRow}>
                         <Text style={styles.pdfCalcLabel}>Advance Paid:</Text>

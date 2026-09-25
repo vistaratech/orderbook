@@ -102,16 +102,18 @@ export function orderIGST(order: Pick<Order, 'items'>): number {
 }
 
 export function orderTotal(order: Pick<Order, 'items'>): number {
-  return order.items.reduce((sum, item) => sum + (item.qty || 0) * (item.price || 0), 0);
+  const sub = orderSubtotal(order);
+  const tax = orderTotalTax(order);
+  return Math.round((sub + tax) * 100) / 100;
 }
 
-/** Grand total including tax */
+/** Grand total including tax (same as orderTotal) */
 export function orderGrandTotal(order: Pick<Order, 'items'>): number {
-  return orderSubtotal(order) + orderTotalTax(order);
+  return orderTotal(order);
 }
 
 export function orderBalance(order: Pick<Order, 'items' | 'advance'>): number {
-  return orderTotal(order) - (order.advance || 0);
+  return Math.round((orderTotal(order) - (order.advance || 0)) * 100) / 100;
 }
 
 // ─── Expense ────────────────────────────────────────────────────────

@@ -47,6 +47,7 @@ import {
 import {
   InvoiceTemplateConfig,
   InvoiceTemplateId,
+  PaperSize,
   INVOICE_THEME_PRESETS,
   DEFAULT_INVOICE_TEMPLATE_CONFIG,
 } from '../types/invoiceTemplate';
@@ -80,6 +81,8 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
   const [payNote, setPayNote] = useState('');
   const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<InvoiceTemplateId>('modern_slate');
+  const [selectedPaperSize, setSelectedPaperSize] = useState<PaperSize>('a4');
+  const [isCompactMode, setIsCompactMode] = useState(false);
   const [templateConfig, setTemplateConfig] = useState<InvoiceTemplateConfig>(DEFAULT_INVOICE_TEMPLATE_CONFIG);
 
   useEffect(() => {
@@ -92,6 +95,8 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
     getInvoiceTemplateConfig().then((cfg) => {
       setTemplateConfig(cfg);
       if (cfg.templateId) setSelectedTemplate(cfg.templateId);
+      if (cfg.paperSize) setSelectedPaperSize(cfg.paperSize);
+      if (cfg.compactMode !== undefined) setIsCompactMode(cfg.compactMode);
     });
   }, []);
 
@@ -110,6 +115,8 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
       if (active && cfg) {
         setTemplateConfig(cfg);
         if (cfg.templateId) setSelectedTemplate(cfg.templateId);
+        if (cfg.paperSize) setSelectedPaperSize(cfg.paperSize);
+        if (cfg.compactMode !== undefined) setIsCompactMode(cfg.compactMode);
       }
     });
     return () => {
@@ -126,6 +133,8 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
       if (cfg) {
         setTemplateConfig(cfg);
         if (cfg.templateId) setSelectedTemplate(cfg.templateId);
+        if (cfg.paperSize) setSelectedPaperSize(cfg.paperSize);
+        if (cfg.compactMode !== undefined) setIsCompactMode(cfg.compactMode);
       }
       if (bp) setBizProfile(bp);
     } catch (e) {
@@ -160,7 +169,15 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
   const activeConfig: InvoiceTemplateConfig = useMemo(() => ({
     ...templateConfig,
     templateId: selectedTemplate,
-  }), [templateConfig, selectedTemplate]);
+    primaryColor: selectedPreset.primaryColor,
+    accentColor: selectedPreset.accentColor,
+    headerBgColor: selectedPreset.headerBgColor,
+    headerTextColor: selectedPreset.headerTextColor,
+    cardBorderColor: selectedPreset.cardBorderColor,
+    fontFamily: selectedPreset.fontFamily,
+    paperSize: selectedPaperSize,
+    compactMode: isCompactMode,
+  }), [templateConfig, selectedTemplate, selectedPreset, selectedPaperSize, isCompactMode]);
 
   const invoiceHtml = useMemo(() => {
     if (!order) return '';
@@ -864,14 +881,15 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
         </Pressable>
       </Modal>
 
-      {/* ─── MODAL 2: PDF Printable Invoice Preview ─── */}
+      {/* ─── MODAL 2: Revamped Modern Invoice Preview & Sharing Hub ─── */}
       <Modal
         visible={showPdfModal}
         animationType="slide"
-        transparent={false}
+        presentationStyle="pageSheet"
         onRequestClose={() => setShowPdfModal(false)}
       >
-        <SafeAreaView style={styles.pdfModalContainer} edges={['top', 'bottom']}>
+        <SafeAreaView style={styles.pdfModalContainer} edges={['top', 'bottom', 'left', 'right']}>
+          {/* ─── Top Glass Modal Header ─── */}
           <View
             style={[
               styles.pdfModalHeader,
@@ -883,260 +901,507 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
               },
             ]}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-              <Pressable
-                style={styles.pdfModalCloseBtn}
-                onPress={() => setShowPdfModal(false)}
-              >
-                <Ionicons name="close" size={24} color={colors.ink} />
-              </Pressable>
-              <Text style={styles.pdfModalTitle} numberOfLines={1}>Invoice Preview</Text>
-            </View>
+            <Pressable
+              style={styles.pdfModalCloseBtn}
+              onPress={() => setShowPdfModal(false)}
+              hitSlop={8}
+            >
+              <Ionicons name="close" size={22} color={colors.ink} />
+            </Pressable>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              <Pressable
-                style={[styles.pdfModalPrintBtn, { backgroundColor: colors.paperCard, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 10 }]}
-                onPress={() => {
-                  setShowPdfModal(false);
-                  navigation.navigate('InvoiceTemplateCustomizer');
-                }}
-              >
-                <Ionicons name="options-outline" size={15} color={colors.ink} />
-                <Text style={[styles.pdfModalPrintBtnText, { color: colors.ink, fontSize: 11 }]}>Customize</Text>
-              </Pressable>
-
-              <Pressable
-                style={[styles.pdfModalPrintBtn, { paddingHorizontal: 10 }]}
-                onPress={async () => {
-                  if (order) {
-                    const isProTemplateAllowed = await checkTemplatePro();
-                    if (!isProTemplateAllowed) return;
-                    printPdfInvoice(order, activeBusinessProfile, activeConfig);
-                  }
-                }}
-              >
-                <Ionicons name="print-outline" size={15} color={colors.white} />
-                <Text style={[styles.pdfModalPrintBtnText, { fontSize: 11 }]}>Print</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Template Selector Bar */}
-          <View style={styles.templateSelectorBar}>
-            <Text style={styles.templateBarLabel}>Select Template Style</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.templateChipsRow}>
-              {Object.values(INVOICE_THEME_PRESETS).map((tmpl) => (
-                <Pressable
-                  key={tmpl.id}
-                  style={[
-                    styles.templateChip,
-                    selectedTemplate === tmpl.id && styles.templateChipActive,
-                    selectedTemplate === tmpl.id && {
-                      borderColor: tmpl.primaryColor,
-                      backgroundColor: tmpl.primaryColor + '15',
-                    },
-                  ]}
-                  onPress={() => setSelectedTemplate(tmpl.id as InvoiceTemplateId)}
-                >
-                  <View style={[styles.templateDot, { backgroundColor: tmpl.primaryColor }]} />
-                  <Text
-                    style={[
-                      styles.templateChipText,
-                      selectedTemplate === tmpl.id && {
-                        color: tmpl.primaryColor,
-                        fontFamily: fonts.bodyBold,
-                      },
-                    ]}
-                  >
-                    {tmpl.name}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Real Printable Invoice HTML Preview */}
-          {Platform.OS === 'web' ? (
-            <View style={styles.pdfWebContainer}>
-              <iframe
-                key={`${selectedTemplate}-${JSON.stringify(activeConfig)}`}
-                title="Invoice Real Preview"
-                srcDoc={invoiceHtml}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  minHeight: '620px',
-                  border: 'none',
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                  display: 'block',
-                }}
-              />
-            </View>
-          ) : (
-            <ScrollView contentContainerStyle={styles.pdfPageContent} showsVerticalScrollIndicator={false}>
-              <View style={[styles.pdfPaperCard, { borderColor: selectedPreset.cardBorderColor || colors.line }]}>
+            <View style={styles.pdfModalTitleCenter}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.pdfModalTitle}>Invoice Preview</Text>
                 <View
                   style={[
-                    styles.pdfHeaderRow,
-                    {
-                      backgroundColor: selectedPreset.headerBgColor,
-                      borderBottomColor: selectedPreset.primaryColor,
-                    },
+                    styles.pdfModalStatusBadge,
+                    { backgroundColor: balance <= 0 ? '#DCFCE7' : '#FEF3C7' },
                   ]}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-                    {activeBusinessProfile.logoUri ? (
-                      <Image
-                        source={{ uri: activeBusinessProfile.logoUri }}
-                        style={styles.pdfHeaderLogo}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <AppLogoIcon size={48} />
-                    )}
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[
-                          styles.pdfBrandTitle,
-                          { color: selectedPreset.headerTextColor || colors.clayDeep },
-                        ]}
-                      >
-                        {activeBusinessProfile.businessName?.toUpperCase()}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.pdfBrandSubtitle,
-                          {
-                            color: selectedPreset.headerTextColor
-                              ? selectedPreset.headerTextColor + 'CC'
-                              : colors.inkSoft,
-                          },
-                        ]}
-                      >
-                        {activeBusinessProfile.tagline || 'Official Business Invoice & Receipt'}
-                      </Text>
-                      {activeBusinessProfile.address ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                          <Ionicons
-                            name="location-outline"
-                            size={11}
-                            color={selectedPreset.headerTextColor || colors.inkSoft}
-                          />
-                          <Text
-                            style={{
-                              fontFamily: fonts.body,
-                              fontSize: 11,
-                              color: selectedPreset.headerTextColor || colors.inkSoft,
-                            }}
-                          >
-                            {activeBusinessProfile.address}
-                          </Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  </View>
-                  <View
+                  <Text
                     style={[
-                      styles.pdfStatusBadge,
-                      {
-                        backgroundColor: balance <= 0 ? '#E8F5E9' : '#FFF3E0',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 4,
-                      },
+                      styles.pdfModalStatusText,
+                      { color: balance <= 0 ? '#15803D' : '#B45309' },
                     ]}
                   >
-                    {balance <= 0 && (
-                      <Ionicons name="checkmark-circle" size={12} color="#2E7D32" />
-                    )}
+                    {balance <= 0 ? 'PAID' : `DUE ${formatCurrency(balance)}`}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.pdfModalSubtitle} numberOfLines={1}>
+                {order.orderNumber} • {order.customerName || 'Walk-in'}
+              </Text>
+            </View>
+
+            <Pressable
+              style={styles.pdfModalCustomizePill}
+              onPress={() => {
+                setShowPdfModal(false);
+                navigation.navigate('InvoiceTemplateCustomizer');
+              }}
+            >
+              <Ionicons name="options-outline" size={14} color={colors.clayDeep} />
+              <Text style={styles.pdfModalCustomizeText}>Studio</Text>
+            </Pressable>
+          </View>
+
+          {/* ─── Interactive Template & Paper Switcher Ribbon ─── */}
+          <View style={styles.pdfRibbonSection}>
+            {/* Template Presets Horizontal Scroller */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.pdfTemplateChipsRow}
+            >
+              {Object.values(INVOICE_THEME_PRESETS).map((tmpl) => {
+                const isSelected = selectedTemplate === tmpl.id;
+                return (
+                  <Pressable
+                    key={tmpl.id}
+                    style={[
+                      styles.pdfThemeChip,
+                      isSelected && styles.pdfThemeChipActive,
+                      isSelected && {
+                        borderColor: tmpl.primaryColor,
+                        backgroundColor: tmpl.primaryColor + '14',
+                      },
+                    ]}
+                    onPress={() => {
+                      setSelectedTemplate(tmpl.id as InvoiceTemplateId);
+                      if (tmpl.id === 'thermal_pos' && !selectedPaperSize.startsWith('thermal')) {
+                        setSelectedPaperSize('thermal_80mm');
+                      }
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.pdfThemeDot,
+                        { backgroundColor: tmpl.primaryColor },
+                        isSelected && { borderColor: '#FFFFFF', borderWidth: 1.5 },
+                      ]}
+                    />
                     <Text
                       style={[
-                        styles.pdfStatusBadgeText,
-                        { color: balance <= 0 ? '#2E7D32' : '#E65100' },
+                        styles.pdfThemeChipText,
+                        isSelected && {
+                          color: tmpl.primaryColor,
+                          fontFamily: fonts.bodyBold,
+                        },
                       ]}
                     >
-                      {balance <= 0 ? 'PAID' : 'BALANCE DUE'}
+                      {tmpl.name}
                     </Text>
-                  </View>
-                </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
 
-                <View style={styles.pdfGridRow}>
-                  <View style={styles.pdfGridBox}>
-                    <Text style={[styles.pdfGridLabel, { color: selectedPreset.primaryColor }]}>CUSTOMER DETAILS</Text>
-                    <Text style={styles.pdfGridValue}>{order.customerName || 'Walk-in Customer'}</Text>
-                    <Text style={styles.pdfGridSubValue}>{order.phoneNumber || 'No phone recorded'}</Text>
-                  </View>
-
-                  <View style={[styles.pdfGridBox, { alignItems: 'flex-end' }]}>
-                    <Text style={[styles.pdfGridLabel, { color: selectedPreset.primaryColor }]}>INVOICE METADATA</Text>
-                    <Text style={styles.pdfGridValue}>Order #{order.orderNumber}</Text>
-                    <Text style={styles.pdfGridSubValue}>{formatDate(order.orderDate)}</Text>
-                  </View>
-                </View>
-
-                {/* Itemized Table */}
-                <View style={styles.pdfTableWrap}>
-                  <View style={[styles.pdfTableHeader, { backgroundColor: selectedPreset.primaryColor + '12' }]}>
-                    <Text style={[styles.pdfTh, { flex: 0.5, color: selectedPreset.primaryColor }]}>#</Text>
-                    <Text style={[styles.pdfTh, { flex: 2.5, color: selectedPreset.primaryColor }]}>Item Description</Text>
-                    <Text style={[styles.pdfTh, { flex: 1, textAlign: 'center', color: selectedPreset.primaryColor }]}>Qty</Text>
-                    <Text style={[styles.pdfTh, { flex: 1.5, textAlign: 'right', color: selectedPreset.primaryColor }]}>Rate</Text>
-                    <Text style={[styles.pdfTh, { flex: 1.5, textAlign: 'right', color: selectedPreset.primaryColor }]}>Amount</Text>
-                  </View>
-
-                  {order.items.map((item, idx) => (
-                    <View key={item.id || idx} style={styles.pdfTableRow}>
-                      <Text style={[styles.pdfTd, { flex: 0.5, color: colors.inkSoft }]}>{idx + 1}</Text>
-                      <Text style={[styles.pdfTd, { flex: 2.5, fontFamily: fonts.bodyBold }]}>
-                        {item.name || 'Item'}
+            {/* Paper Size & Layout Format Pills */}
+            <View style={styles.pdfPaperPillsRow}>
+              <View style={styles.pdfPaperGroup}>
+                <Text style={styles.pdfPaperLabel}>Format:</Text>
+                {[
+                  { id: 'a4', label: '📄 A4' },
+                  { id: 'a5', label: '📑 A5' },
+                  { id: 'thermal_80mm', label: '🧾 80mm POS' },
+                  { id: 'thermal_58mm', label: '58mm' },
+                ].map((p) => {
+                  const isSelected = selectedPaperSize === p.id;
+                  return (
+                    <Pressable
+                      key={p.id}
+                      style={[
+                        styles.pdfPaperPill,
+                        isSelected && styles.pdfPaperPillActive,
+                      ]}
+                      onPress={() => setSelectedPaperSize(p.id as PaperSize)}
+                    >
+                      <Text
+                        style={[
+                          styles.pdfPaperPillText,
+                          isSelected && styles.pdfPaperPillTextActive,
+                        ]}
+                      >
+                        {p.label}
                       </Text>
-                      <Text style={[styles.pdfTd, { flex: 1, textAlign: 'center' }]}>{item.qty}</Text>
-                      <Text style={[styles.pdfTd, { flex: 1.5, textAlign: 'right' }]}>
-                        {formatCurrency(item.price)}
-                      </Text>
-                      <Text style={[styles.pdfTd, { flex: 1.5, textAlign: 'right', fontFamily: fonts.bodyBold }]}>
-                        {formatCurrency(item.qty * item.price)}
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <Pressable
+                style={[
+                  styles.pdfCompactPill,
+                  isCompactMode && styles.pdfCompactPillActive,
+                ]}
+                onPress={() => setIsCompactMode((prev) => !prev)}
+              >
+                <Ionicons
+                  name={isCompactMode ? 'contract' : 'expand'}
+                  size={12}
+                  color={isCompactMode ? colors.white : colors.inkSoft}
+                />
+                <Text
+                  style={[
+                    styles.pdfCompactPillText,
+                    isCompactMode && styles.pdfCompactPillTextActive,
+                  ]}
+                >
+                  {isCompactMode ? 'Compact: ON' : 'Compact'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {/* ─── Main Preview Stage Canvas ─── */}
+          {Platform.OS === 'web' ? (
+            <View style={styles.pdfStageContainer}>
+              <View
+                style={[
+                  styles.pdfPaperWrapperWeb,
+                  selectedPaperSize.startsWith('thermal') || selectedTemplate === 'thermal_pos'
+                    ? { maxWidth: selectedPaperSize === 'thermal_58mm' ? 240 : 320 }
+                    : selectedPaperSize === 'a5'
+                    ? { maxWidth: 580 }
+                    : { maxWidth: 740 },
+                ]}
+              >
+                <iframe
+                  key={`${selectedTemplate}-${selectedPaperSize}-${isCompactMode}-${JSON.stringify(activeBusinessProfile)}`}
+                  title="Live Invoice Preview"
+                  srcDoc={invoiceHtml}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    minHeight: '640px',
+                    border: 'none',
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: '8px',
+                    display: 'block',
+                  }}
+                />
+              </View>
+            </View>
+          ) : (
+            <ScrollView
+              contentContainerStyle={[styles.pdfNativeScroll, { paddingBottom: 120 }]}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Native Document or Thermal Receipt rendering */}
+              {selectedPaperSize.startsWith('thermal') || selectedTemplate === 'thermal_pos' ? (
+                /* Thermal Slip Native Preview */
+                <View style={styles.thermalNativeCard}>
+                  <View style={styles.thermalHeader}>
+                    <Text style={styles.thermalTitle}>{activeBusinessProfile.businessName?.toUpperCase()}</Text>
+                    {activeBusinessProfile.tagline ? (
+                      <Text style={styles.thermalSub}>{activeBusinessProfile.tagline}</Text>
+                    ) : null}
+                    {activeBusinessProfile.address ? (
+                      <Text style={styles.thermalSub}>{activeBusinessProfile.address}</Text>
+                    ) : null}
+                    {activeBusinessProfile.phone ? (
+                      <Text style={styles.thermalSub}>Ph: {activeBusinessProfile.phone}</Text>
+                    ) : null}
+                    {activeBusinessProfile.gstin ? (
+                      <Text style={styles.thermalSub}>GSTIN: {activeBusinessProfile.gstin}</Text>
+                    ) : null}
+                  </View>
+
+                  <View style={styles.thermalDashedDivider} />
+
+                  <View style={styles.thermalMetaRow}>
+                    <Text style={styles.thermalMono}>Bill #: {order.orderNumber}</Text>
+                    <Text style={styles.thermalMono}>{formatDate(order.orderDate)}</Text>
+                  </View>
+                  <Text style={styles.thermalMono}>Customer: {order.customerName || 'Walk-in'}</Text>
+                  {order.phoneNumber ? <Text style={styles.thermalMono}>Phone: {order.phoneNumber}</Text> : null}
+
+                  <View style={styles.thermalDashedDivider} />
+
+                  {/* Thermal Items */}
+                  {order.items.map((it, idx) => (
+                    <View key={it.id || idx} style={styles.thermalItemBlock}>
+                      <View style={styles.thermalItemRow}>
+                        <Text style={styles.thermalItemName}>{idx + 1}. {it.name || 'Item'}</Text>
+                        <Text style={styles.thermalItemPrice}>{formatCurrency(it.qty * it.price - (it.discount || 0))}</Text>
+                      </View>
+                      <Text style={styles.thermalItemDetail}>
+                        {it.qty} {it.unit || 'pcs'} x {formatCurrency(it.price)} {it.taxRate ? `(GST ${it.taxRate}%)` : ''}
                       </Text>
                     </View>
                   ))}
-                </View>
 
-                {/* Total Summary */}
-                <View style={[styles.pdfSummaryBox, { backgroundColor: selectedPreset.primaryColor + '0A', borderColor: selectedPreset.primaryColor + '20' }]}>
-                  <View style={styles.pdfSummaryRow}>
-                    <Text style={styles.pdfSummaryLabel}>Advance Paid</Text>
-                    <Text style={[styles.pdfSummaryVal, { color: colors.inflow }]}>
-                      {formatCurrency(order.advance)}
-                    </Text>
+                  <View style={styles.thermalSolidDivider} />
+
+                  <View style={styles.thermalTotalRow}>
+                    <Text style={styles.thermalTotalLabel}>Grand Total:</Text>
+                    <Text style={styles.thermalTotalVal}>{formatCurrency(total)}</Text>
+                  </View>
+                  <View style={styles.thermalTotalRow}>
+                    <Text style={styles.thermalSub}>Advance Paid:</Text>
+                    <Text style={styles.thermalSub}>{formatCurrency(order.advance)}</Text>
+                  </View>
+                  <View style={styles.thermalTotalRow}>
+                    <Text style={styles.thermalMonoBold}>Balance Due:</Text>
+                    <Text style={styles.thermalMonoBold}>{balance > 0 ? formatCurrency(balance) : 'PAID IN FULL'}</Text>
                   </View>
 
-                  <View style={styles.pdfSummaryRow}>
-                    <Text style={styles.pdfSummaryLabel}>Balance Due</Text>
-                    <Text
+                  <View style={styles.thermalDashedDivider} />
+                  <Text style={styles.thermalFooterText}>Thank you for your business!</Text>
+                </View>
+              ) : (
+                /* Full Sheet Native Preview */
+                <View
+                  style={[
+                    styles.pdfPaperCard,
+                    {
+                      borderColor: selectedPreset.cardBorderColor || colors.line,
+                      maxWidth: selectedPaperSize === 'a5' ? 480 : 640,
+                    },
+                  ]}
+                >
+                  {/* Brand Header */}
+                  <View
+                    style={[
+                      styles.pdfHeaderRow,
+                      {
+                        backgroundColor: selectedPreset.headerBgColor,
+                        borderBottomColor: selectedPreset.primaryColor,
+                      },
+                    ]}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, flex: 1 }}>
+                      {activeBusinessProfile.logoUri ? (
+                        <Image
+                          source={{ uri: activeBusinessProfile.logoUri }}
+                          style={styles.pdfHeaderLogo}
+                          resizeMode="contain"
+                        />
+                      ) : (
+                        <AppLogoIcon size={44} />
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.pdfBrandTitle,
+                            { color: selectedPreset.headerTextColor || colors.clayDeep },
+                          ]}
+                        >
+                          {activeBusinessProfile.businessName?.toUpperCase()}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.pdfBrandSubtitle,
+                            {
+                              color: selectedPreset.headerTextColor
+                                ? selectedPreset.headerTextColor + 'CC'
+                                : colors.inkSoft,
+                            },
+                          ]}
+                        >
+                          {activeBusinessProfile.tagline || 'Official Business Invoice & Receipt'}
+                        </Text>
+                        {activeBusinessProfile.address ? (
+                          <Text style={styles.pdfAddressText}>{activeBusinessProfile.address}</Text>
+                        ) : null}
+                        <View style={styles.pdfContactsRow}>
+                          {activeBusinessProfile.phone ? (
+                            <Text style={styles.pdfContactText}>Ph: {activeBusinessProfile.phone}</Text>
+                          ) : null}
+                          {activeBusinessProfile.gstin ? (
+                            <Text style={[styles.pdfContactText, { fontFamily: fonts.bodyBold, color: selectedPreset.primaryColor }]}>
+                              GSTIN: {activeBusinessProfile.gstin}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <View
+                        style={[
+                          styles.pdfTitleBadge,
+                          { backgroundColor: selectedPreset.primaryColor },
+                        ]}
+                      >
+                        <Text style={styles.pdfTitleBadgeText}>
+                          {(activeConfig.invoiceTitle || 'TAX INVOICE').toUpperCase()}
+                        </Text>
+                      </View>
+                      <Text style={styles.pdfMetaLine}>Bill #: {order.orderNumber}</Text>
+                      <Text style={styles.pdfMetaLine}>Date: {formatDate(order.orderDate)}</Text>
+                    </View>
+                  </View>
+
+                  {/* Buyer Strip */}
+                  <View style={styles.pdfBuyerStrip}>
+                    <View>
+                      <Text style={styles.pdfBuyerLabel}>BUYER / BILLED TO:</Text>
+                      <Text style={styles.pdfBuyerName}>{order.customerName || 'Walk-in Customer'}</Text>
+                      {order.phoneNumber ? (
+                        <Text style={styles.pdfBuyerPhone}>Phone: {order.phoneNumber}</Text>
+                      ) : null}
+                    </View>
+                    <View
                       style={[
-                        styles.pdfSummaryVal,
-                        { color: balance > 0 ? colors.danger : colors.success, fontFamily: fonts.bodyBold },
+                        styles.pdfStatusPill,
+                        { backgroundColor: balance <= 0 ? '#DCFCE7' : '#FEF3C7' },
                       ]}
                     >
-                      {formatCurrency(balance)}
-                    </Text>
+                      <Text
+                        style={[
+                          styles.pdfStatusPillText,
+                          { color: balance <= 0 ? '#15803D' : '#B45309' },
+                        ]}
+                      >
+                        {balance <= 0 ? 'PAID IN FULL' : 'PARTIALLY PAID'}
+                      </Text>
+                    </View>
                   </View>
 
-                  <View style={[styles.pdfSummaryRow, styles.pdfSummaryTotalRow, { borderTopColor: selectedPreset.primaryColor + '30' }]}>
-                    <Text style={[styles.pdfSummaryTotalLabel, { color: selectedPreset.primaryColor }]}>Total</Text>
-                    <Text style={[styles.pdfSummaryTotalVal, { color: selectedPreset.primaryColor }]}>{formatCurrency(total)}</Text>
+                  {/* Itemized Table */}
+                  <View style={styles.pdfTableWrap}>
+                    <View
+                      style={[
+                        styles.pdfTableHeader,
+                        { backgroundColor: selectedPreset.primaryColor },
+                      ]}
+                    >
+                      <Text style={[styles.pdfTh, { width: 28, textAlign: 'center' }]}>#</Text>
+                      <Text style={[styles.pdfTh, { flex: 2.5 }]}>Item</Text>
+                      <Text style={[styles.pdfTh, { width: 44, textAlign: 'center' }]}>Qty</Text>
+                      <Text style={[styles.pdfTh, { width: 68, textAlign: 'right' }]}>Rate</Text>
+                      <Text style={[styles.pdfTh, { width: 75, textAlign: 'right' }]}>Total</Text>
+                    </View>
+
+                    {order.items.map((item, idx) => (
+                      <View
+                        key={item.id || idx}
+                        style={[
+                          styles.pdfTableRow,
+                          idx % 2 === 1 && { backgroundColor: '#F8FAFC' },
+                        ]}
+                      >
+                        <Text style={[styles.pdfTd, { width: 28, textAlign: 'center', color: colors.inkSoft }]}>
+                          {idx + 1}
+                        </Text>
+                        <View style={{ flex: 2.5 }}>
+                          <Text style={[styles.pdfTd, { fontFamily: fonts.bodyBold }]}>
+                            {item.name || 'Item'}
+                          </Text>
+                          {item.hsnCode || item.unit ? (
+                            <Text style={styles.pdfSubDetail}>
+                              {item.hsnCode ? `HSN: ${item.hsnCode}` : ''}{item.hsnCode && item.unit ? ' • ' : ''}{item.unit ? `Unit: ${item.unit}` : ''}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <Text style={[styles.pdfTd, { width: 44, textAlign: 'center' }]}>{item.qty}</Text>
+                        <Text style={[styles.pdfTd, { width: 68, textAlign: 'right' }]}>
+                          {formatCurrency(item.price)}
+                        </Text>
+                        <Text style={[styles.pdfTd, { width: 75, textAlign: 'right', fontFamily: fonts.bodyBold }]}>
+                          {formatCurrency(item.qty * item.price - (item.discount || 0))}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* Totals & Notes Section */}
+                  <View style={styles.pdfTotalsSection}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.pdfSectionSmallTitle}>Amount in Words:</Text>
+                      <Text style={styles.pdfWordsVal}>Rupees {Math.round(total)} Only</Text>
+                      {order.customerNote ? (
+                        <View style={{ marginTop: 8 }}>
+                          <Text style={styles.pdfSectionSmallTitle}>Note:</Text>
+                          <Text style={styles.pdfNoteVal}>{order.customerNote}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+
+                    <View style={styles.pdfTotalsCard}>
+                      <View style={styles.pdfCalcRow}>
+                        <Text style={styles.pdfCalcLabel}>Subtotal:</Text>
+                        <Text style={styles.pdfCalcVal}>{formatCurrency(total)}</Text>
+                      </View>
+                      <View style={styles.pdfCalcRow}>
+                        <Text style={styles.pdfCalcLabel}>Advance Paid:</Text>
+                        <Text style={[styles.pdfCalcVal, { color: colors.inflow }]}>
+                          {formatCurrency(order.advance)}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.pdfCalcRow,
+                          styles.pdfCalcBalanceRow,
+                          {
+                            backgroundColor: balance <= 0 ? '#F0FDF4' : '#FEF2F2',
+                            borderColor: balance <= 0 ? '#BBF7D0' : '#FECACA',
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.pdfCalcBalanceLabel,
+                            { color: balance <= 0 ? '#15803D' : '#DC2626' },
+                          ]}
+                        >
+                          Balance Due:
+                        </Text>
+                        <Text
+                          style={[
+                            styles.pdfCalcBalanceVal,
+                            { color: balance <= 0 ? '#15803D' : '#DC2626' },
+                          ]}
+                        >
+                          {balance <= 0 ? '₹0 (PAID)' : formatCurrency(balance)}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Footer Terms & Signatory */}
+                  <View style={styles.pdfFooterStrip}>
+                    <Text style={styles.pdfFooterBrand}>Generated with KadaiBook</Text>
+                    <Text style={styles.pdfFooterThankyou}>Thank you for your business!</Text>
                   </View>
                 </View>
-
-                <View style={styles.pdfFooter}>
-                  <Text style={styles.pdfFooterText}>Thank you for your business!</Text>
-                  <Text style={styles.pdfFooterSubText}>Generated via KadaiBook • kadaibook.in</Text>
-                </View>
-              </View>
+              )}
             </ScrollView>
           )}
+
+          {/* ─── Sticky Bottom Action Bar ─── */}
+          <View style={[styles.pdfStickyBottomBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+            <Pressable
+              style={({ pressed }) => [styles.pdfActionBtn, styles.pdfActionWhatsApp, pressed && { opacity: 0.85 }]}
+              onPress={whatsappCustomer}
+            >
+              <Ionicons name="logo-whatsapp" size={18} color={colors.white} />
+              <Text style={styles.pdfActionBtnTextWhite}>WhatsApp Bill</Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [styles.pdfActionBtn, styles.pdfActionPdf, pressed && { opacity: 0.85 }]}
+              onPress={sharePdfCustomer}
+            >
+              <Ionicons name="document-text-outline" size={18} color={colors.white} />
+              <Text style={styles.pdfActionBtnTextWhite}>Share PDF</Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [styles.pdfActionBtn, styles.pdfActionPrint, pressed && { opacity: 0.85 }]}
+              onPress={async () => {
+                if (order) {
+                  const isProAllowed = await checkTemplatePro();
+                  if (!isProAllowed) return;
+                  printPdfInvoice(order, activeBusinessProfile, activeConfig);
+                }
+              }}
+            >
+              <Ionicons name="print-outline" size={18} color={colors.ink} />
+              <Text style={styles.pdfActionBtnTextInk}>Print</Text>
+            </Pressable>
+          </View>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -1738,60 +2003,304 @@ const styles = StyleSheet.create({
   },
   modalSaveText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white },
 
-  // ── PDF Modal ──
-  pdfModalContainer: { flex: 1, backgroundColor: colors.paper },
+  // ── Revamped PDF & Invoice Preview Modal ──
+  pdfModalContainer: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+  },
   pdfModalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
+    backgroundColor: colors.paperCard,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    backgroundColor: colors.paperCard,
+    zIndex: 10,
   },
-  pdfModalCloseBtn: { padding: 4 },
-  pdfModalTitle: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.ink },
-  pdfModalPrintBtn: {
+  pdfModalCloseBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.pill,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pdfModalTitleCenter: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  pdfModalTitle: {
+    fontFamily: fonts.display,
+    fontSize: 16,
+    color: colors.ink,
+  },
+  pdfModalSubtitle: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
+  pdfModalStatusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.pill,
+  },
+  pdfModalStatusText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+  },
+  pdfModalCustomizePill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.clayDeep,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: radius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.clayLight,
+    borderWidth: 1,
+    borderColor: colors.clayDeep + '30',
   },
-  pdfModalPrintBtnText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.white },
-  templateSelectorBar: {
+  pdfModalCustomizeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11.5,
+    color: colors.clayDeep,
+  },
+
+  // Ribbon Toolbar
+  pdfRibbonSection: {
     backgroundColor: colors.paperCard,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     paddingVertical: 8,
-    paddingHorizontal: 16,
   },
-  templateBarLabel: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.inkSoft, marginBottom: 6 },
-  templateChipsRow: { flexDirection: 'row', gap: 8 },
-  templateChip: {
+  pdfTemplateChipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 6,
+  },
+  pdfThemeChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.paper,
   },
-  templateChipActive: { borderWidth: 1.5 },
-  templateDot: { width: 8, height: 8, borderRadius: 4 },
-  templateChipText: { fontFamily: fonts.body, fontSize: 12, color: colors.ink },
-  pdfWebContainer: { flex: 1, padding: 16 },
-  pdfPageContent: { padding: 16 },
+  pdfThemeChipActive: {
+    borderWidth: 1.5,
+  },
+  pdfThemeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  pdfThemeChipText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  pdfPaperPillsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  pdfPaperGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  pdfPaperLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  pdfPaperPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  pdfPaperPillActive: {
+    backgroundColor: colors.clayDeep,
+    borderColor: colors.clayDeep,
+  },
+  pdfPaperPillText: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.ink,
+  },
+  pdfPaperPillTextActive: {
+    fontFamily: fonts.bodyBold,
+    color: colors.white,
+  },
+  pdfCompactPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  pdfCompactPillActive: {
+    backgroundColor: colors.clayDeep,
+    borderColor: colors.clayDeep,
+  },
+  pdfCompactPillText: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  pdfCompactPillTextActive: {
+    fontFamily: fonts.bodyBold,
+    color: colors.white,
+  },
+
+  // Main Preview Canvas
+  pdfStageContainer: {
+    flex: 1,
+    backgroundColor: '#E2E8F0',
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pdfPaperWrapperWeb: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    overflow: 'hidden',
+    ...shadow.card,
+  },
+  pdfNativeScroll: {
+    padding: 16,
+    alignItems: 'center',
+  },
+
+  // Thermal Native Receipt
+  thermalNativeCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    ...shadow.card,
+  },
+  thermalHeader: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  thermalTitle: {
+    fontFamily: fonts.display,
+    fontSize: 15,
+    color: '#000000',
+    textAlign: 'center',
+  },
+  thermalSub: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: '#333333',
+    textAlign: 'center',
+  },
+  thermalDashedDivider: {
+    borderTopWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#000000',
+    marginVertical: 8,
+  },
+  thermalSolidDivider: {
+    borderTopWidth: 1,
+    borderColor: '#000000',
+    marginVertical: 8,
+  },
+  thermalMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  thermalMono: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: '#000000',
+  },
+  thermalMonoBold: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: '#000000',
+  },
+  thermalItemBlock: {
+    marginBottom: 6,
+  },
+  thermalItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  thermalItemName: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11.5,
+    color: '#000000',
+    flex: 1,
+  },
+  thermalItemPrice: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11.5,
+    color: '#000000',
+  },
+  thermalItemDetail: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: '#555555',
+    paddingLeft: 10,
+    marginTop: 1,
+  },
+  thermalTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+  },
+  thermalTotalLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: '#000000',
+  },
+  thermalTotalVal: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: '#000000',
+  },
+  thermalFooterText: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: '#555555',
+    textAlign: 'center',
+  },
+
+  // Document Native Paper Card
   pdfPaperCard: {
+    width: '100%',
     backgroundColor: colors.white,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.line,
     overflow: 'hidden',
     ...shadow.card,
   },
@@ -1801,42 +2310,249 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 16,
     borderBottomWidth: 2,
+    gap: 12,
   },
-  pdfHeaderLogo: { width: 44, height: 44, borderRadius: 6 },
-  pdfBrandTitle: { fontFamily: fonts.display, fontSize: 16 },
-  pdfBrandSubtitle: { fontFamily: fonts.body, fontSize: 11, marginTop: 1 },
-  pdfStatusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.sm },
-  pdfStatusBadgeText: { fontFamily: fonts.bodyBold, fontSize: 10 },
-  pdfGridRow: {
+  pdfHeaderLogo: {
+    width: 46,
+    height: 46,
+    borderRadius: radius.sm,
+  },
+  pdfBrandTitle: {
+    fontFamily: fonts.display,
+    fontSize: 16,
+    letterSpacing: 0.3,
+  },
+  pdfBrandSubtitle: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    marginTop: 1,
+  },
+  pdfAddressText: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: colors.inkSoft,
+    marginTop: 2,
+  },
+  pdfContactsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 3,
+  },
+  pdfContactText: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: colors.inkSoft,
+  },
+  pdfTitleBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  pdfTitleBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    color: colors.white,
+    textTransform: 'uppercase',
+  },
+  pdfMetaLine: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: colors.ink,
+    textAlign: 'right',
+  },
+  pdfBuyerStrip: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 16,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#F8FAFC',
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: '#E2E8F0',
   },
-  pdfGridBox: { flex: 1 },
-  pdfGridLabel: { fontFamily: fonts.bodyBold, fontSize: 10, marginBottom: 2 },
-  pdfGridValue: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.ink },
-  pdfGridSubValue: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft },
-  pdfTableWrap: { padding: 16 },
-  pdfTableHeader: { flexDirection: 'row', padding: 8, borderRadius: 4, marginBottom: 4 },
-  pdfTh: { fontFamily: fonts.bodyBold, fontSize: 11 },
-  pdfTableRow: { flexDirection: 'row', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
-  pdfTd: { fontFamily: fonts.body, fontSize: 12, color: colors.ink },
-  pdfSummaryBox: {
-    margin: 16,
-    marginTop: 0,
-    padding: 12,
+  pdfBuyerLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 9.5,
+    color: colors.inkSoft,
+    textTransform: 'uppercase',
+  },
+  pdfBuyerName: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.ink,
+    marginTop: 1,
+  },
+  pdfBuyerPhone: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: colors.inkSoft,
+  },
+  pdfStatusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: radius.sm,
-    borderWidth: 1,
   },
-  pdfSummaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
-  pdfSummaryLabel: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft },
-  pdfSummaryVal: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.ink },
-  pdfSummaryTotalRow: { borderTopWidth: 1, marginTop: 4, paddingTop: 6 },
-  pdfSummaryTotalLabel: { fontFamily: fonts.display, fontSize: 14 },
-  pdfSummaryTotalVal: { fontFamily: fonts.display, fontSize: 16 },
-  pdfFooter: { padding: 16, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#EEEEEE' },
-  pdfFooterText: { fontFamily: fonts.bodyBold, fontSize: 11, color: colors.ink },
-  pdfFooterSubText: { fontFamily: fonts.body, fontSize: 10, color: colors.inkSoft, marginTop: 2 },
+  pdfStatusPillText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+  },
+  pdfTableWrap: {
+    padding: 12,
+  },
+  pdfTableHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+  },
+  pdfTh: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10.5,
+    color: colors.white,
+    textTransform: 'uppercase',
+  },
+  pdfTableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  pdfTd: {
+    fontFamily: fonts.body,
+    fontSize: 11.5,
+    color: colors.ink,
+  },
+  pdfSubDetail: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
+  pdfTotalsSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    backgroundColor: '#FAFAFA',
+    gap: 16,
+  },
+  pdfSectionSmallTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9.5,
+    color: colors.inkSoft,
+    textTransform: 'uppercase',
+  },
+  pdfWordsVal: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    fontStyle: 'italic',
+    color: colors.ink,
+    marginTop: 2,
+  },
+  pdfNoteVal: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: colors.ink,
+    marginTop: 2,
+  },
+  pdfTotalsCard: {
+    width: 200,
+  },
+  pdfCalcRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  pdfCalcLabel: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  pdfCalcVal: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11.5,
+    color: colors.ink,
+  },
+  pdfCalcBalanceRow: {
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    marginTop: 4,
+  },
+  pdfCalcBalanceLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+  },
+  pdfCalcBalanceVal: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+  },
+  pdfFooterStrip: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
+  },
+  pdfFooterBrand: {
+    fontFamily: fonts.body,
+    fontSize: 9.5,
+    color: colors.inkSoft,
+  },
+  pdfFooterThankyou: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    color: colors.ink,
+  },
+
+  // Floating Action Bottom Bar
+  pdfStickyBottomBar: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    backgroundColor: colors.paperCard,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    ...shadow.card,
+  },
+  pdfActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: radius.md,
+    ...shadow.card,
+  },
+  pdfActionWhatsApp: {
+    backgroundColor: '#16A34A',
+  },
+  pdfActionPdf: {
+    backgroundColor: colors.clayDeep,
+  },
+  pdfActionPrint: {
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  pdfActionBtnTextWhite: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.white,
+  },
+  pdfActionBtnTextInk: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.ink,
+  },
 });

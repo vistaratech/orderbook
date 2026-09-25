@@ -740,6 +740,45 @@ function generateStandardInvoiceHtml(
       font-size: 8.5px;
       color: #64748B;
     }
+    @media screen and (max-width: 600px) {
+      body {
+        padding: 6px !important;
+      }
+      .sheet-header {
+        flex-direction: column !important;
+        gap: 10px !important;
+        padding: 12px 14px !important;
+      }
+      .header-right {
+        align-items: flex-start !important;
+        min-width: unset !important;
+        width: 100% !important;
+        border-top: 1px dashed #E2E8F0;
+        padding-top: 8px;
+        margin-top: 4px;
+      }
+      .meta-text {
+        text-align: left !important;
+      }
+      .totals-section {
+        flex-direction: column !important;
+        gap: 12px !important;
+        padding: 10px 14px !important;
+      }
+      .totals-card {
+        width: 100% !important;
+      }
+      .footer-terms-section {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+      }
+      .signatory-box {
+        width: 100% !important;
+        text-align: left !important;
+        margin-top: 8px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1181,6 +1220,7 @@ function generateGstTaxInvoiceHtml(
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GST Tax Invoice - ${order.orderNumber}</title>
   <style>
     @page { size: A4 portrait; margin: 8mm; }
@@ -1237,6 +1277,13 @@ function generateGstTaxInvoiceHtml(
       padding: 6px;
       font-size: 11px;
       font-weight: 800;
+    }
+    @media screen and (max-width: 600px) {
+      body { padding: 4px !important; }
+      .grid-2 { grid-template-columns: 1fr !important; }
+      .grid-cell:first-child { border-right: none !important; border-bottom: 1px solid #000000 !important; }
+      .gst-header { padding: 8px !important; }
+      .gst-title { font-size: 15px !important; }
     }
   </style>
 </head>

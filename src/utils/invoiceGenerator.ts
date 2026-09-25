@@ -179,7 +179,8 @@ export async function sharePdfInvoiceToWhatsApp(
       });
       return true;
     } else {
-      return await sendWhatsAppInvoice(order, business);
+      const waConfig = typeof templateOrConfig === 'object' ? templateOrConfig : undefined;
+      return await sendWhatsAppInvoice(order, business, waConfig);
     }
   } catch (err) {
     console.error('Error generating PDF for WhatsApp:', err);

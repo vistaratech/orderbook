@@ -11,6 +11,7 @@ import {
   Alert,
   Modal,
   FlatList,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -39,7 +40,7 @@ import { getBusinessPreset } from '../config/businessTypes';
 import { useLanguage } from '../i18n/LanguageContext';
 import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 import GlassBackButton from '../components/GlassBackButton';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OrderForm'>;
 
@@ -64,6 +65,10 @@ function emptyItem(defaultUnit = 'Pcs'): OrderItem {
 
 export default function OrderFormScreen({ navigation, route }: Props) {
   const { t } = useLanguage();
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const isDesktop = width >= 640;
+
   const editingId = route.params?.orderId;
   const prefillName = route.params?.prefillCustomerName;
   const prefillPhone = route.params?.prefillPhone;
@@ -109,7 +114,6 @@ export default function OrderFormScreen({ navigation, route }: Props) {
   }, [isEditing, navigation, t]);
 
   useEffect(() => {
-    // Load catalog and customer list
     getCustomers().then(setAllCustomers);
     getProducts().then(setAllProducts);
     getBusinessProfile().then((profile) => {
@@ -463,7 +467,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
             <GlassBackButton label={t('common.back', 'Back')} />
             <View style={styles.topHeaderTitleWrap}>
               <Text style={styles.topHeaderTitle}>
-                {isEditing ? t('orders.editOrderTitle', 'Edit Order') : t('orders.newOrderTitle', 'Create Order')}
+                {isEditing ? t('orders.editOrderTitle', 'Edit Order') : t('orders.newOrderTitle', 'Create New Order')}
               </Text>
               <View style={styles.topHeaderMetaRow}>
                 <View style={styles.orderNumberBadge}>
@@ -500,7 +504,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               <View style={[styles.cardHeaderIcon, { backgroundColor: '#E0F2FE' }]}>
                 <Ionicons name="person" size={18} color="#0284C7" />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 120 }}>
                 <Text style={styles.cardTitle}>{t('orders.customerInfo', 'Customer Information')}</Text>
                 <Text style={styles.cardSubtitle}>Select existing customer or enter new buyer details</Text>
               </View>
@@ -552,9 +556,9 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               </View>
             )}
 
-            {/* Customer Inputs */}
-            <View style={styles.formRow}>
-              <View style={[styles.inputGroup, { flex: 1.2 }]}>
+            {/* Customer Inputs - Responsive (column on mobile, row on desktop) */}
+            <View style={[styles.formResponsiveRow, { flexDirection: isDesktop ? 'row' : 'column' }]}>
+              <View style={[styles.inputGroup, isDesktop ? { flex: 1.2 } : { width: '100%' }]}>
                 <Text style={styles.inputLabel}>
                   {t('orders.customerName', 'Customer Name')} <Text style={styles.requiredStar}>*</Text>
                 </Text>
@@ -575,7 +579,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                 </View>
               </View>
 
-              <View style={[styles.inputGroup, { flex: 1 }]}>
+              <View style={[styles.inputGroup, isDesktop ? { flex: 1 } : { width: '100%' }]}>
                 <Text style={styles.inputLabel}>{t('orders.customerPhone', 'Phone Number')}</Text>
                 <View style={styles.textInputBox}>
                   <Ionicons name="call-outline" size={17} color={colors.inkSoft} style={{ marginRight: 8 }} />
@@ -598,9 +602,9 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               <View style={[styles.cardHeaderIcon, { backgroundColor: '#FEF3C7' }]}>
                 <Ionicons name="cart" size={18} color="#D97706" />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 110 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={styles.cardTitle}>{t('orders.itemsAndProducts', 'Order Items')}</Text>
+                  <Text style={styles.cardTitle}>{t('orders.itemsAndProducts', 'Items & Products')}</Text>
                   <View style={styles.itemCountBadge}>
                     <Text style={styles.itemCountBadgeText}>{items.length}</Text>
                   </View>
@@ -609,7 +613,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               </View>
 
               {/* Action buttons in header */}
-              <View style={{ flexDirection: 'row', gap: 6 }}>
+              <View style={styles.cardHeaderActions}>
                 {allProducts.length > 0 && (
                   <Pressable
                     style={styles.catalogQuickBtn}
@@ -627,7 +631,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                   onPress={() => setShowColumnModal(true)}
                 >
                   <Ionicons name="add" size={14} color={colors.clayDeep} />
-                  <Text style={styles.addColumnBtnText}>+ Column</Text>
+                  <Text style={styles.addColumnBtnText}>Column</Text>
                 </Pressable>
               </View>
             </View>
@@ -667,7 +671,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                         <Text style={styles.itemIndexText}>#{index + 1}</Text>
                       </View>
 
-                      <View style={{ flex: 1 }}>
+                      <View style={{ flex: 1, minWidth: 100 }}>
                         <TextInput
                           style={styles.itemNameInput}
                           value={item.name}
@@ -676,7 +680,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                             setActiveItemSuggestIndex(item.id);
                           }}
                           onFocus={() => setActiveItemSuggestIndex(item.id)}
-                          placeholder={t('orders.productNamePlaceholder', 'Type product name or service…')}
+                          placeholder={t('orders.productNamePlaceholder', 'Product name')}
                           placeholderTextColor={colors.inkSoft}
                         />
                       </View>
@@ -688,7 +692,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                           hitSlop={8}
                           accessibilityLabel="Duplicate item"
                         >
-                          <Ionicons name="copy-outline" size={16} color={colors.inkSoft} />
+                          <Ionicons name="copy-outline" size={17} color={colors.inkSoft} />
                         </Pressable>
                         <Pressable
                           style={[styles.itemActionBtn, items.length <= 1 && { opacity: 0.4 }]}
@@ -697,7 +701,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                           disabled={items.length <= 1 && !item.name && item.price === 0}
                           accessibilityLabel="Delete item"
                         >
-                          <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                          <Ionicons name="trash-outline" size={17} color={colors.danger} />
                         </Pressable>
                       </View>
                     </View>
@@ -727,7 +731,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                       {/* Quantity Stepper */}
                       <View style={styles.itemQtyControlWrap}>
                         <Text style={styles.itemFieldMicroLabel}>
-                          {t('orders.quantity', 'Quantity')} ({item.unit || defaultUnit})
+                          {t('orders.quantity', 'Qty')} ({item.unit || defaultUnit})
                         </Text>
                         <View style={styles.qtyStepperBox}>
                           <Pressable
@@ -817,22 +821,25 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               })}
             </View>
 
-            {/* Item Action Buttons */}
-            <View style={styles.itemActionButtonsRow}>
-              <Pressable style={styles.addCustomItemBtn} onPress={addItem}>
-                <Ionicons name="add-circle" size={18} color={colors.clayDeep} />
+            {/* Item Action Buttons - Responsive 50/50 or Stacked */}
+            <View style={[styles.itemActionButtonsRow, { flexDirection: width < 420 ? 'column' : 'row' }]}>
+              <Pressable
+                style={({ pressed }) => [styles.addCustomItemBtn, pressed && { opacity: 0.85 }]}
+                onPress={addItem}
+              >
+                <Ionicons name="add-circle" size={19} color={colors.clayDeep} />
                 <Text style={styles.addCustomItemBtnText}>{t('orders.addAnotherItem', '+ Add Another Item')}</Text>
               </Pressable>
 
               {allProducts.length > 0 && (
                 <Pressable
-                  style={styles.addCatalogItemBtn}
+                  style={({ pressed }) => [styles.addCatalogItemBtn, pressed && { opacity: 0.85 }]}
                   onPress={() => {
                     setCatalogSearch('');
                     setShowCatalogModal(true);
                   }}
                 >
-                  <Ionicons name="bag-add-outline" size={17} color="#2563EB" />
+                  <Ionicons name="bag-add-outline" size={18} color="#2563EB" />
                   <Text style={styles.addCatalogItemBtnText}>+ From Catalog</Text>
                 </Pressable>
               )}
@@ -846,7 +853,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                 <Ionicons name="paper-plane" size={18} color="#9333EA" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.cardTitle}>{t('orders.dispatchDetails', 'Dispatch & Delivery')}</Text>
+                <Text style={styles.cardTitle}>{t('orders.dispatchDetails', 'Dispatch Details')}</Text>
                 <Text style={styles.cardSubtitle}>Fulfillment method and shipment tracking</Text>
               </View>
             </View>
@@ -878,9 +885,9 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               </View>
             </View>
 
-            {/* Dispatch Date & Tracking */}
-            <View style={styles.formRow}>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
+            {/* Dispatch Date & Tracking - Responsive (column on mobile, row on desktop) */}
+            <View style={[styles.formResponsiveRow, { flexDirection: isDesktop ? 'row' : 'column' }]}>
+              <View style={[styles.inputGroup, isDesktop ? { flex: 1 } : { width: '100%' }]}>
                 <Text style={styles.inputLabel}>{t('orders.dispatchDate', 'Dispatch Date')}</Text>
                 <View style={styles.textInputBox}>
                   <Ionicons name="calendar-outline" size={17} color={colors.inkSoft} style={{ marginRight: 8 }} />
@@ -906,8 +913,8 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                 </View>
               </View>
 
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.inputLabel}>{t('orders.trackingNumber', 'Tracking Number')}</Text>
+              <View style={[styles.inputGroup, isDesktop ? { flex: 1 } : { width: '100%' }]}>
+                <Text style={styles.inputLabel}>{t('orders.trackingNumber', 'Tracking #')}</Text>
                 <View style={styles.textInputBox}>
                   <Ionicons name="barcode-outline" size={17} color={colors.inkSoft} style={{ marginRight: 8 }} />
                   <TextInput
@@ -929,14 +936,14 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                 <Ionicons name="wallet" size={18} color="#16A34A" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.cardTitle}>{t('orders.paymentDetails', 'Payment & Advance')}</Text>
+                <Text style={styles.cardTitle}>{t('orders.paymentDetails', 'Payment Details')}</Text>
                 <Text style={styles.cardSubtitle}>Payment mode, advance received & balance</Text>
               </View>
             </View>
 
             {/* Payment Method Pills */}
             <View style={styles.fieldWrap}>
-              <Text style={styles.inputLabel}>{t('orders.paymentMethod', 'Payment Mode')}</Text>
+              <Text style={styles.inputLabel}>{t('orders.paymentMethod', 'Payment Method')}</Text>
               <View style={styles.methodChipsRow}>
                 {PAYMENT_METHODS.map((m) => {
                   const active = paymentMethod === m.id;
@@ -964,7 +971,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
             {/* Financial Ledger Calculation Summary */}
             <View style={styles.financialSummaryCard}>
               <View style={styles.financialRow}>
-                <Text style={styles.financialLabel}>{t('orders.totalBill', 'Total Bill Amount')}</Text>
+                <Text style={styles.financialLabel}>{t('orders.totalBill', 'Total Bill')}</Text>
                 <Text style={styles.financialTotalVal}>{formatCurrency(total)}</Text>
               </View>
 
@@ -1002,9 +1009,9 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               {/* Balance Due Row */}
               <View style={[styles.financialRow, styles.balanceRow]}>
                 <View>
-                  <Text style={styles.balanceLabel}>{t('orders.balancePending', 'Balance Due')}</Text>
+                  <Text style={styles.balanceLabel}>{t('orders.balancePending', 'Balance Pending')}</Text>
                   <Text style={styles.balanceSub}>
-                    {balance === 0 ? 'Fully paid ✓' : 'Due from customer'}
+                    {balance === 0 ? 'Fully paid ✓' : 'Pending from customer'}
                   </Text>
                 </View>
                 <View style={[styles.balanceBadge, balance === 0 ? styles.balanceBadgePaid : styles.balanceBadgeDue]}>
@@ -1067,21 +1074,21 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                 <Ionicons name="options" size={18} color="#DC2626" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.cardTitle}>{t('orders.orderStatus', 'Order Fulfillment Status')}</Text>
-                <Text style={styles.cardSubtitle}>Current production or delivery phase</Text>
+                <Text style={styles.cardTitle}>{t('orders.orderStatus', 'Order Status')}</Text>
+                <Text style={styles.cardSubtitle}>Current fulfillment phase</Text>
               </View>
             </View>
 
             <StatusTracker status={status} onChange={setStatus} />
 
             <View style={[styles.inputGroup, { marginTop: 16 }]}>
-              <Text style={styles.inputLabel}>{t('orders.customerNote', 'Customer Note / Remarks')}</Text>
+              <Text style={styles.inputLabel}>{t('orders.customerNote', 'Customer Note')}</Text>
               <View style={[styles.textInputBox, styles.noteInputBox]}>
                 <TextInput
                   style={[styles.textInput, styles.noteTextInput]}
                   value={customerNote}
                   onChangeText={setCustomerNote}
-                  placeholder={t('orders.notePlaceholder', 'Special customizations, size details, packaging instructions…')}
+                  placeholder={t('orders.notePlaceholder', 'Special customizations, packaging notes…')}
                   placeholderTextColor={colors.inkSoft}
                   multiline
                   numberOfLines={3}
@@ -1091,11 +1098,11 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           </View>
 
           {/* Space for bottom sticky bar */}
-          <View style={{ height: 100 }} />
+          <View style={{ height: 90 }} />
         </ScrollView>
 
         {/* ─── FLOATING / STICKY BOTTOM ACTION BAR ─── */}
-        <View style={styles.stickyBottomBar}>
+        <View style={[styles.stickyBottomBar, { paddingBottom: Math.max(12, insets.bottom + 6) }]}>
           <View style={styles.stickyBottomContent}>
             <View style={styles.stickyTotalInfo}>
               <Text style={styles.stickyTotalLabel}>
@@ -1104,7 +1111,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               <Text style={styles.stickyTotalAmount}>{formatCurrency(total)}</Text>
               {balance > 0 && (
                 <Text style={styles.stickyBalancePending}>
-                  {t('orders.balancePending', 'Due')}: {formatCurrency(balance)}
+                  {t('orders.balancePending', 'Balance Pending')}: {formatCurrency(balance)}
                 </Text>
               )}
             </View>
@@ -1120,7 +1127,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
             >
               <Ionicons
                 name={saving ? 'hourglass-outline' : 'checkmark-circle'}
-                size={20}
+                size={18}
                 color={colors.white}
               />
               <Text style={styles.saveOrderButtonText}>
@@ -1128,7 +1135,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                   ? t('orders.savingOrder', 'Saving Order…')
                   : isEditing
                   ? t('orders.updateOrderBtn', 'Update Order')
-                  : t('orders.saveOrderBtn', 'Create Order')}
+                  : t('orders.saveOrderBtn', 'Save Order')}
               </Text>
             </Pressable>
           </View>
@@ -1521,6 +1528,7 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 10,
     marginBottom: 14,
   },
@@ -1542,6 +1550,11 @@ const styles = StyleSheet.create({
     color: colors.inkSoft,
     marginTop: 1,
   },
+  cardHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
 
   // ── Customer Card UI ──
   browseCustomerBtn: {
@@ -1550,7 +1563,7 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: colors.clayLight,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.clayDeep,
@@ -1601,8 +1614,7 @@ const styles = StyleSheet.create({
   },
 
   // ── Generic Inputs ──
-  formRow: {
-    flexDirection: Platform.select({ web: 'row', default: 'column' }),
+  formResponsiveRow: {
     gap: 12,
   },
   inputGroup: {
@@ -1664,31 +1676,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: '#FEF3C7',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: '#F59E0B',
   },
   catalogQuickBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 11,
+    fontSize: 12,
     color: '#D97706',
   },
   addColumnBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 4,
     backgroundColor: colors.clayLight,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.clayDeep,
   },
   addColumnBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.clayDeep,
   },
   activeColumnsRow: {
@@ -1762,7 +1774,7 @@ const styles = StyleSheet.create({
   itemCardActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   itemActionBtn: {
     padding: 6,
@@ -1825,6 +1837,7 @@ const styles = StyleSheet.create({
   },
   itemQtyControlWrap: {
     flex: 1.1,
+    minWidth: 90,
   },
   qtyStepperBox: {
     flexDirection: 'row',
@@ -1855,6 +1868,7 @@ const styles = StyleSheet.create({
   },
   itemPriceInputWrap: {
     flex: 1,
+    minWidth: 80,
   },
   priceInputBox: {
     flexDirection: 'row',
@@ -1880,15 +1894,15 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   itemSubtotalWrap: {
-    flex: 0.9,
     alignItems: 'flex-end',
     justifyContent: 'center',
     height: 36,
     paddingRight: 4,
+    minWidth: 60,
   },
   itemSubtotalText: {
     fontFamily: fonts.display,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.clayDeep,
   },
 
@@ -1926,7 +1940,6 @@ const styles = StyleSheet.create({
 
   // ── Item Action Buttons ──
   itemActionButtonsRow: {
-    flexDirection: 'row',
     gap: 10,
     marginTop: 14,
   },
@@ -1935,33 +1948,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.paper,
-    borderWidth: 1,
+    gap: 8,
+    backgroundColor: colors.clayLight,
+    borderWidth: 1.5,
     borderColor: colors.clayDeep,
     borderRadius: radius.md,
-    paddingVertical: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    minHeight: 46,
   },
   addCustomItemBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 13,
+    fontSize: 13.5,
     color: colors.clayDeep,
   },
   addCatalogItemBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
     backgroundColor: '#EFF6FF',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#93C5FD',
     borderRadius: radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    minHeight: 46,
   },
   addCatalogItemBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 13,
+    fontSize: 13.5,
     color: '#1D4ED8',
   },
 
@@ -2160,7 +2177,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.line,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 10,
     ...shadow.card,
   },
   stickyBottomContent: {
@@ -2170,10 +2187,11 @@ const styles = StyleSheet.create({
     maxWidth: 820,
     alignSelf: 'center',
     width: '100%',
-    gap: 16,
+    gap: 12,
   },
   stickyTotalInfo: {
     flex: 1,
+    minWidth: 100,
   },
   stickyTotalLabel: {
     fontFamily: fonts.bodyMedium,
@@ -2201,17 +2219,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: colors.clayDeep,
-    paddingHorizontal: 22,
-    paddingVertical: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
     borderRadius: radius.md,
-    minWidth: 160,
+    minWidth: 130,
     ...shadow.card,
   },
   saveOrderButtonText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 15,
+    fontSize: 14.5,
     color: colors.white,
   },
 

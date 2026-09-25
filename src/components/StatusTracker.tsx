@@ -97,7 +97,7 @@ export default function StatusTracker({ status, onChange }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   row: {
     flexDirection: 'row',
@@ -107,30 +107,31 @@ const styles = StyleSheet.create({
   stepWrap: {
     alignItems: 'center',
     flex: 1,
+    paddingHorizontal: 2,
   },
   badge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   activeBadge: {
-    transform: [{ scale: 1.15 }],
+    transform: [{ scale: 1.1 }],
   },
   connector: {
     flex: 1,
-    height: 3,
-    borderRadius: 1.5,
+    height: 2,
+    borderRadius: 1,
     marginHorizontal: -4,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   label: {
-    marginTop: 6,
+    marginTop: 4,
     fontFamily: fonts.bodyMedium,
-    fontSize: 10,
-    letterSpacing: -0.2,
+    fontSize: 9.5,
+    lineHeight: 12,
     textAlign: 'center',
   },
   activeLabel: {

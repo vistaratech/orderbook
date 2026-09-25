@@ -439,7 +439,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
             style={({ pressed }) => [styles.quickActionBtn, styles.quickActionWhatsApp, pressed && { opacity: 0.85 }]}
             onPress={whatsappCustomer}
           >
-            <Ionicons name="logo-whatsapp" size={18} color={colors.white} />
+            <Ionicons name="logo-whatsapp" size={15} color={colors.white} />
             <Text style={styles.quickActionBtnTextWhite}>WhatsApp Bill</Text>
           </Pressable>
 
@@ -447,7 +447,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
             style={({ pressed }) => [styles.quickActionBtn, styles.quickActionPdf, pressed && { opacity: 0.85 }]}
             onPress={sharePdfCustomer}
           >
-            <Ionicons name="document-text-outline" size={18} color={colors.white} />
+            <Ionicons name="document-text-outline" size={15} color={colors.white} />
             <Text style={styles.quickActionBtnTextWhite}>Share PDF</Text>
           </Pressable>
 
@@ -455,7 +455,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
             style={({ pressed }) => [styles.quickActionBtn, styles.quickActionPreview, pressed && { opacity: 0.85 }]}
             onPress={openPdfModal}
           >
-            <Ionicons name="eye-outline" size={18} color={colors.clayDeep} />
+            <Ionicons name="eye-outline" size={15} color={colors.clayDeep} />
             <Text style={styles.quickActionBtnTextClay}>Preview</Text>
           </Pressable>
         </View>
@@ -464,7 +464,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={[styles.cardHeaderIcon, { backgroundColor: '#E0F2FE' }]}>
-              <Ionicons name="person" size={18} color="#0284C7" />
+              <Ionicons name="person" size={15} color="#0284C7" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>{t('orders.customerInfo', 'Customer Details')}</Text>
@@ -495,7 +495,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
                   onPress={callCustomer}
                   hitSlop={6}
                 >
-                  <Ionicons name="call" size={15} color="#0284C7" />
+                  <Ionicons name="call" size={13} color="#0284C7" />
                   <Text style={styles.contactCallBtnText}>Call</Text>
                 </Pressable>
 
@@ -505,7 +505,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
                     onPress={handleSendReminder}
                     hitSlop={6}
                   >
-                    <Ionicons name="notifications-outline" size={15} color="#D97706" />
+                    <Ionicons name="notifications-outline" size={13} color="#D97706" />
                     <Text style={styles.contactRemindBtnText}>Remind</Text>
                   </Pressable>
                 )}
@@ -518,7 +518,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={[styles.cardHeaderIcon, { backgroundColor: '#F3E8FF' }]}>
-              <Ionicons name="cube" size={18} color="#9333EA" />
+              <Ionicons name="cube" size={15} color="#9333EA" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>Dispatch & Payment Mode</Text>
@@ -530,7 +530,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
             <View style={styles.metaBox}>
               <Text style={styles.metaLabel}>Payment Mode</Text>
               <View style={styles.metaValueRow}>
-                <Ionicons name="card-outline" size={16} color={colors.inkSoft} />
+                <Ionicons name="card-outline" size={14} color={colors.inkSoft} />
                 <Text style={styles.metaValueText}>{order.paymentMethod || 'Cash'}</Text>
               </View>
             </View>
@@ -558,7 +558,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
             <View style={styles.metaBox}>
               <Text style={styles.metaLabel}>Dispatch Method</Text>
               <View style={styles.metaValueRow}>
-                <Ionicons name="paper-plane-outline" size={16} color={colors.inkSoft} />
+                <Ionicons name="paper-plane-outline" size={14} color={colors.inkSoft} />
                 <Text style={styles.metaValueText}>{order.dispatchMethod || 'Courier'}</Text>
               </View>
             </View>
@@ -567,7 +567,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
               <View style={styles.metaBox}>
                 <Text style={styles.metaLabel}>Tracking Number</Text>
                 <View style={styles.metaValueRow}>
-                  <Ionicons name="barcode-outline" size={16} color={colors.inkSoft} />
+                  <Ionicons name="barcode-outline" size={14} color={colors.inkSoft} />
                   <Text style={[styles.metaValueText, { fontFamily: fonts.bodyBold }]}>
                     {order.trackingNumber}
                   </Text>
@@ -577,7 +577,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
               <View style={styles.metaBox}>
                 <Text style={styles.metaLabel}>Dispatch Date</Text>
                 <View style={styles.metaValueRow}>
-                  <Ionicons name="calendar-outline" size={16} color={colors.inkSoft} />
+                  <Ionicons name="calendar-outline" size={14} color={colors.inkSoft} />
                   <Text style={styles.metaValueText}>{order.dispatchDate}</Text>
                 </View>
               </View>
@@ -585,7 +585,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
               <View style={styles.metaBox}>
                 <Text style={styles.metaLabel}>Order Date</Text>
                 <View style={styles.metaValueRow}>
-                  <Ionicons name="calendar-outline" size={16} color={colors.inkSoft} />
+                  <Ionicons name="calendar-outline" size={14} color={colors.inkSoft} />
                   <Text style={styles.metaValueText}>{formatDate(order.orderDate)}</Text>
                 </View>
               </View>
@@ -597,7 +597,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={[styles.cardHeaderIcon, { backgroundColor: '#FEF3C7' }]}>
-              <Ionicons name="basket" size={18} color="#D97706" />
+              <Ionicons name="basket" size={15} color="#D97706" />
             </View>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -1421,15 +1421,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paperCard,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    paddingHorizontal: 16,
-    paddingTop: Platform.select({ web: 10, default: 8 }),
-    paddingBottom: 10,
+    paddingHorizontal: 12,
+    paddingTop: Platform.select({ web: 8, default: 6 }),
+    paddingBottom: 8,
     zIndex: 10,
   },
   topHeaderInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     maxWidth: 860,
     alignSelf: 'center',
     width: '100%',
@@ -1440,24 +1440,24 @@ const styles = StyleSheet.create({
   },
   topHeaderTitle: {
     fontFamily: fonts.display,
-    fontSize: 19,
+    fontSize: 17,
     color: colors.ink,
-    lineHeight: 23,
+    lineHeight: 21,
   },
   topHeaderSub: {
     fontFamily: fonts.body,
-    fontSize: 12,
+    fontSize: 11.5,
     color: colors.inkSoft,
-    marginTop: 2,
+    marginTop: 1,
   },
   topHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   headerIconBtn: {
-    width: 34,
-    height: 34,
+    width: 32,
+    height: 32,
     borderRadius: radius.pill,
     backgroundColor: colors.paper,
     borderWidth: 1,
@@ -1471,17 +1471,17 @@ const styles = StyleSheet.create({
   },
   statusChip: {
     borderRadius: radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 1.5,
   },
   statusChipText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 11,
+    fontSize: 10.5,
     color: colors.white,
   },
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingHorizontal: 12,
+    paddingTop: 10,
     width: '100%',
     maxWidth: 860,
     alignSelf: 'center',
@@ -1491,9 +1491,9 @@ const styles = StyleSheet.create({
   // ── Hero Financial & Status Card ──
   heroCard: {
     backgroundColor: colors.paperCard,
-    borderRadius: radius.lg,
-    padding: 16,
-    marginBottom: 14,
+    borderRadius: radius.md,
+    padding: 12,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: colors.line,
     ...shadow.card,
@@ -1501,44 +1501,44 @@ const styles = StyleSheet.create({
   heroFinancialsRow: {
     flexDirection: 'row',
     backgroundColor: colors.paper,
-    borderRadius: radius.md,
-    padding: 12,
+    borderRadius: radius.sm,
+    padding: 8,
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: colors.line,
   },
   heroFinancialItem: { flex: 1, alignItems: 'center' },
-  heroFinancialLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft, marginBottom: 2 },
-  heroFinancialTotalVal: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
-  heroFinancialVal: { fontFamily: fonts.bodyBold, fontSize: 15 },
-  heroFinancialDivider: { width: 1, height: 28, backgroundColor: colors.line },
+  heroFinancialLabel: { fontFamily: fonts.body, fontSize: 10, color: colors.inkSoft, marginBottom: 2 },
+  heroFinancialTotalVal: { fontFamily: fonts.display, fontSize: 15.5, color: colors.ink },
+  heroFinancialVal: { fontFamily: fonts.bodyBold, fontSize: 13.5 },
+  heroFinancialDivider: { width: 1, height: 22, backgroundColor: colors.line },
   heroStatusTrackerWrap: {
-    paddingTop: 4,
+    paddingTop: 2,
   },
   heroTrackerLabel: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.inkSoft,
-    marginBottom: 8,
+    marginBottom: 4,
   },
 
   // ── Quick Action Ribbon ──
   quickActionRibbon: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 14,
+    gap: 6,
+    marginBottom: 10,
   },
   quickActionBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: radius.md,
-    minHeight: 46,
+    gap: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: radius.sm,
+    minHeight: 38,
     ...shadow.card,
   },
   quickActionWhatsApp: {
@@ -1554,64 +1554,64 @@ const styles = StyleSheet.create({
   },
   quickActionBtnTextWhite: {
     fontFamily: fonts.bodyBold,
-    fontSize: 12.5,
+    fontSize: 11.5,
     color: colors.white,
   },
   quickActionBtnTextClay: {
     fontFamily: fonts.bodyBold,
-    fontSize: 12.5,
+    fontSize: 11.5,
     color: colors.clayDeep,
   },
 
   // ── Card Standard Structure ──
   card: {
     backgroundColor: colors.paperCard,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 16,
-    marginBottom: 14,
+    padding: 12,
+    marginBottom: 10,
     ...shadow.card,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 10,
   },
   cardHeaderIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
     fontFamily: fonts.display,
-    fontSize: 16,
+    fontSize: 14.5,
     color: colors.ink,
   },
   cardSubtitle: {
     fontFamily: fonts.body,
-    fontSize: 11.5,
+    fontSize: 10.5,
     color: colors.inkSoft,
-    marginTop: 1,
+    marginTop: 0.5,
   },
 
   // ── Customer Details ──
   customerProfileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: colors.paper,
-    padding: 12,
-    borderRadius: radius.md,
+    padding: 10,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.line,
   },
   customerAvatar: {
-    width: 40,
-    height: 40,
+    width: 34,
+    height: 34,
     borderRadius: radius.pill,
     backgroundColor: colors.duskLight,
     alignItems: 'center',
@@ -1619,130 +1619,130 @@ const styles = StyleSheet.create({
   },
   customerAvatarText: {
     fontFamily: fonts.display,
-    fontSize: 17,
+    fontSize: 15,
     color: colors.duskDeep,
   },
   customerNameText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 15,
+    fontSize: 13.5,
     color: colors.ink,
   },
   customerPhoneText: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.inkSoft,
     marginTop: 1,
   },
   customerNoPhoneText: {
     fontFamily: fonts.body,
-    fontSize: 12,
+    fontSize: 11.5,
     color: colors.inkSoft,
     fontStyle: 'italic',
   },
   contactActionButtons: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 5,
   },
   contactCallBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: '#E0F2FE',
     borderWidth: 1,
     borderColor: '#BAE6FD',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: radius.pill,
   },
   contactCallBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#0284C7',
   },
   contactRemindBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: '#FEF3C7',
     borderWidth: 1,
     borderColor: '#FDE68A',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: radius.pill,
   },
   contactRemindBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#D97706',
   },
 
-  // ── Dispatch & Payment 2x2 Grid (Balanced Full-Width) ──
+  // ── Dispatch & Payment 2x2 Grid ──
   metaGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 6,
   },
   metaBox: {
     flex: 1,
     minWidth: '47%',
     backgroundColor: colors.paper,
-    padding: 12,
-    borderRadius: radius.md,
+    padding: 8,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.line,
   },
   metaLabel: {
     fontFamily: fonts.body,
-    fontSize: 11,
+    fontSize: 10,
     color: colors.inkSoft,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   metaValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   metaValueText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.ink,
   },
   paymentStatusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
 
   // ── Items List ──
   itemCountBadge: {
     backgroundColor: colors.clayLight,
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: radius.pill,
   },
   itemCountBadgeText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 11,
+    fontSize: 10,
     color: colors.clayDeep,
   },
   itemsListContainer: {
-    gap: 8,
-    marginBottom: 12,
+    gap: 6,
+    marginBottom: 8,
   },
   itemCardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     backgroundColor: colors.paper,
-    padding: 10,
-    borderRadius: radius.md,
+    padding: 8,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.line,
   },
   itemCardIndex: {
-    width: 26,
-    height: 26,
-    borderRadius: radius.sm,
+    width: 22,
+    height: 22,
+    borderRadius: 4,
     backgroundColor: colors.paperCard,
     borderWidth: 1,
     borderColor: colors.line,
@@ -1751,121 +1751,121 @@ const styles = StyleSheet.create({
   },
   itemCardIndexText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 10.5,
+    fontSize: 9.5,
     color: colors.inkSoft,
   },
   itemCardName: {
     fontFamily: fonts.bodyBold,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.ink,
   },
   itemCardMetaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
+    gap: 4,
+    marginTop: 1,
   },
   itemCardQtyRate: {
     fontFamily: fonts.body,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.inkSoft,
   },
   customAttrTag: {
     backgroundColor: colors.clayLight,
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 1,
-    borderRadius: radius.sm,
+    borderRadius: 4,
   },
   customAttrText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 10,
+    fontSize: 9.5,
     color: colors.clayDeep,
   },
   itemCardTotalVal: {
     fontFamily: fonts.display,
-    fontSize: 15,
+    fontSize: 13.5,
     color: colors.ink,
   },
 
   // Items Summary Box
   itemsSummaryBox: {
     backgroundColor: colors.paper,
-    borderRadius: radius.md,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 12,
+    padding: 8,
   },
   summaryLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 2.5,
   },
   summaryLineLabel: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 11.5,
     color: colors.inkSoft,
   },
   summaryLineVal: {
     fontFamily: fonts.bodyBold,
-    fontSize: 14,
+    fontSize: 12.5,
     color: colors.ink,
   },
   summaryTotalLine: {
     borderTopWidth: 1,
     borderTopColor: colors.line,
-    marginTop: 6,
-    paddingTop: 8,
+    marginTop: 4,
+    paddingTop: 6,
   },
   summaryTotalLabel: {
     fontFamily: fonts.display,
-    fontSize: 14,
+    fontSize: 12.5,
     color: colors.ink,
   },
   summaryTotalAmount: {
     fontFamily: fonts.display,
-    fontSize: 17,
+    fontSize: 15,
   },
 
   // ── Payment History ──
   paymentLogsList: {
-    gap: 8,
+    gap: 6,
   },
   paymentLogCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: colors.paper,
-    padding: 10,
-    borderRadius: radius.md,
+    padding: 8,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.line,
   },
   payLogLeft: { flex: 1 },
-  payLogAmount: { fontFamily: fonts.display, fontSize: 14, color: colors.inflow },
-  payLogDate: { fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft, marginTop: 2 },
-  payLogNote: { fontFamily: fonts.body, fontSize: 12, color: colors.ink, fontStyle: 'italic' },
+  payLogAmount: { fontFamily: fonts.display, fontSize: 13, color: colors.inflow },
+  payLogDate: { fontFamily: fonts.body, fontSize: 10.5, color: colors.inkSoft, marginTop: 1 },
+  payLogNote: { fontFamily: fonts.body, fontSize: 11, color: colors.ink, fontStyle: 'italic' },
 
   // Photos & Notes
   photoThumb: {
-    width: 100,
-    height: 100,
-    borderRadius: radius.md,
+    width: 72,
+    height: 72,
+    borderRadius: radius.sm,
     backgroundColor: colors.line,
   },
   noteBox: {
     backgroundColor: colors.paper,
-    padding: 12,
-    borderRadius: radius.md,
+    padding: 8,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.line,
   },
   noteText: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.ink,
-    lineHeight: 18,
+    lineHeight: 16,
   },
 
   // ── Sticky Bottom Action Bar ──
@@ -1877,8 +1877,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paperCard,
     borderTopWidth: 1,
     borderTopColor: colors.line,
-    paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingHorizontal: 12,
+    paddingTop: 8,
     ...shadow.card,
   },
   stickyBottomContent: {
@@ -1888,54 +1888,56 @@ const styles = StyleSheet.create({
     maxWidth: 860,
     alignSelf: 'center',
     width: '100%',
-    gap: 12,
+    gap: 10,
   },
   stickyBottomInfo: {
     flex: 1,
-    minWidth: 100,
+    minWidth: 90,
   },
   stickyBottomLabel: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 11,
+    fontSize: 10,
     color: colors.inkSoft,
   },
   stickyBottomAmount: {
     fontFamily: fonts.display,
-    fontSize: 18,
-    lineHeight: 22,
+    fontSize: 15.5,
+    lineHeight: 19,
   },
   stickyBottomActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   recordPayBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     backgroundColor: '#16A34A',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 36,
+    borderRadius: radius.sm,
     ...shadow.card,
   },
   recordPayBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 13.5,
+    fontSize: 12.5,
     color: colors.white,
   },
   sharePdfBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     backgroundColor: colors.clayDeep,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 36,
+    borderRadius: radius.sm,
     ...shadow.card,
   },
   sharePdfBtnText: {
     fontFamily: fonts.bodyBold,
-    fontSize: 13.5,
+    fontSize: 12.5,
     color: colors.white,
   },
 

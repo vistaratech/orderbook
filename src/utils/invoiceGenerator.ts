@@ -444,19 +444,22 @@ function generateStandardInvoiceHtml(
       margin: ${cfg.compactMode ? '5mm' : '8mm'};
     }
     @media print {
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
       html, body {
         background-color: #FFFFFF !important;
         padding: 0 !important;
         margin: 0 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
       }
       .invoice-sheet {
         box-shadow: none !important;
-        border: none !important;
+        border: 1px solid ${cfg.cardBorderColor || '#CBD5E1'} !important;
         max-width: 100% !important;
         width: 100% !important;
-        border-radius: 0 !important;
+        border-radius: 4px !important;
         margin: 0 !important;
       }
     }

@@ -275,7 +275,6 @@ export default function InvoiceTemplateCustomizerScreen() {
             </View>
             <View>
               <Text style={styles.settingsCardTitle}>Store Profile & Logo</Text>
-              <Text style={styles.settingsCardSub}>Shop name, phone, address & GSTIN</Text>
             </View>
           </View>
           <Ionicons
@@ -454,7 +453,6 @@ export default function InvoiceTemplateCustomizerScreen() {
             </View>
             <View>
               <Text style={styles.settingsCardTitle}>Table Columns & Details</Text>
-              <Text style={styles.settingsCardSub}>HSN, Qty, Unit, Rate, GST %, Discount</Text>
             </View>
           </View>
           <Ionicons
@@ -519,7 +517,6 @@ export default function InvoiceTemplateCustomizerScreen() {
             </View>
             <View>
               <Text style={styles.settingsCardTitle}>Payment & UPI QR Code</Text>
-              <Text style={styles.settingsCardSub}>GPay/PhonePe scan QR & Bank Account info</Text>
             </View>
           </View>
           <Ionicons
@@ -607,7 +604,6 @@ export default function InvoiceTemplateCustomizerScreen() {
             </View>
             <View>
               <Text style={styles.settingsCardTitle}>Terms & Signature Seal</Text>
-              <Text style={styles.settingsCardSub}>Return policy, greeting & Authorised Signatory</Text>
             </View>
           </View>
           <Ionicons
@@ -1318,12 +1314,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 13.5,
     color: colors.ink,
-  },
-  settingsCardSub: {
-    fontFamily: fonts.body,
-    fontSize: 10.5,
-    color: colors.inkSoft,
-    marginTop: 1,
   },
   settingsCardBody: {
     paddingHorizontal: 14,

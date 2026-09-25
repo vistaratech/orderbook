@@ -506,7 +506,6 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               </View>
               <View style={{ flex: 1, minWidth: 120 }}>
                 <Text style={styles.cardTitle}>{t('orders.customerInfo', 'Customer Information')}</Text>
-                <Text style={styles.cardSubtitle}>Select existing customer or enter new buyer details</Text>
               </View>
               {allCustomers.length > 0 && (
                 <Pressable
@@ -609,7 +608,6 @@ export default function OrderFormScreen({ navigation, route }: Props) {
                     <Text style={styles.itemCountBadgeText}>{items.length}</Text>
                   </View>
                 </View>
-                <Text style={styles.cardSubtitle}>Add products, adjust quantity & rates</Text>
               </View>
 
               {/* Action buttons in header */}
@@ -854,7 +852,6 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{t('orders.dispatchDetails', 'Dispatch Details')}</Text>
-                <Text style={styles.cardSubtitle}>Fulfillment method and shipment tracking</Text>
               </View>
             </View>
 
@@ -937,7 +934,6 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{t('orders.paymentDetails', 'Payment Details')}</Text>
-                <Text style={styles.cardSubtitle}>Payment mode, advance received & balance</Text>
               </View>
             </View>
 
@@ -1075,7 +1071,6 @@ export default function OrderFormScreen({ navigation, route }: Props) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{t('orders.orderStatus', 'Order Status')}</Text>
-                <Text style={styles.cardSubtitle}>Current fulfillment phase</Text>
               </View>
             </View>
 
@@ -1543,12 +1538,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: 17,
     color: colors.ink,
-  },
-  cardSubtitle: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
-    marginTop: 1,
   },
   cardHeaderActions: {
     flexDirection: 'row',

@@ -468,7 +468,6 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>{t('orders.customerInfo', 'Customer Details')}</Text>
-              <Text style={styles.cardSubtitle}>Buyer identity and quick contact</Text>
             </View>
           </View>
 
@@ -522,7 +521,6 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>Dispatch & Payment Mode</Text>
-              <Text style={styles.cardSubtitle}>Fulfillment method and payment terms</Text>
             </View>
           </View>
 
@@ -606,7 +604,6 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
                   <Text style={styles.itemCountBadgeText}>{order.items.length}</Text>
                 </View>
               </View>
-              <Text style={styles.cardSubtitle}>Itemized breakdown and rates</Text>
             </View>
           </View>
 
@@ -679,7 +676,6 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>Payment Collection Log</Text>
-                <Text style={styles.cardSubtitle}>Audit trail of installments received</Text>
               </View>
             </View>
 
@@ -708,7 +704,6 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>Attached Photos ({order.photos.length})</Text>
-                <Text style={styles.cardSubtitle}>Reference photos, bills or design sketches</Text>
               </View>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
@@ -732,7 +727,6 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{t('orders.customerNote', 'Customer Note')}</Text>
-                <Text style={styles.cardSubtitle}>Special customizations or remarks</Text>
               </View>
             </View>
             <View style={styles.noteBox}>
@@ -1590,12 +1584,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: 14.5,
     color: colors.ink,
-  },
-  cardSubtitle: {
-    fontFamily: fonts.body,
-    fontSize: 10.5,
-    color: colors.inkSoft,
-    marginTop: 0.5,
   },
 
   // ── Customer Details ──

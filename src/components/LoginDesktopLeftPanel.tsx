@@ -15,7 +15,6 @@ import Svg, {
   RadialGradient,
   Stop,
   Path,
-  Text as SvgText,
   G,
 } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -194,21 +193,11 @@ export default function LoginDesktopLeftPanel() {
               <Text style={styles.logoTitleBook}>Book</Text>
             </Text>
             {/* Cursive Tagline with double underline sketch */}
-            <View style={{ marginTop: 2 }}>
-              <Svg width={140} height={24} viewBox="0 0 140 24">
-                <SvgText
-                  x="2"
-                  y="15"
-                  fill="#BA8D7B"
-                  fontSize="14"
-                  fontFamily="Caveat, cursive, serif"
-                  fontWeight="bold"
-                  fontStyle="italic"
-                >
-                  Simple  Smart  Reliable
-                </SvgText>
+            <View style={styles.taglineBlock}>
+              <Text style={styles.taglineText}>Simple  Smart  Reliable</Text>
+              <Svg width={180} height={8} viewBox="0 0 180 8" style={styles.taglineUnderline}>
                 <Path
-                  d="M 68 18 C 88 17, 108 18, 126 19 M 74 21 C 92 20, 108 21, 122 22"
+                  d="M 68 3 C 98 2, 128 3, 155 4 M 74 6 C 102 5, 128 6, 150 7"
                   stroke="#BA8D7B"
                   strokeWidth="1.2"
                   strokeLinecap="round"
@@ -225,19 +214,7 @@ export default function LoginDesktopLeftPanel() {
           <Text style={styles.heroLine1}>Manage your</Text>
           <View style={styles.heroLine2}>
             <Text style={styles.heroLine2Text}>business, </Text>
-            <Svg width={180} height={46} viewBox="0 0 180 46" style={{ marginTop: 2 }}>
-              <SvgText
-                x="2"
-                y="36"
-                fill="#A5513E"
-                fontSize="42"
-                fontFamily="Caveat, cursive, serif"
-                fontWeight="bold"
-                fontStyle="italic"
-              >
-                anywhere
-              </SvgText>
-            </Svg>
+            <Text style={styles.heroAnywhere}>anywhere</Text>
           </View>
 
           <Text style={styles.heroSubtext}>
@@ -421,6 +398,21 @@ const styles = StyleSheet.create({
     fontFamily: 'PlusJakartaSans_800ExtraBold',
     color: '#A5513E',
   },
+  taglineBlock: {
+    marginTop: 2,
+    alignItems: 'flex-start',
+  },
+  taglineText: {
+    fontFamily: 'Caveat, cursive, serif',
+    fontSize: 15,
+    fontWeight: 'bold',
+    fontStyle: 'italic',
+    color: '#BA8D7B',
+    letterSpacing: 0.3,
+  },
+  taglineUnderline: {
+    marginTop: 1,
+  },
 
   // Headline
   heroSection: {
@@ -435,7 +427,8 @@ const styles = StyleSheet.create({
   },
   heroLine2: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
   },
   heroLine2Text: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
@@ -443,6 +436,16 @@ const styles = StyleSheet.create({
     lineHeight: 44,
     color: '#1B1917',
     letterSpacing: -0.6,
+  },
+  heroAnywhere: {
+    fontFamily: 'Caveat, cursive, serif',
+    fontSize: 42,
+    lineHeight: 44,
+    fontStyle: 'italic',
+    fontWeight: 'bold',
+    color: '#A5513E',
+    letterSpacing: -0.3,
+    paddingRight: 10,
   },
   heroSubtext: {
     fontFamily: 'PlusJakartaSans_500Medium',

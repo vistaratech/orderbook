@@ -275,7 +275,7 @@ export default function App() {
 
       const style = document.createElement('style');
       style.innerHTML = `
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
         html, body, #root {
           height: 100%;

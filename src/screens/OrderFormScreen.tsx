@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,14 +10,25 @@ import {
   Platform,
   Alert,
   Modal,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { Order, OrderItem, OrderStatus, PaymentStatus, Customer, Product, CustomColumn } from '../types/order';
+import {
+  Order,
+  OrderItem,
+  OrderStatus,
+  PaymentStatus,
+  Customer,
+  Product,
+  ProductUnit,
+  CustomColumn,
+} from '../types/order';
 import { getOrder, saveOrder, nextOrderNumber, getOrders } from '../storage/orderStorage';
 import { getCustomers, saveCustomer } from '../storage/customerStorage';
 import { getProducts, saveProduct } from '../storage/productStorage';
+import { getEstimate } from '../storage/estimateStorage';
 import { generateId } from '../utils/id';
 import { formatCurrency, formatDate, todayIso } from '../utils/format';
 import { colors, fonts, radius, shadow } from '../theme/theme';
@@ -26,23 +37,29 @@ import { getBusinessProfile } from '../storage/businessProfileStorage';
 import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
 import { getBusinessPreset } from '../config/businessTypes';
 import { useLanguage } from '../i18n/LanguageContext';
-import { confirmAction } from '../utils/dialog';
 import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 import GlassBackButton from '../components/GlassBackButton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OrderForm'>;
 
-const PAYMENT_METHODS = ['Cash', 'UPI', 'Card', 'Bank Transfer'];
-const DISPATCH_METHODS = ['Courier', 'Self Pickup', 'Local Delivery'];
+const PAYMENT_METHODS = [
+  { id: 'Cash', labelKey: 'orders.methodCash', defaultLabel: 'Cash', icon: 'cash-outline' },
+  { id: 'UPI', labelKey: 'orders.methodUpi', defaultLabel: 'UPI / GPay', icon: 'flash-outline' },
+  { id: 'Card', labelKey: 'orders.methodCard', defaultLabel: 'Card', icon: 'card-outline' },
+  { id: 'Bank Transfer', labelKey: 'orders.methodBankTransfer', defaultLabel: 'Bank Transfer', icon: 'business-outline' },
+];
+
+const DISPATCH_METHODS = [
+  { id: 'Courier', labelKey: 'orders.methodCourier', defaultLabel: 'Courier', icon: 'cube-outline' },
+  { id: 'Self Pickup', labelKey: 'orders.methodSelfPickup', defaultLabel: 'Self Pickup', icon: 'bag-handle-outline' },
+  { id: 'Local Delivery', labelKey: 'orders.methodLocalDelivery', defaultLabel: 'Local Delivery', icon: 'bicycle-outline' },
+];
+
 const PAYMENT_STATUSES: PaymentStatus[] = ['Pending', 'Partial', 'Paid'];
 
-function emptyItem(): OrderItem {
-  return { id: generateId('itm_'), name: '', qty: 1, price: 0 };
-}
-
-function defaultFiveItems(): OrderItem[] {
-  return [emptyItem(), emptyItem(), emptyItem(), emptyItem(), emptyItem()];
+function emptyItem(defaultUnit = 'Pcs'): OrderItem {
+  return { id: generateId('itm_'), name: '', qty: 1, price: 0, unit: defaultUnit };
 }
 
 export default function OrderFormScreen({ navigation, route }: Props) {
@@ -50,6 +67,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
   const editingId = route.params?.orderId;
   const prefillName = route.params?.prefillCustomerName;
   const prefillPhone = route.params?.prefillPhone;
+  const fromEstimateId = route.params?.fromEstimateId;
   const isEditing = !!editingId;
 
   const [orderId, setOrderId] = useState<string | undefined>(editingId);
@@ -65,7 +83,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
   const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
   const [showColumnModal, setShowColumnModal] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
-  const [items, setItems] = useState<OrderItem[]>(defaultFiveItems);
+  const [items, setItems] = useState<OrderItem[]>([emptyItem()]);
   const [customerNote, setCustomerNote] = useState('');
   const [advance, setAdvance] = useState('');
   const [status, setStatus] = useState<OrderStatus>('Placed');
@@ -73,16 +91,25 @@ export default function OrderFormScreen({ navigation, route }: Props) {
   const [defaultUnit, setDefaultUnit] = useState('Pcs');
   const [upgradeNudge, setUpgradeNudge] = useState<string | null>(null);
 
+  // Modals & Pickers
+  const [showCatalogModal, setShowCatalogModal] = useState(false);
+  const [showCustomerPicker, setShowCustomerPicker] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [activeItemSuggestIndex, setActiveItemSuggestIndex] = useState<string | null>(null);
+
   // Autocomplete data
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    navigation.setOptions({ title: isEditing ? t('orders.editOrderTitle') : t('orders.newOrderTitle') });
+    navigation.setOptions({
+      title: isEditing ? t('orders.editOrderTitle', 'Edit Order') : t('orders.newOrderTitle', 'Create Order'),
+    });
   }, [isEditing, navigation, t]);
 
   useEffect(() => {
-    // Load catalog and customer list for suggestions
+    // Load catalog and customer list
     getCustomers().then(setAllCustomers);
     getProducts().then(setAllProducts);
     getBusinessProfile().then((profile) => {
@@ -100,13 +127,25 @@ export default function OrderFormScreen({ navigation, route }: Props) {
         setTrackingNumber(order.trackingNumber || '');
         setCustomerName(order.customerName);
         setPhoneNumber(order.phoneNumber);
-        setDispatchMethod(order.dispatchMethod || '');
+        setDispatchMethod(order.dispatchMethod || 'Courier');
         setDispatchDate(order.dispatchDate || '');
         setCustomColumns(order.customColumns || []);
-        setItems(order.items.length ? order.items : defaultFiveItems());
+        setItems(order.items.length ? order.items : [emptyItem()]);
         setCustomerNote(order.customerNote || '');
         setAdvance(order.advance ? String(order.advance) : '');
         setStatus(order.status);
+      });
+    } else if (fromEstimateId) {
+      nextOrderNumber().then(setOrderNumber);
+      getEstimate(fromEstimateId).then((est) => {
+        if (est) {
+          if (est.customerName) setCustomerName(est.customerName);
+          if (est.phoneNumber) setPhoneNumber(est.phoneNumber);
+          if (est.customerNote) setCustomerNote(est.customerNote);
+          if (est.items && est.items.length > 0) {
+            setItems(est.items.map((it) => ({ ...it, id: generateId('itm_') })));
+          }
+        }
       });
     } else {
       nextOrderNumber().then(setOrderNumber);
@@ -133,11 +172,18 @@ export default function OrderFormScreen({ navigation, route }: Props) {
         }
       })();
     }
-  }, [editingId]);
+  }, [editingId, fromEstimateId]);
 
-  const total = items.reduce((sum, it) => sum + (it.qty || 0) * (it.price || 0), 0);
+  // Calculations
+  const total = useMemo(() => {
+    return items.reduce((sum, it) => sum + (it.qty || 0) * (it.price || 0), 0);
+  }, [items]);
+
   const advanceNum = parseFloat(advance) || 0;
-  const balance = total - advanceNum;
+  const balance = Math.max(0, total - advanceNum);
+  const totalItemCount = useMemo(() => {
+    return items.filter((it) => it.name.trim().length > 0).reduce((sum, it) => sum + (it.qty || 1), 0);
+  }, [items]);
 
   // Auto-set payment status based on advance vs total
   useEffect(() => {
@@ -156,10 +202,21 @@ export default function OrderFormScreen({ navigation, route }: Props) {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
   };
 
-  const addItem = () => setItems((prev) => [...prev, emptyItem()]);
+  const addItem = () => {
+    setItems((prev) => [...prev, emptyItem(defaultUnit)]);
+  };
+
+  const duplicateItem = (item: OrderItem) => {
+    const newItem: OrderItem = {
+      ...item,
+      id: generateId('itm_'),
+      name: item.name ? `${item.name}` : '',
+    };
+    setItems((prev) => [...prev, newItem]);
+  };
 
   const removeItem = (id: string) => {
-    setItems((prev) => (prev.length > 1 ? prev.filter((it) => it.id !== id) : prev));
+    setItems((prev) => (prev.length > 1 ? prev.filter((it) => it.id !== id) : [emptyItem(defaultUnit)]));
   };
 
   const handleAddColumn = (nameToAdd?: string) => {
@@ -207,30 +264,100 @@ export default function OrderFormScreen({ navigation, route }: Props) {
   const handleSelectCustomer = (c: Customer) => {
     setCustomerName(c.name);
     if (c.phone) setPhoneNumber(c.phone);
+    setShowCustomerPicker(false);
   };
 
   const handleSelectProduct = (itemId: string, p: Product) => {
-    updateItem(itemId, { name: p.name, price: p.defaultPrice });
+    updateItem(itemId, {
+      name: p.name,
+      price: p.defaultPrice || 0,
+      unit: p.unit || defaultUnit,
+    });
+    setActiveItemSuggestIndex(null);
   };
 
-  // Filtered customer suggestions
-  const customerSuggestions =
-    customerName.trim().length > 0 && !allCustomers.some((c) => c.name.toLowerCase() === customerName.toLowerCase())
-      ? allCustomers.filter((c) =>
-          c.name.toLowerCase().includes(customerName.toLowerCase().trim())
-        ).slice(0, 3)
-      : [];
+  const handleAddCatalogProductDirectly = (p: Product) => {
+    setItems((prev) => {
+      const last = prev[prev.length - 1];
+      if (prev.length === 1 && !last.name.trim() && last.price === 0) {
+        return [
+          {
+            ...last,
+            name: p.name,
+            price: p.defaultPrice || 0,
+            unit: p.unit || defaultUnit,
+            qty: 1,
+          },
+        ];
+      }
+      return [
+        ...prev,
+        {
+          id: generateId('itm_'),
+          name: p.name,
+          price: p.defaultPrice || 0,
+          unit: p.unit || defaultUnit,
+          qty: 1,
+        },
+      ];
+    });
+    setShowCatalogModal(false);
+  };
+
+  // Recent customers (top 5)
+  const recentCustomers = useMemo(() => {
+    return allCustomers.slice(0, 5);
+  }, [allCustomers]);
+
+  // Filtered customer list for picker modal
+  const filteredCustomers = useMemo(() => {
+    const q = customerSearch.trim().toLowerCase();
+    if (!q) return allCustomers;
+    return allCustomers.filter(
+      (c) => c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q))
+    );
+  }, [allCustomers, customerSearch]);
+
+  // Filtered catalog products for picker modal
+  const filteredProducts = useMemo(() => {
+    const q = catalogSearch.trim().toLowerCase();
+    if (!q) return allProducts;
+    return allProducts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.hsnCode && p.hsnCode.toLowerCase().includes(q)) ||
+        (p.barcode && p.barcode.toLowerCase().includes(q))
+    );
+  }, [allProducts, catalogSearch]);
+
+  // Quick dispatch date preset helpers
+  const setQuickDate = (daysFromNow: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + daysFromNow);
+    setDispatchDate(formatDate(d.toISOString()));
+  };
+
+  // Quick advance percentage presets
+  const handleQuickAdvance = (percentage: number) => {
+    if (percentage === 0) {
+      setAdvance('0');
+    } else if (percentage === 1) {
+      setAdvance(String(total));
+    } else {
+      setAdvance(String(Math.round(total * percentage)));
+    }
+  };
 
   const handleSave = async () => {
     if (!customerName.trim()) {
-      Alert.alert(t('common.required'), t('orders.customerName'));
+      Alert.alert(t('common.required', 'Required'), t('orders.customerName', 'Please enter customer name'));
       return;
     }
     const cleanItems = items
       .map((it) => ({ ...it, name: it.name.trim() }))
       .filter((it) => it.name.length > 0);
     if (cleanItems.length === 0) {
-      Alert.alert(t('common.required'), t('orders.items'));
+      Alert.alert(t('common.required', 'Required'), t('orders.items', 'Please add at least one item with a name'));
       return;
     }
 
@@ -274,10 +401,27 @@ export default function OrderFormScreen({ navigation, route }: Props) {
           (p) => p.name.toLowerCase() === it.name.toLowerCase()
         );
         if (!hasProd && it.price > 0) {
+          const rawUnit = (it.unit || defaultUnit || 'pcs').toLowerCase();
+          const validUnit: ProductUnit = [
+            'pcs',
+            'kg',
+            'meter',
+            'liter',
+            'box',
+            'set',
+            'grams',
+            'hours',
+            'pairs',
+            'bags',
+            'sqft',
+          ].includes(rawUnit)
+            ? (rawUnit as ProductUnit)
+            : 'pcs';
+
           await saveProduct({
             name: it.name,
             defaultPrice: it.price,
-            unit: 'pcs',
+            unit: validUnit,
           });
         }
       }
@@ -299,6 +443,7 @@ export default function OrderFormScreen({ navigation, route }: Props) {
       customerNote: customerNote.trim() || undefined,
       advance: advanceNum,
       status,
+      estimateId: fromEstimateId,
     });
 
     setSaving(false);
@@ -306,833 +451,1933 @@ export default function OrderFormScreen({ navigation, route }: Props) {
     navigation.replace('OrderDetail', { orderId: saved.id });
   };
 
-  const getPaymentMethodLabel = (m: string) => {
-    switch (m) {
-      case 'Cash':
-        return t('orders.methodCash');
-      case 'UPI':
-        return t('orders.methodUpi');
-      case 'Card':
-        return t('orders.methodCard');
-      case 'Bank Transfer':
-        return t('orders.methodBankTransfer');
-      default:
-        return m;
-    }
-  };
-
-  const getPaymentStatusLabel = (s: string) => {
-    switch (s) {
-      case 'Paid':
-        return t('orders.payPaid');
-      case 'Partial':
-        return t('orders.payPartial');
-      case 'Pending':
-        return t('orders.payPending');
-      default:
-        return s;
-    }
-  };
-
-  const getDispatchMethodLabel = (d: string) => {
-    switch (d) {
-      case 'Courier':
-        return t('orders.methodCourier');
-      case 'Self Pickup':
-        return t('orders.methodSelfPickup');
-      case 'Local Delivery':
-        return t('orders.methodLocalDelivery');
-      default:
-        return d;
-    }
-  };
-
   return (
-    <SafeAreaView style={styles.flex} edges={['top']}>
+    <SafeAreaView style={styles.flex} edges={['top', 'left', 'right']}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Top Header Bar Aligned Directly Above Card Container */}
-          <View style={styles.topHeaderRow}>
+        {/* ─── Top Header Bar ─── */}
+        <View style={styles.topHeaderContainer}>
+          <View style={styles.topHeaderLeft}>
             <GlassBackButton label={t('common.back', 'Back')} />
             <View style={styles.topHeaderTitleWrap}>
               <Text style={styles.topHeaderTitle}>
-                {isEditing ? t('orders.editOrderTitle', 'Edit Order') : t('orders.newOrderTitle', 'New Order')}
+                {isEditing ? t('orders.editOrderTitle', 'Edit Order') : t('orders.newOrderTitle', 'Create Order')}
               </Text>
-              {orderNumber ? <Text style={styles.topHeaderSub}>{orderNumber}</Text> : null}
+              <View style={styles.topHeaderMetaRow}>
+                <View style={styles.orderNumberBadge}>
+                  <Text style={styles.orderNumberText}>{orderNumber || '#....'}</Text>
+                </View>
+                <Text style={styles.orderDateText}>{orderDate}</Text>
+              </View>
             </View>
           </View>
+        </View>
 
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* ── Upgrade Nudge Banner ── */}
           {upgradeNudge && (
             <Pressable
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 10,
-                backgroundColor: '#FFFBEB',
-                padding: 12,
-                borderRadius: radius.sm,
-                borderWidth: 1,
-                borderColor: '#FDE68A',
-                marginBottom: 16,
-              }}
+              style={styles.upgradeBanner}
               onPress={() => (navigation as any).navigate('PaywallScreen')}
             >
               <Ionicons name="sparkles" size={18} color="#CA8A04" />
-              <Text style={{ flex: 1, fontFamily: fonts.body, fontSize: 12, color: '#92400E', lineHeight: 18 }}>
-                {upgradeNudge}
-              </Text>
-              <Text style={{ fontFamily: fonts.bodyBold, fontSize: 12, color: '#CA8A04' }}>Upgrade</Text>
-            </Pressable>
-          )}
-
-          <Section title={t('orders.customerInfo')} icon="person-outline">
-          <Field label={t('orders.customerName') + ' *'}>
-            <TextInput
-              style={styles.input}
-              value={customerName}
-              onChangeText={setCustomerName}
-              placeholder={t('orders.customerName')}
-              placeholderTextColor={colors.inkSoft}
-            />
-          </Field>
-          {customerSuggestions.length > 0 && (
-            <View style={styles.suggestionRow}>
-              <Text style={styles.suggestionLabel}>{t('orders.suggested')}</Text>
-              {customerSuggestions.map((c) => (
-                <Pressable
-                  key={c.id}
-                  style={styles.suggestionChip}
-                  onPress={() => handleSelectCustomer(c)}
-                >
-                  <Text style={styles.suggestionText}>{c.name}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
-          <Field label={t('orders.customerPhone')}>
-            <TextInput
-              style={styles.input}
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              placeholder={t('orders.customerPhone')}
-              placeholderTextColor={colors.inkSoft}
-              keyboardType="phone-pad"
-            />
-          </Field>
-        </Section>
-
-        <Section title={t('orders.paymentDetails')} icon="card-outline">
-          <Row>
-            <Field label={t('orders.orderNumber')} flex={1}>
-              <TextInput
-                style={styles.input}
-                value={orderNumber}
-                onChangeText={setOrderNumber}
-                placeholder="#0001"
-                placeholderTextColor={colors.inkSoft}
-              />
-            </Field>
-            <Field label={t('orders.orderDate')} flex={1}>
-              <TextInput
-                style={styles.input}
-                value={orderDate}
-                onChangeText={setOrderDate}
-                placeholder={t('orders.orderDate')}
-                placeholderTextColor={colors.inkSoft}
-              />
-            </Field>
-          </Row>
-          <Field label={t('orders.paymentMethod')}>
-            <ChipRow options={PAYMENT_METHODS} value={paymentMethod} onChange={setPaymentMethod} getLabel={getPaymentMethodLabel} />
-          </Field>
-          <Field label={t('orders.paymentStatus')}>
-            <ChipRow options={PAYMENT_STATUSES} value={paymentStatus} onChange={(v) => setPaymentStatus(v as PaymentStatus)} getLabel={getPaymentStatusLabel} />
-          </Field>
-          <Field label={t('orders.trackingNumber')}>
-            <TextInput
-              style={styles.input}
-              value={trackingNumber}
-              onChangeText={setTrackingNumber}
-              placeholder={t('orders.trackingPlaceholder')}
-              placeholderTextColor={colors.inkSoft}
-            />
-          </Field>
-        </Section>
-
-        <Section title={t('orders.dispatchDetails')} icon="airplane-outline">
-          <Field label={t('orders.dispatchMethod')}>
-            <ChipRow options={DISPATCH_METHODS} value={dispatchMethod} onChange={setDispatchMethod} getLabel={getDispatchMethodLabel} />
-          </Field>
-          <Field label={t('orders.dispatchDate')}>
-            <TextInput
-              style={styles.input}
-              value={dispatchDate}
-              onChangeText={setDispatchDate}
-              placeholder={t('orders.dispatchDatePlaceholder')}
-              placeholderTextColor={colors.inkSoft}
-            />
-          </Field>
-        </Section>
-
-        <Section
-          title={t('orders.itemsAndProducts')}
-          icon="basket-outline"
-          rightAction={
-            <Pressable
-              style={({ pressed }) => [styles.addColumnHeaderBtn, pressed && { opacity: 0.8 }]}
-              onPress={() => setShowColumnModal(true)}
-            >
-              <Ionicons name="add" size={14} color={colors.clayDeep} />
-              <Text style={styles.addColumnHeaderBtnText}>{t('orders.addColumn')}</Text>
-            </Pressable>
-          }
-        >
-          <View style={styles.itemHeaderRow}>
-            <Text style={[styles.itemHeaderCell, { flex: customColumns.length > 0 ? 2.2 : 3 }]}>
-              {t('orders.itemName')}
-            </Text>
-            <Text style={[styles.itemHeaderCell, { flex: 0.9, textAlign: 'center' }]}>
-              {t('orders.quantity')} ({defaultUnit})
-            </Text>
-
-            {customColumns.map((col) => (
-              <View key={col.id} style={[styles.customColHeader, { flex: 1 }]}>
-                <Text style={styles.itemHeaderCell} numberOfLines={1}>
-                  {col.name}
-                </Text>
-                <Pressable
-                  onPress={() => handleRemoveColumn(col.id)}
-                  hitSlop={6}
-                  style={styles.removeColBtn}
-                >
-                  <Ionicons name="close-circle" size={13} color={colors.inkSoft} />
-                </Pressable>
+              <Text style={styles.upgradeBannerText}>{upgradeNudge}</Text>
+              <View style={styles.upgradeBadge}>
+                <Text style={styles.upgradeBadgeText}>Upgrade</Text>
               </View>
-            ))}
+            </Pressable>
+          )}
 
-            <Text style={[styles.itemHeaderCell, { flex: 1.1, textAlign: 'right' }]}>
-              {t('orders.unitPrice')}
-            </Text>
-            <View style={{ width: 28 }} />
+          {/* ─── CARD 1: Customer Information ─── */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardHeaderIcon, { backgroundColor: '#E0F2FE' }]}>
+                <Ionicons name="person" size={18} color="#0284C7" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{t('orders.customerInfo', 'Customer Information')}</Text>
+                <Text style={styles.cardSubtitle}>Select existing customer or enter new buyer details</Text>
+              </View>
+              {allCustomers.length > 0 && (
+                <Pressable
+                  style={styles.browseCustomerBtn}
+                  onPress={() => {
+                    setCustomerSearch('');
+                    setShowCustomerPicker(true);
+                  }}
+                >
+                  <Ionicons name="people-outline" size={14} color={colors.clayDeep} />
+                  <Text style={styles.browseCustomerBtnText}>Browse</Text>
+                </Pressable>
+              )}
+            </View>
+
+            {/* Recent Customers Quick Chips */}
+            {recentCustomers.length > 0 && (
+              <View style={styles.recentCustSection}>
+                <Text style={styles.recentCustLabel}>Quick Fill:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recentCustRow}>
+                  {recentCustomers.map((c) => (
+                    <Pressable
+                      key={c.id}
+                      style={[
+                        styles.recentCustChip,
+                        customerName === c.name && styles.recentCustChipActive,
+                      ]}
+                      onPress={() => handleSelectCustomer(c)}
+                    >
+                      <Ionicons
+                        name="person-circle-outline"
+                        size={15}
+                        color={customerName === c.name ? colors.clayDeep : colors.inkSoft}
+                      />
+                      <Text
+                        style={[
+                          styles.recentCustChipText,
+                          customerName === c.name && styles.recentCustChipTextActive,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {c.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Customer Inputs */}
+            <View style={styles.formRow}>
+              <View style={[styles.inputGroup, { flex: 1.2 }]}>
+                <Text style={styles.inputLabel}>
+                  {t('orders.customerName', 'Customer Name')} <Text style={styles.requiredStar}>*</Text>
+                </Text>
+                <View style={styles.textInputBox}>
+                  <Ionicons name="person-outline" size={17} color={colors.inkSoft} style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.textInput}
+                    value={customerName}
+                    onChangeText={setCustomerName}
+                    placeholder="e.g. Ramesh Kumar / Store Name"
+                    placeholderTextColor={colors.inkSoft}
+                  />
+                  {customerName.length > 0 && (
+                    <Pressable onPress={() => setCustomerName('')} hitSlop={6}>
+                      <Ionicons name="close-circle" size={16} color={colors.inkSoft} />
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.inputLabel}>{t('orders.customerPhone', 'Phone Number')}</Text>
+                <View style={styles.textInputBox}>
+                  <Ionicons name="call-outline" size={17} color={colors.inkSoft} style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.textInput}
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    placeholder="10-digit mobile"
+                    placeholderTextColor={colors.inkSoft}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+              </View>
+            </View>
           </View>
 
-          {items.map((item) => {
-            const prodMatches =
-              item.name.trim().length > 0 &&
-              allProducts.filter((p) =>
-                p.name.toLowerCase().includes(item.name.toLowerCase().trim())
-              ).slice(0, 2);
+          {/* ─── CARD 2: Order Items (Revamped Item UI) ─── */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardHeaderIcon, { backgroundColor: '#FEF3C7' }]}>
+                <Ionicons name="cart" size={18} color="#D97706" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.cardTitle}>{t('orders.itemsAndProducts', 'Order Items')}</Text>
+                  <View style={styles.itemCountBadge}>
+                    <Text style={styles.itemCountBadgeText}>{items.length}</Text>
+                  </View>
+                </View>
+                <Text style={styles.cardSubtitle}>Add products, adjust quantity & rates</Text>
+              </View>
 
-            return (
-              <View key={item.id} style={styles.itemContainer}>
-                <View style={styles.itemRow}>
-                  <TextInput
-                    style={[styles.itemInput, { flex: customColumns.length > 0 ? 2.2 : 3 }]}
-                    value={item.name}
-                    onChangeText={(v) => updateItem(item.id, { name: v })}
-                    placeholder={t('orders.productNamePlaceholder')}
-                    placeholderTextColor={colors.inkSoft}
-                  />
-                  <TextInput
-                    style={[styles.itemInput, { flex: 0.9, textAlign: 'center' }]}
-                    value={item.qty === 0 ? '' : String(item.qty)}
-                    onChangeText={(v) => {
-                      const clean = v.replace(/^0+(?=\d)/, '');
-                      updateItem(item.id, { qty: clean === '' ? 0 : parseInt(clean, 10) || 0 });
+              {/* Action buttons in header */}
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                {allProducts.length > 0 && (
+                  <Pressable
+                    style={styles.catalogQuickBtn}
+                    onPress={() => {
+                      setCatalogSearch('');
+                      setShowCatalogModal(true);
                     }}
-                    placeholder="1"
-                    placeholderTextColor={colors.inkSoft}
-                    keyboardType="number-pad"
-                    selectTextOnFocus
-                  />
+                  >
+                    <Ionicons name="grid" size={13} color="#D97706" />
+                    <Text style={styles.catalogQuickBtnText}>Catalog</Text>
+                  </Pressable>
+                )}
+                <Pressable
+                  style={styles.addColumnBtn}
+                  onPress={() => setShowColumnModal(true)}
+                >
+                  <Ionicons name="add" size={14} color={colors.clayDeep} />
+                  <Text style={styles.addColumnBtnText}>+ Column</Text>
+                </Pressable>
+              </View>
+            </View>
 
-                  {customColumns.map((col) => {
-                    const val =
-                      item.customValues?.[col.id] ||
-                      (col.name.toLowerCase() === 'unit' && item.unit ? item.unit : '');
-                    return (
-                      <TextInput
-                        key={col.id}
-                        style={[styles.itemInput, { flex: 1, textAlign: 'center' }]}
-                        value={val}
-                        onChangeText={(v) => updateItemCustomValue(item.id, col.id, col.name, v)}
-                        placeholder={col.name}
-                        placeholderTextColor={colors.inkSoft}
+            {/* Custom columns active pill tags */}
+            {customColumns.length > 0 && (
+              <View style={styles.activeColumnsRow}>
+                <Text style={styles.activeColLabel}>Extra Fields:</Text>
+                {customColumns.map((col) => (
+                  <View key={col.id} style={styles.activeColTag}>
+                    <Text style={styles.activeColTagText}>{col.name}</Text>
+                    <Pressable onPress={() => handleRemoveColumn(col.id)} hitSlop={6}>
+                      <Ionicons name="close" size={12} color={colors.clayDeep} />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Items List (Cards) */}
+            <View style={styles.itemsListWrap}>
+              {items.map((item, index) => {
+                const itemSubtotal = (item.qty || 0) * (item.price || 0);
+                const isSuggesting = activeItemSuggestIndex === item.id;
+                const prodMatches =
+                  item.name.trim().length > 0 && isSuggesting
+                    ? allProducts
+                        .filter((p) => p.name.toLowerCase().includes(item.name.toLowerCase().trim()))
+                        .slice(0, 3)
+                    : [];
+
+                return (
+                  <View key={item.id} style={styles.itemCard}>
+                    {/* Item Card Top: Index, Name, Actions */}
+                    <View style={styles.itemCardTopRow}>
+                      <View style={styles.itemIndexPill}>
+                        <Text style={styles.itemIndexText}>#{index + 1}</Text>
+                      </View>
+
+                      <View style={{ flex: 1 }}>
+                        <TextInput
+                          style={styles.itemNameInput}
+                          value={item.name}
+                          onChangeText={(v) => {
+                            updateItem(item.id, { name: v });
+                            setActiveItemSuggestIndex(item.id);
+                          }}
+                          onFocus={() => setActiveItemSuggestIndex(item.id)}
+                          placeholder={t('orders.productNamePlaceholder', 'Type product name or service…')}
+                          placeholderTextColor={colors.inkSoft}
+                        />
+                      </View>
+
+                      <View style={styles.itemCardActions}>
+                        <Pressable
+                          style={styles.itemActionBtn}
+                          onPress={() => duplicateItem(item)}
+                          hitSlop={8}
+                          accessibilityLabel="Duplicate item"
+                        >
+                          <Ionicons name="copy-outline" size={16} color={colors.inkSoft} />
+                        </Pressable>
+                        <Pressable
+                          style={[styles.itemActionBtn, items.length <= 1 && { opacity: 0.4 }]}
+                          onPress={() => removeItem(item.id)}
+                          hitSlop={8}
+                          disabled={items.length <= 1 && !item.name && item.price === 0}
+                          accessibilityLabel="Delete item"
+                        >
+                          <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                        </Pressable>
+                      </View>
+                    </View>
+
+                    {/* Catalog suggestions dropdown when typing */}
+                    {prodMatches.length > 0 && (
+                      <View style={styles.prodSuggestBox}>
+                        <Text style={styles.prodSuggestHeading}>Matching Catalog Items:</Text>
+                        <View style={styles.prodSuggestList}>
+                          {prodMatches.map((p) => (
+                            <Pressable
+                              key={p.id}
+                              style={styles.prodSuggestItem}
+                              onPress={() => handleSelectProduct(item.id, p)}
+                            >
+                              <Ionicons name="pricetag" size={12} color="#D97706" />
+                              <Text style={styles.prodSuggestName}>{p.name}</Text>
+                              <Text style={styles.prodSuggestPrice}>{formatCurrency(p.defaultPrice)}</Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Item Card Bottom Row: Qty Stepper, Unit Price, Subtotal */}
+                    <View style={styles.itemCardBottomRow}>
+                      {/* Quantity Stepper */}
+                      <View style={styles.itemQtyControlWrap}>
+                        <Text style={styles.itemFieldMicroLabel}>
+                          {t('orders.quantity', 'Quantity')} ({item.unit || defaultUnit})
+                        </Text>
+                        <View style={styles.qtyStepperBox}>
+                          <Pressable
+                            style={styles.stepperBtn}
+                            onPress={() => {
+                              const next = Math.max(1, (item.qty || 1) - 1);
+                              updateItem(item.id, { qty: next });
+                            }}
+                          >
+                            <Ionicons name="remove" size={14} color={colors.ink} />
+                          </Pressable>
+                          <TextInput
+                            style={styles.qtyTextInput}
+                            value={item.qty === 0 ? '' : String(item.qty)}
+                            onChangeText={(v) => {
+                              const clean = v.replace(/^0+(?=\d)/, '');
+                              updateItem(item.id, { qty: clean === '' ? 0 : parseInt(clean, 10) || 0 });
+                            }}
+                            placeholder="1"
+                            placeholderTextColor={colors.inkSoft}
+                            keyboardType="number-pad"
+                            selectTextOnFocus
+                          />
+                          <Pressable
+                            style={[styles.stepperBtn, styles.stepperBtnAdd]}
+                            onPress={() => {
+                              const next = (item.qty || 0) + 1;
+                              updateItem(item.id, { qty: next });
+                            }}
+                          >
+                            <Ionicons name="add" size={14} color={colors.clayDeep} />
+                          </Pressable>
+                        </View>
+                      </View>
+
+                      {/* Unit Price */}
+                      <View style={styles.itemPriceInputWrap}>
+                        <Text style={styles.itemFieldMicroLabel}>{t('orders.unitPrice', 'Price (₹)')}</Text>
+                        <View style={styles.priceInputBox}>
+                          <Text style={styles.currencySymbol}>₹</Text>
+                          <TextInput
+                            style={styles.priceTextInput}
+                            value={item.price === 0 ? '' : String(item.price)}
+                            onChangeText={(v) => {
+                              const clean = v.replace(/^0+(?=\d)/, '');
+                              updateItem(item.id, { price: clean === '' ? 0 : parseFloat(clean) || 0 });
+                            }}
+                            placeholder="0"
+                            placeholderTextColor={colors.inkSoft}
+                            keyboardType="decimal-pad"
+                            selectTextOnFocus
+                          />
+                        </View>
+                      </View>
+
+                      {/* Item Total Subtotal */}
+                      <View style={styles.itemSubtotalWrap}>
+                        <Text style={styles.itemFieldMicroLabel}>Total</Text>
+                        <Text style={styles.itemSubtotalText}>{formatCurrency(itemSubtotal)}</Text>
+                      </View>
+                    </View>
+
+                    {/* Custom columns values row (if any added) */}
+                    {customColumns.length > 0 && (
+                      <View style={styles.customValuesWrap}>
+                        {customColumns.map((col) => {
+                          const val =
+                            item.customValues?.[col.id] ||
+                            (col.name.toLowerCase() === 'unit' && item.unit ? item.unit : '');
+                          return (
+                            <View key={col.id} style={styles.customFieldItem}>
+                              <Text style={styles.customFieldItemLabel}>{col.name}</Text>
+                              <TextInput
+                                style={styles.customFieldInput}
+                                value={val}
+                                onChangeText={(v) => updateItemCustomValue(item.id, col.id, col.name, v)}
+                                placeholder={col.name}
+                                placeholderTextColor={colors.inkSoft}
+                              />
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* Item Action Buttons */}
+            <View style={styles.itemActionButtonsRow}>
+              <Pressable style={styles.addCustomItemBtn} onPress={addItem}>
+                <Ionicons name="add-circle" size={18} color={colors.clayDeep} />
+                <Text style={styles.addCustomItemBtnText}>{t('orders.addAnotherItem', '+ Add Another Item')}</Text>
+              </Pressable>
+
+              {allProducts.length > 0 && (
+                <Pressable
+                  style={styles.addCatalogItemBtn}
+                  onPress={() => {
+                    setCatalogSearch('');
+                    setShowCatalogModal(true);
+                  }}
+                >
+                  <Ionicons name="bag-add-outline" size={17} color="#2563EB" />
+                  <Text style={styles.addCatalogItemBtnText}>+ From Catalog</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+
+          {/* ─── CARD 3: Dispatch & Fulfillment Details ─── */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardHeaderIcon, { backgroundColor: '#F3E8FF' }]}>
+                <Ionicons name="paper-plane" size={18} color="#9333EA" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{t('orders.dispatchDetails', 'Dispatch & Delivery')}</Text>
+                <Text style={styles.cardSubtitle}>Fulfillment method and shipment tracking</Text>
+              </View>
+            </View>
+
+            {/* Dispatch Method Pills */}
+            <View style={styles.fieldWrap}>
+              <Text style={styles.inputLabel}>{t('orders.dispatchMethod', 'Dispatch Method')}</Text>
+              <View style={styles.methodChipsRow}>
+                {DISPATCH_METHODS.map((m) => {
+                  const active = dispatchMethod === m.id;
+                  const label = t(m.labelKey, m.defaultLabel);
+                  return (
+                    <Pressable
+                      key={m.id}
+                      style={[styles.methodChip, active && styles.methodChipActive]}
+                      onPress={() => setDispatchMethod(m.id)}
+                    >
+                      <Ionicons
+                        name={m.icon as any}
+                        size={16}
+                        color={active ? colors.white : colors.inkSoft}
                       />
-                    );
-                  })}
+                      <Text style={[styles.methodChipText, active && styles.methodChipTextActive]}>
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
 
+            {/* Dispatch Date & Tracking */}
+            <View style={styles.formRow}>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.inputLabel}>{t('orders.dispatchDate', 'Dispatch Date')}</Text>
+                <View style={styles.textInputBox}>
+                  <Ionicons name="calendar-outline" size={17} color={colors.inkSoft} style={{ marginRight: 8 }} />
                   <TextInput
-                    style={[styles.itemInput, { flex: 1.1, textAlign: 'right' }]}
-                    value={item.price === 0 ? '' : String(item.price)}
-                    onChangeText={(v) => {
-                      const clean = v.replace(/^0+(?=\d)/, '');
-                      updateItem(item.id, { price: clean === '' ? 0 : parseFloat(clean) || 0 });
-                    }}
+                    style={styles.textInput}
+                    value={dispatchDate}
+                    onChangeText={setDispatchDate}
+                    placeholder="DD Mon YYYY / Notes"
+                    placeholderTextColor={colors.inkSoft}
+                  />
+                </View>
+                {/* Quick Date Presets */}
+                <View style={styles.quickDateRow}>
+                  <Pressable style={styles.quickDateBtn} onPress={() => setQuickDate(0)}>
+                    <Text style={styles.quickDateText}>Today</Text>
+                  </Pressable>
+                  <Pressable style={styles.quickDateBtn} onPress={() => setQuickDate(1)}>
+                    <Text style={styles.quickDateText}>Tomorrow</Text>
+                  </Pressable>
+                  <Pressable style={styles.quickDateBtn} onPress={() => setQuickDate(3)}>
+                    <Text style={styles.quickDateText}>+3 Days</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.inputLabel}>{t('orders.trackingNumber', 'Tracking Number')}</Text>
+                <View style={styles.textInputBox}>
+                  <Ionicons name="barcode-outline" size={17} color={colors.inkSoft} style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.textInput}
+                    value={trackingNumber}
+                    onChangeText={setTrackingNumber}
+                    placeholder="AWB / Docket number"
+                    placeholderTextColor={colors.inkSoft}
+                  />
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* ─── CARD 4: Payment & Financials ─── */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardHeaderIcon, { backgroundColor: '#DCFCE7' }]}>
+                <Ionicons name="wallet" size={18} color="#16A34A" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{t('orders.paymentDetails', 'Payment & Advance')}</Text>
+                <Text style={styles.cardSubtitle}>Payment mode, advance received & balance</Text>
+              </View>
+            </View>
+
+            {/* Payment Method Pills */}
+            <View style={styles.fieldWrap}>
+              <Text style={styles.inputLabel}>{t('orders.paymentMethod', 'Payment Mode')}</Text>
+              <View style={styles.methodChipsRow}>
+                {PAYMENT_METHODS.map((m) => {
+                  const active = paymentMethod === m.id;
+                  const label = t(m.labelKey, m.defaultLabel);
+                  return (
+                    <Pressable
+                      key={m.id}
+                      style={[styles.methodChip, active && styles.methodChipActive]}
+                      onPress={() => setPaymentMethod(m.id)}
+                    >
+                      <Ionicons
+                        name={m.icon as any}
+                        size={16}
+                        color={active ? colors.white : colors.inkSoft}
+                      />
+                      <Text style={[styles.methodChipText, active && styles.methodChipTextActive]}>
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Financial Ledger Calculation Summary */}
+            <View style={styles.financialSummaryCard}>
+              <View style={styles.financialRow}>
+                <Text style={styles.financialLabel}>{t('orders.totalBill', 'Total Bill Amount')}</Text>
+                <Text style={styles.financialTotalVal}>{formatCurrency(total)}</Text>
+              </View>
+
+              {/* Advance Input with Quick % Presets */}
+              <View style={styles.advanceInputSection}>
+                <View style={styles.advanceLabelRow}>
+                  <Text style={styles.inputLabel}>{t('orders.advanceReceived', 'Advance Received (₹)')}</Text>
+                  <View style={styles.quickAdvanceRow}>
+                    <Pressable style={styles.quickAdvancePill} onPress={() => handleQuickAdvance(0)}>
+                      <Text style={styles.quickAdvancePillText}>₹0</Text>
+                    </Pressable>
+                    <Pressable style={styles.quickAdvancePill} onPress={() => handleQuickAdvance(0.5)}>
+                      <Text style={styles.quickAdvancePillText}>50%</Text>
+                    </Pressable>
+                    <Pressable style={styles.quickAdvancePill} onPress={() => handleQuickAdvance(1)}>
+                      <Text style={styles.quickAdvancePillText}>Full</Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View style={styles.textInputBox}>
+                  <Text style={styles.currencySymbol}>₹</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={advance}
+                    onChangeText={(v) => setAdvance(v.replace(/^0+(?=\d)/, ''))}
                     placeholder="0"
                     placeholderTextColor={colors.inkSoft}
                     keyboardType="decimal-pad"
                     selectTextOnFocus
                   />
-                  <Pressable onPress={() => removeItem(item.id)} style={styles.removeBtn}>
-                    <Ionicons name="close-circle" size={20} color={colors.inkSoft} />
-                  </Pressable>
                 </View>
-
-                {prodMatches && prodMatches.length > 0 && item.price === 0 && (
-                  <View style={styles.prodSuggestionRow}>
-                    <Text style={styles.suggestionLabel}>{t('orders.catalogSuggestion')}</Text>
-                    {prodMatches.map((p) => (
-                      <Pressable
-                        key={p.id}
-                        style={styles.suggestionChip}
-                        onPress={() => handleSelectProduct(item.id, p)}
-                      >
-                        <Text style={styles.suggestionText}>
-                          {p.name} ({formatCurrency(p.defaultPrice)})
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-              </View>
-            );
-          })}
-
-          <View style={styles.itemTableActionsRow}>
-            <Pressable style={styles.addItemBtn} onPress={addItem}>
-              <Ionicons name="add-circle" size={18} color={colors.clayDeep} />
-              <Text style={styles.addItemText}>{t('orders.addAnotherItem')}</Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.addColSecondaryBtn}
-              onPress={() => setShowColumnModal(true)}
-            >
-              <Ionicons name="grid-outline" size={15} color={colors.clayDeep} />
-              <Text style={styles.addColSecondaryText}>+ {t('orders.addColumn')}</Text>
-            </Pressable>
-          </View>
-        </Section>
-
-        <Section title={t('orders.customerNote')} icon="document-text-outline">
-          <TextInput
-            style={[styles.input, styles.noteInput]}
-            value={customerNote}
-            onChangeText={setCustomerNote}
-            placeholder={t('orders.notePlaceholder')}
-            placeholderTextColor={colors.inkSoft}
-            multiline
-          />
-        </Section>
-
-        <Section title={t('orders.paymentSummary')} icon="wallet-outline">
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('orders.totalBill')}</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(total)}</Text>
-          </View>
-          <Field label={t('orders.advanceReceived')}>
-            <TextInput
-              style={styles.input}
-              value={advance}
-              onChangeText={(v) => setAdvance(v.replace(/^0+(?=\d)/, ''))}
-              placeholder="0"
-              placeholderTextColor={colors.inkSoft}
-              keyboardType="decimal-pad"
-              selectTextOnFocus
-            />
-          </Field>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('orders.balancePending')}</Text>
-            <Text style={[styles.summaryValue, balance > 0 && { color: colors.danger }]}>
-              {formatCurrency(balance)}
-            </Text>
-          </View>
-        </Section>
-
-        <Section title={t('orders.orderStatus')} icon="git-commit-outline">
-          <StatusTracker status={status} onChange={setStatus} />
-        </Section>
-
-        <Pressable
-          style={({ pressed }) => [styles.saveBtn, saving && { opacity: 0.6 }, pressed && { opacity: 0.85 }]}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          <Text style={styles.saveBtnText}>{saving ? t('orders.savingOrder') : t('orders.saveOrderBtn')}</Text>
-        </Pressable>
-      </ScrollView>
-
-      {/* ─── Add Column Modal ─── */}
-      <Modal
-        visible={showColumnModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowColumnModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.modalCenterWrap}
-          >
-            <View style={styles.modalCard}>
-              <View style={styles.modalHeader}>
-                <View style={styles.modalIconWrap}>
-                  <Ionicons name="grid-outline" size={20} color={colors.clayDeep} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.modalTitle}>{t('orders.addColumnTitle')}</Text>
-                  <Text style={styles.modalSub}>{t('orders.quickSuggestions')}</Text>
-                </View>
-                <Pressable
-                  onPress={() => setShowColumnModal(false)}
-                  style={styles.modalCloseBtn}
-                  hitSlop={8}
-                >
-                  <Ionicons name="close" size={20} color={colors.inkSoft} />
-                </Pressable>
               </View>
 
-              {/* Quick Presets Chips */}
-              <View style={styles.presetChipsContainer}>
-                {[
-                  { name: 'Unit', label: 'Unit / அலகு', icon: 'pricetag-outline' },
-                  { name: 'Size', label: 'Size / அளவு', icon: 'resize-outline' },
-                  { name: 'Color', label: 'Color / நிறம்', icon: 'color-palette-outline' },
-                  { name: 'Discount', label: 'Discount (₹)', icon: 'trending-down-outline' },
-                  { name: 'GST %', label: 'GST %', icon: 'calculator-outline' },
-                  { name: 'HSN', label: 'HSN Code', icon: 'barcode-outline' },
-                ].map((preset) => {
-                  const alreadyAdded = customColumns.some(
-                    (c) => c.name.toLowerCase() === preset.name.toLowerCase()
-                  );
+              {/* Balance Due Row */}
+              <View style={[styles.financialRow, styles.balanceRow]}>
+                <View>
+                  <Text style={styles.balanceLabel}>{t('orders.balancePending', 'Balance Due')}</Text>
+                  <Text style={styles.balanceSub}>
+                    {balance === 0 ? 'Fully paid ✓' : 'Due from customer'}
+                  </Text>
+                </View>
+                <View style={[styles.balanceBadge, balance === 0 ? styles.balanceBadgePaid : styles.balanceBadgeDue]}>
+                  <Text style={[styles.balanceBadgeText, balance === 0 ? styles.balanceTextPaid : styles.balanceTextDue]}>
+                    {formatCurrency(balance)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Payment Status Selector */}
+            <View style={styles.paymentStatusRow}>
+              <Text style={styles.inputLabel}>{t('orders.paymentStatus', 'Payment Status')}:</Text>
+              <View style={styles.statusChipsRow}>
+                {PAYMENT_STATUSES.map((st) => {
+                  const active = paymentStatus === st;
+                  const isPaid = st === 'Paid';
+                  const isPartial = st === 'Partial';
                   return (
                     <Pressable
-                      key={preset.name}
+                      key={st}
                       style={[
-                        styles.presetChip,
-                        alreadyAdded && styles.presetChipAdded,
+                        styles.paymentStatusChip,
+                        active && (isPaid ? styles.statusPaidActive : isPartial ? styles.statusPartialActive : styles.statusPendingActive),
                       ]}
-                      onPress={() => {
-                        if (!alreadyAdded) {
-                          handleAddColumn(preset.name);
-                        }
-                      }}
-                      disabled={alreadyAdded}
+                      onPress={() => setPaymentStatus(st)}
                     >
                       <Ionicons
-                        name={preset.icon as any}
+                        name={isPaid ? 'checkmark-circle' : isPartial ? 'hourglass-outline' : 'alert-circle-outline'}
                         size={14}
-                        color={alreadyAdded ? colors.clayDeep : colors.inkSoft}
-                        style={{ marginRight: 4 }}
+                        color={
+                          active
+                            ? colors.white
+                            : isPaid
+                            ? colors.success
+                            : isPartial
+                            ? colors.pending
+                            : colors.danger
+                        }
                       />
                       <Text
                         style={[
-                          styles.presetChipText,
-                          alreadyAdded && styles.presetChipTextAdded,
+                          styles.paymentStatusChipText,
+                          active && styles.paymentStatusChipTextActive,
                         ]}
                       >
-                        {preset.label}
+                        {st}
                       </Text>
-                      <Ionicons
-                        name={alreadyAdded ? 'checkmark-circle' : 'add'}
-                        size={14}
-                        color={alreadyAdded ? colors.clayDeep : colors.inkSoft}
-                        style={{ marginLeft: 4 }}
-                      />
                     </Pressable>
                   );
                 })}
               </View>
-
-              {/* Divider */}
-              <View style={styles.modalDivider}>
-                <View style={styles.modalDividerLine} />
-                <Text style={styles.modalDividerText}>{t('orders.customColumn')}</Text>
-                <View style={styles.modalDividerLine} />
-              </View>
-
-              {/* Custom Input */}
-              <View style={styles.modalInputGroup}>
-                <Text style={styles.modalInputLabel}>{t('orders.columnName')}</Text>
-                <View style={styles.modalInputWrap}>
-                  <TextInput
-                    style={styles.modalTextInput}
-                    value={newColumnName}
-                    onChangeText={setNewColumnName}
-                    placeholder={t('orders.columnNamePlaceholder')}
-                    placeholderTextColor={colors.inkSoft}
-                    autoFocus
-                  />
-                </View>
-              </View>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.modalSubmitBtn,
-                  !newColumnName.trim() && { opacity: 0.5 },
-                  pressed && { opacity: 0.85 },
-                ]}
-                onPress={() => handleAddColumn()}
-                disabled={!newColumnName.trim()}
-              >
-                <Ionicons name="add-circle-outline" size={18} color={colors.white} style={{ marginRight: 6 }} />
-                <Text style={styles.modalSubmitBtnText}>{t('orders.addColumn')}</Text>
-              </Pressable>
             </View>
-          </KeyboardAvoidingView>
+          </View>
+
+          {/* ─── CARD 5: Status & Remarks ─── */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardHeaderIcon, { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name="options" size={18} color="#DC2626" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{t('orders.orderStatus', 'Order Fulfillment Status')}</Text>
+                <Text style={styles.cardSubtitle}>Current production or delivery phase</Text>
+              </View>
+            </View>
+
+            <StatusTracker status={status} onChange={setStatus} />
+
+            <View style={[styles.inputGroup, { marginTop: 16 }]}>
+              <Text style={styles.inputLabel}>{t('orders.customerNote', 'Customer Note / Remarks')}</Text>
+              <View style={[styles.textInputBox, styles.noteInputBox]}>
+                <TextInput
+                  style={[styles.textInput, styles.noteTextInput]}
+                  value={customerNote}
+                  onChangeText={setCustomerNote}
+                  placeholder={t('orders.notePlaceholder', 'Special customizations, size details, packaging instructions…')}
+                  placeholderTextColor={colors.inkSoft}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Space for bottom sticky bar */}
+          <View style={{ height: 100 }} />
+        </ScrollView>
+
+        {/* ─── FLOATING / STICKY BOTTOM ACTION BAR ─── */}
+        <View style={styles.stickyBottomBar}>
+          <View style={styles.stickyBottomContent}>
+            <View style={styles.stickyTotalInfo}>
+              <Text style={styles.stickyTotalLabel}>
+                {t('common.total', 'Total')}: <Text style={styles.stickyTotalCount}>({totalItemCount} items)</Text>
+              </Text>
+              <Text style={styles.stickyTotalAmount}>{formatCurrency(total)}</Text>
+              {balance > 0 && (
+                <Text style={styles.stickyBalancePending}>
+                  {t('orders.balancePending', 'Due')}: {formatCurrency(balance)}
+                </Text>
+              )}
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.saveOrderButton,
+                saving && { opacity: 0.6 },
+                pressed && { transform: [{ scale: 0.98 }] },
+              ]}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              <Ionicons
+                name={saving ? 'hourglass-outline' : 'checkmark-circle'}
+                size={20}
+                color={colors.white}
+              />
+              <Text style={styles.saveOrderButtonText}>
+                {saving
+                  ? t('orders.savingOrder', 'Saving Order…')
+                  : isEditing
+                  ? t('orders.updateOrderBtn', 'Update Order')
+                  : t('orders.saveOrderBtn', 'Create Order')}
+              </Text>
+            </Pressable>
+          </View>
         </View>
-      </Modal>
-    </KeyboardAvoidingView>
+
+        {/* ─── MODAL 1: Product Catalog Quick Picker ─── */}
+        <Modal
+          visible={showCatalogModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowCatalogModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheetContainer}>
+              <View style={styles.modalSheetHeader}>
+                <View style={styles.modalSheetTitleWrap}>
+                  <Ionicons name="grid" size={20} color="#D97706" />
+                  <Text style={styles.modalSheetTitle}>Select Product from Catalog</Text>
+                </View>
+                <Pressable
+                  onPress={() => setShowCatalogModal(false)}
+                  style={styles.modalCloseBtn}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close" size={22} color={colors.inkSoft} />
+                </Pressable>
+              </View>
+
+              {/* Search Bar */}
+              <View style={styles.modalSearchBox}>
+                <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
+                <TextInput
+                  style={styles.modalSearchInput}
+                  value={catalogSearch}
+                  onChangeText={setCatalogSearch}
+                  placeholder="Search products by name or barcode…"
+                  placeholderTextColor={colors.inkSoft}
+                  autoFocus
+                />
+                {catalogSearch.length > 0 && (
+                  <Pressable onPress={() => setCatalogSearch('')} hitSlop={6}>
+                    <Ionicons name="close-circle" size={16} color={colors.inkSoft} />
+                  </Pressable>
+                )}
+              </View>
+
+              {/* Product List */}
+              <FlatList
+                data={filteredProducts}
+                keyExtractor={(p) => p.id}
+                contentContainerStyle={{ paddingVertical: 8 }}
+                ListEmptyComponent={
+                  <View style={styles.emptyListState}>
+                    <Ionicons name="cube-outline" size={36} color={colors.inkSoft} />
+                    <Text style={styles.emptyListText}>No catalog products found</Text>
+                  </View>
+                }
+                renderItem={({ item: p }) => (
+                  <Pressable
+                    style={styles.catalogListItem}
+                    onPress={() => handleAddCatalogProductDirectly(p)}
+                  >
+                    <View style={styles.catalogItemIcon}>
+                      <Ionicons name="pricetag-outline" size={18} color={colors.clayDeep} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.catalogItemName}>{p.name}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                        {p.unit ? <Text style={styles.catalogItemUnit}>{p.unit}</Text> : null}
+                        {p.stockQty !== undefined && (
+                          <Text style={styles.catalogItemStock}>Stock: {p.stockQty}</Text>
+                        )}
+                      </View>
+                    </View>
+                    <View style={styles.catalogItemPriceWrap}>
+                      <Text style={styles.catalogItemPrice}>{formatCurrency(p.defaultPrice)}</Text>
+                      <View style={styles.catalogItemAddBtn}>
+                        <Ionicons name="add" size={16} color={colors.white} />
+                      </View>
+                    </View>
+                  </Pressable>
+                )}
+              />
+            </View>
+          </View>
+        </Modal>
+
+        {/* ─── MODAL 2: Customer Quick Picker ─── */}
+        <Modal
+          visible={showCustomerPicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowCustomerPicker(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheetContainer}>
+              <View style={styles.modalSheetHeader}>
+                <View style={styles.modalSheetTitleWrap}>
+                  <Ionicons name="people" size={20} color="#0284C7" />
+                  <Text style={styles.modalSheetTitle}>Select Existing Customer</Text>
+                </View>
+                <Pressable
+                  onPress={() => setShowCustomerPicker(false)}
+                  style={styles.modalCloseBtn}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close" size={22} color={colors.inkSoft} />
+                </Pressable>
+              </View>
+
+              {/* Search Bar */}
+              <View style={styles.modalSearchBox}>
+                <Ionicons name="search" size={18} color={colors.inkSoft} style={{ marginRight: 8 }} />
+                <TextInput
+                  style={styles.modalSearchInput}
+                  value={customerSearch}
+                  onChangeText={setCustomerSearch}
+                  placeholder="Search by customer name or phone…"
+                  placeholderTextColor={colors.inkSoft}
+                  autoFocus
+                />
+                {customerSearch.length > 0 && (
+                  <Pressable onPress={() => setCustomerSearch('')} hitSlop={6}>
+                    <Ionicons name="close-circle" size={16} color={colors.inkSoft} />
+                  </Pressable>
+                )}
+              </View>
+
+              {/* Customer List */}
+              <FlatList
+                data={filteredCustomers}
+                keyExtractor={(c) => c.id}
+                contentContainerStyle={{ paddingVertical: 8 }}
+                ListEmptyComponent={
+                  <View style={styles.emptyListState}>
+                    <Ionicons name="person-outline" size={36} color={colors.inkSoft} />
+                    <Text style={styles.emptyListText}>No customers found</Text>
+                  </View>
+                }
+                renderItem={({ item: c }) => (
+                  <Pressable
+                    style={styles.customerListItem}
+                    onPress={() => handleSelectCustomer(c)}
+                  >
+                    <View style={styles.customerAvatar}>
+                      <Text style={styles.customerAvatarText}>{c.name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.customerItemName}>{c.name}</Text>
+                      {c.phone ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                          <Ionicons name="call-outline" size={12} color={colors.inkSoft} />
+                          <Text style={styles.customerItemPhone}>{c.phone}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.inkSoft} />
+                  </Pressable>
+                )}
+              />
+            </View>
+          </View>
+        </Modal>
+
+        {/* ─── MODAL 3: Add Custom Column ─── */}
+        <Modal
+          visible={showColumnModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowColumnModal(false)}
+        >
+          <View style={styles.modalOverlayCenter}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              style={styles.modalCenterWrap}
+            >
+              <View style={styles.modalCard}>
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalIconWrap}>
+                    <Ionicons name="grid-outline" size={20} color={colors.clayDeep} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.modalTitle}>{t('orders.addColumnTitle', 'Add Table Column')}</Text>
+                    <Text style={styles.modalSub}>{t('orders.quickSuggestions', 'Quick attributes for items')}</Text>
+                  </View>
+                  <Pressable
+                    onPress={() => setShowColumnModal(false)}
+                    style={styles.modalCloseBtn}
+                    hitSlop={8}
+                  >
+                    <Ionicons name="close" size={20} color={colors.inkSoft} />
+                  </Pressable>
+                </View>
+
+                {/* Quick Presets Chips */}
+                <View style={styles.presetChipsContainer}>
+                  {[
+                    { name: 'Unit', label: 'Unit / அலகு', icon: 'pricetag-outline' },
+                    { name: 'Size', label: 'Size / அளவு', icon: 'resize-outline' },
+                    { name: 'Color', label: 'Color / நிறம்', icon: 'color-palette-outline' },
+                    { name: 'Discount', label: 'Discount (₹)', icon: 'trending-down-outline' },
+                    { name: 'GST %', label: 'GST %', icon: 'calculator-outline' },
+                    { name: 'HSN', label: 'HSN Code', icon: 'barcode-outline' },
+                  ].map((preset) => {
+                    const alreadyAdded = customColumns.some(
+                      (c) => c.name.toLowerCase() === preset.name.toLowerCase()
+                    );
+                    return (
+                      <Pressable
+                        key={preset.name}
+                        style={[
+                          styles.presetChip,
+                          alreadyAdded && styles.presetChipAdded,
+                        ]}
+                        onPress={() => {
+                          if (!alreadyAdded) {
+                            handleAddColumn(preset.name);
+                          }
+                        }}
+                        disabled={alreadyAdded}
+                      >
+                        <Ionicons
+                          name={preset.icon as any}
+                          size={14}
+                          color={alreadyAdded ? colors.clayDeep : colors.inkSoft}
+                          style={{ marginRight: 4 }}
+                        />
+                        <Text
+                          style={[
+                            styles.presetChipText,
+                            alreadyAdded && styles.presetChipTextAdded,
+                          ]}
+                        >
+                          {preset.label}
+                        </Text>
+                        <Ionicons
+                          name={alreadyAdded ? 'checkmark-circle' : 'add'}
+                          size={14}
+                          color={alreadyAdded ? colors.clayDeep : colors.inkSoft}
+                          style={{ marginLeft: 4 }}
+                        />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {/* Divider */}
+                <View style={styles.modalDivider}>
+                  <View style={styles.modalDividerLine} />
+                  <Text style={styles.modalDividerText}>{t('orders.customColumn', 'Custom Attribute')}</Text>
+                  <View style={styles.modalDividerLine} />
+                </View>
+
+                {/* Custom Input */}
+                <View style={styles.modalInputGroup}>
+                  <Text style={styles.modalInputLabel}>{t('orders.columnName', 'Attribute Name')}</Text>
+                  <View style={styles.modalInputWrap}>
+                    <TextInput
+                      style={styles.modalTextInput}
+                      value={newColumnName}
+                      onChangeText={setNewColumnName}
+                      placeholder={t('orders.columnNamePlaceholder', 'e.g. Fabric, Weight, Warranty')}
+                      placeholderTextColor={colors.inkSoft}
+                      autoFocus
+                    />
+                  </View>
+                </View>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.modalSubmitBtn,
+                    !newColumnName.trim() && { opacity: 0.5 },
+                    pressed && { opacity: 0.85 },
+                  ]}
+                  onPress={() => handleAddColumn()}
+                  disabled={!newColumnName.trim()}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color={colors.white} style={{ marginRight: 6 }} />
+                  <Text style={styles.modalSubmitBtnText}>{t('orders.addColumn', 'Add Column')}</Text>
+                </Pressable>
+              </View>
+            </KeyboardAvoidingView>
+          </View>
+        </Modal>
+      </KeyboardAvoidingView>
     </SafeAreaView>
-  );
-}
-
-function Section({
-  title,
-  icon,
-  rightAction,
-  children,
-}: {
-  title: string;
-  icon?: string;
-  rightAction?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeaderRow}>
-        {icon && <Ionicons name={icon as any} size={18} color={colors.clayDeep} />}
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {rightAction}
-      </View>
-      {children}
-    </View>
-  );
-}
-
-function Row({ children }: { children: React.ReactNode }) {
-  return <View style={styles.row}>{children}</View>;
-}
-
-function Field({
-  label,
-  children,
-  flex,
-}: {
-  label: string;
-  children: React.ReactNode;
-  flex?: number;
-}) {
-  return (
-    <View style={[styles.field, flex ? { flex } : null]}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {children}
-    </View>
-  );
-}
-
-function ChipRow({
-  options,
-  value,
-  onChange,
-  getLabel,
-}: {
-  options: string[];
-  value: string;
-  onChange: (opt: string) => void;
-  getLabel?: (opt: string) => string;
-}) {
-  return (
-    <View style={styles.chipRow}>
-      {options.map((opt) => {
-        const active = opt === value;
-        const label = getLabel ? getLabel(opt) : opt;
-        return (
-          <Pressable
-            key={opt}
-            style={[styles.chip, active && styles.chipActive]}
-            onPress={() => onChange(opt)}
-          >
-            <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.paper },
-  content: {
-    padding: 20,
-    paddingBottom: 60,
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
     width: '100%',
-    maxWidth: 860,
+    maxWidth: 820,
     alignSelf: 'center',
   },
-  topHeaderRow: {
+
+  // ── Top Header ──
+  topHeaderContainer: {
+    paddingHorizontal: 16,
+    paddingTop: Platform.select({ web: 10, default: 8 }),
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    backgroundColor: colors.paperCard,
+  },
+  topHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 16,
-    paddingTop: Platform.select({ web: 6, default: 4 }),
+    maxWidth: 820,
+    alignSelf: 'center',
+    width: '100%',
   },
   topHeaderTitleWrap: {
     flex: 1,
   },
   topHeaderTitle: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: 20,
     color: colors.ink,
-    lineHeight: 26,
+    lineHeight: 24,
   },
-  topHeaderSub: {
+  topHeaderMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
+  orderNumberBadge: {
+    backgroundColor: colors.clayLight,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
+  orderNumberText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.clayDeep,
+  },
+  orderDateText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+  },
+
+  // ── Upgrade Banner ──
+  upgradeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    padding: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    marginBottom: 16,
+  },
+  upgradeBannerText: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: '#92400E',
+    lineHeight: 18,
+  },
+  upgradeBadge: {
+    backgroundColor: '#CA8A04',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+  },
+  upgradeBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.white,
+  },
+
+  // ── Card Styles ──
+  card: {
+    backgroundColor: colors.paperCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 16,
+    marginBottom: 16,
+    ...shadow.card,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  cardHeaderIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitle: {
+    fontFamily: fonts.display,
+    fontSize: 17,
+    color: colors.ink,
+  },
+  cardSubtitle: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.inkSoft,
     marginTop: 1,
   },
-  section: {
-    backgroundColor: colors.paperCard,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: 16,
-    marginBottom: 14,
-    ...shadow.card,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontFamily: fonts.display,
-    fontSize: 22,
-    color: colors.clayDeep,
-  },
-  row: { flexDirection: 'row', gap: 12 },
-  field: { marginBottom: 12 },
-  fieldLabel: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    color: colors.inkSoft,
-    marginBottom: 4,
-  },
-  input: {
-    fontFamily: fonts.body,
-    fontSize: 15,
-    color: colors.ink,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    borderStyle: 'dashed' as any,
-    paddingVertical: 6,
-  },
-  suggestionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: -4,
-    marginBottom: 10,
-  },
-  suggestionLabel: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.inkSoft,
-  },
-  suggestionChip: {
-    backgroundColor: colors.clayLight,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-  },
-  suggestionText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    color: colors.clayDeep,
-  },
-  noteInput: {
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: colors.paper,
-  },
-  chipActive: {
-    backgroundColor: colors.clayDeep,
-    borderColor: colors.clayDeep,
-  },
-  chipText: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.ink,
-  },
-  chipTextActive: {
-    color: colors.white,
-    fontFamily: fonts.bodyBold,
-  },
-  itemContainer: {
-    marginBottom: 8,
-  },
-  itemHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    gap: 4,
-  },
-  itemHeaderCell: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    color: colors.inkSoft,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  itemInput: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.ink,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    borderStyle: 'dashed' as any,
-    paddingVertical: 6,
-    paddingHorizontal: 2,
-    minWidth: 0,
-  },
-  removeBtn: { width: 28, alignItems: 'center', justifyContent: 'center' },
-  prodSuggestionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-    marginLeft: 2,
-  },
-  addItemBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: 10,
-    gap: 6,
-    backgroundColor: colors.paper,
-    borderWidth: 1,
-    borderColor: colors.line,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radius.sm,
-  },
-  addItemText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    color: colors.clayDeep,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 6,
-  },
-  summaryLabel: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    color: colors.ink,
-  },
-  summaryValue: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    color: colors.ink,
-  },
-  saveBtn: {
-    backgroundColor: colors.clayDeep,
-    borderRadius: radius.md,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-    ...shadow.card,
-  },
-  saveBtnText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    color: colors.white,
-  },
 
-  // ── Custom Columns UI ──
-  addColumnHeaderBtn: {
+  // ── Customer Card UI ──
+  browseCustomerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: colors.clayLight,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: radius.sm,
+    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.clayDeep,
   },
-  addColumnHeaderBtnText: {
+  browseCustomerBtnText: {
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     color: colors.clayDeep,
   },
-  customColHeader: {
+  recentCustSection: {
+    marginBottom: 12,
+  },
+  recentCustLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.inkSoft,
+    marginBottom: 6,
+  },
+  recentCustRow: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingBottom: 2,
+  },
+  recentCustChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
+    gap: 5,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
   },
-  removeColBtn: {
-    padding: 2,
-    marginLeft: 2,
+  recentCustChipActive: {
+    backgroundColor: colors.clayLight,
+    borderColor: colors.clayDeep,
   },
-  itemTableActionsRow: {
+  recentCustChipText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.ink,
+    maxWidth: 130,
+  },
+  recentCustChipTextActive: {
+    color: colors.clayDeep,
+    fontFamily: fonts.bodyBold,
+  },
+
+  // ── Generic Inputs ──
+  formRow: {
+    flexDirection: Platform.select({ web: 'row', default: 'column' }),
+    gap: 12,
+  },
+  inputGroup: {
+    marginBottom: 12,
+  },
+  fieldWrap: {
+    marginBottom: 14,
+  },
+  inputLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginBottom: 6,
+  },
+  requiredStar: {
+    color: colors.danger,
+    fontFamily: fonts.bodyBold,
+  },
+  textInputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.select({ ios: 10, default: 8 }),
+  },
+  textInput: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.ink,
+    padding: 0,
+  },
+  noteInputBox: {
+    alignItems: 'flex-start',
+    paddingVertical: 10,
+    minHeight: 80,
+  },
+  noteTextInput: {
+    textAlignVertical: 'top',
+  },
+
+  // ── Items Revamped Section ──
+  itemCountBadge: {
+    backgroundColor: colors.clayLight,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.pill,
+  },
+  itemCountBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.clayDeep,
+  },
+  catalogQuickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  catalogQuickBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: '#D97706',
+  },
+  addColumnBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.clayLight,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.clayDeep,
+  },
+  addColumnBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.clayDeep,
+  },
+  activeColumnsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  activeColLabel: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  activeColTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.clayLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+  },
+  activeColTagText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.clayDeep,
+  },
+
+  // ── Individual Item Card ──
+  itemsListWrap: {
+    gap: 12,
+  },
+  itemCard: {
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    padding: 12,
+  },
+  itemCardTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 10,
+    marginBottom: 10,
   },
-  addColSecondaryBtn: {
+  itemIndexPill: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemIndexText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  itemNameInput: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    color: colors.ink,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  itemCardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  itemActionBtn: {
+    padding: 6,
+    borderRadius: radius.sm,
+  },
+
+  // ── Catalog typing suggestion box ──
+  prodSuggestBox: {
+    backgroundColor: '#FFFDF5',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: radius.sm,
+    padding: 8,
+    marginBottom: 10,
+  },
+  prodSuggestHeading: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  prodSuggestList: {
+    gap: 4,
+  },
+  prodSuggestItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: radius.sm,
+  },
+  prodSuggestName: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  prodSuggestPrice: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: '#D97706',
+  },
+
+  // ── Item Card Bottom Row (Qty, Price, Total) ──
+  itemCardBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  itemFieldMicroLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    color: colors.inkSoft,
+    marginBottom: 4,
+  },
+  itemQtyControlWrap: {
+    flex: 1.1,
+  },
+  qtyStepperBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+  },
+  stepperBtn: {
+    width: 32,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.paper,
+  },
+  stepperBtnAdd: {
+    backgroundColor: colors.clayLight,
+  },
+  qtyTextInput: {
+    flex: 1,
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.ink,
+    textAlign: 'center',
+    paddingVertical: 6,
+  },
+  itemPriceInputWrap: {
+    flex: 1,
+  },
+  priceInputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    paddingHorizontal: 8,
+    height: 36,
+  },
+  currencySymbol: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.inkSoft,
+    marginRight: 4,
+  },
+  priceTextInput: {
+    flex: 1,
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.ink,
+    padding: 0,
+  },
+  itemSubtotalWrap: {
+    flex: 0.9,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    height: 36,
+    paddingRight: 4,
+  },
+  itemSubtotalText: {
+    fontFamily: fonts.display,
+    fontSize: 15,
+    color: colors.clayDeep,
+  },
+
+  // ── Custom Values Row inside Item Card ──
+  customValuesWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+  },
+  customFieldItem: {
+    flex: 1,
+    minWidth: 90,
+  },
+  customFieldItemLabel: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.inkSoft,
+    marginBottom: 2,
+  },
+  customFieldInput: {
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.ink,
+  },
+
+  // ── Item Action Buttons ──
+  itemActionButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  addCustomItemBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.clayDeep,
+    borderRadius: radius.md,
+    paddingVertical: 12,
+  },
+  addCustomItemBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.clayDeep,
+  },
+  addCatalogItemBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#93C5FD',
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  addCatalogItemBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: '#1D4ED8',
+  },
+
+  // ── Dispatch & Method Chips ──
+  methodChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  methodChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
-    borderStyle: 'dashed' as any,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: radius.sm,
+    borderRadius: radius.pill,
   },
-  addColSecondaryText: {
+  methodChipActive: {
+    backgroundColor: colors.clayDeep,
+    borderColor: colors.clayDeep,
+  },
+  methodChipText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
-    color: colors.clayDeep,
+    color: colors.ink,
+  },
+  methodChipTextActive: {
+    color: colors.white,
+    fontFamily: fonts.bodyBold,
+  },
+  quickDateRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 6,
+  },
+  quickDateBtn: {
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+  },
+  quickDateText: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
   },
 
-  // ── Add Column Modal ──
+  // ── Financial Ledger Card ──
+  financialSummaryCard: {
+    backgroundColor: colors.paper,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 14,
+    marginBottom: 14,
+  },
+  financialRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  financialLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  financialTotalVal: {
+    fontFamily: fonts.display,
+    fontSize: 20,
+    color: colors.ink,
+  },
+  advanceInputSection: {
+    marginBottom: 12,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.line,
+  },
+  advanceLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  quickAdvanceRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  quickAdvancePill: {
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
+  quickAdvancePillText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    color: colors.clayDeep,
+  },
+  balanceRow: {
+    marginBottom: 0,
+  },
+  balanceLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  balanceSub: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
+  balanceBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+  },
+  balanceBadgePaid: {
+    backgroundColor: colors.successLight,
+  },
+  balanceBadgeDue: {
+    backgroundColor: colors.dangerLight,
+  },
+  balanceBadgeText: {
+    fontFamily: fonts.display,
+    fontSize: 16,
+  },
+  balanceTextPaid: {
+    color: colors.success,
+  },
+  balanceTextDue: {
+    color: colors.danger,
+  },
+
+  // ── Payment Status ──
+  paymentStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  statusChipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  paymentStatusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+  },
+  statusPaidActive: {
+    backgroundColor: colors.success,
+    borderColor: colors.success,
+  },
+  statusPartialActive: {
+    backgroundColor: colors.pending,
+    borderColor: colors.pending,
+  },
+  statusPendingActive: {
+    backgroundColor: colors.danger,
+    borderColor: colors.danger,
+  },
+  paymentStatusChipText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  paymentStatusChipTextActive: {
+    color: colors.white,
+    fontFamily: fonts.bodyBold,
+  },
+
+  // ── Sticky Bottom Action Bar ──
+  stickyBottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.paperCard,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    ...shadow.card,
+  },
+  stickyBottomContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    maxWidth: 820,
+    alignSelf: 'center',
+    width: '100%',
+    gap: 16,
+  },
+  stickyTotalInfo: {
+    flex: 1,
+  },
+  stickyTotalLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  stickyTotalCount: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  stickyTotalAmount: {
+    fontFamily: fonts.display,
+    fontSize: 20,
+    color: colors.ink,
+    lineHeight: 24,
+  },
+  stickyBalancePending: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.danger,
+    marginTop: 1,
+  },
+  saveOrderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.clayDeep,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    minWidth: 160,
+    ...shadow.card,
+  },
+  saveOrderButtonText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+    color: colors.white,
+  },
+
+  // ── Modals & Sheets ──
   modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalOverlayCenter: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
+  modalSheetContainer: {
+    backgroundColor: colors.paperCard,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    padding: 20,
+    maxHeight: '80%',
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  modalSheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  modalSheetTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalSheetTitle: {
+    fontFamily: fonts.display,
+    fontSize: 18,
+    color: colors.ink,
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  modalSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
+  },
+  modalSearchInput: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.ink,
+    padding: 0,
+  },
+  emptyListState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 8,
+  },
+  emptyListText: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.inkSoft,
+  },
+
+  // ── Catalog Modal Items ──
+  catalogListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  catalogItemIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: colors.clayLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  catalogItemName: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  catalogItemUnit: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+    backgroundColor: colors.paper,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.sm,
+  },
+  catalogItemStock: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: '#059669',
+  },
+  catalogItemPriceWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  catalogItemPrice: {
+    fontFamily: fonts.display,
+    fontSize: 15,
+    color: colors.ink,
+  },
+  catalogItemAddBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.pill,
+    backgroundColor: colors.clayDeep,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // ── Customer Modal Items ──
+  customerListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  customerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.pill,
+    backgroundColor: colors.duskLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customerAvatarText: {
+    fontFamily: fonts.display,
+    fontSize: 15,
+    color: colors.duskDeep,
+  },
+  customerItemName: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  customerItemPhone: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+  },
+
+  // ── Add Column Modal Center ──
   modalCenterWrap: {
     width: '100%',
     maxWidth: 440,
@@ -1169,9 +2414,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.inkSoft,
     marginTop: 1,
-  },
-  modalCloseBtn: {
-    padding: 4,
   },
   presetChipsContainer: {
     flexDirection: 'row',

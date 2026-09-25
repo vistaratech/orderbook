@@ -316,10 +316,6 @@ export function generatePrintableInvoiceHtml(
     return generateThermalPosHtml(order, business, cfg);
   }
 
-  if (templateId === 'gst_tax_invoice') {
-    return generateGstTaxInvoiceHtml(order, business, cfg);
-  }
-
   return generateStandardInvoiceHtml(order, business, cfg);
 }
 
@@ -512,18 +508,18 @@ function generateStandardInvoiceHtml(
     }
     .tagline {
       font-size: 11px;
-      color: #64748B;
+      color: ${cfg.headerTextColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.85)' : '#64748B'};
       margin: 0 0 4px 0;
     }
     .address-line {
       font-size: 10.5px;
-      color: #334155;
+      color: ${cfg.headerTextColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.9)' : '#334155'};
       margin: 0 0 3px 0;
       line-height: 1.35;
     }
     .contacts-row {
       font-size: 10.5px;
-      color: #334155;
+      color: ${cfg.headerTextColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.9)' : '#334155'};
       margin: 2px 0 0 0;
       display: flex;
       gap: 10px;
@@ -531,7 +527,7 @@ function generateStandardInvoiceHtml(
     }
     .gstin-tag {
       font-weight: 700;
-      color: ${cfg.primaryColor};
+      color: ${cfg.headerTextColor === '#FFFFFF' ? '#FFFFFF' : cfg.primaryColor};
     }
     .header-right {
       display: flex;
@@ -554,7 +550,7 @@ function generateStandardInvoiceHtml(
     }
     .meta-text {
       font-size: 10.5px;
-      color: #1E293B;
+      color: ${cfg.headerTextColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.95)' : '#1E293B'};
       margin: 1px 0;
       text-align: right;
     }
@@ -1152,265 +1148,10 @@ function generateGstTaxInvoiceHtml(
   business: BusinessProfile | undefined,
   cfg: InvoiceTemplateConfig
 ): string {
-  const total = orderTotal(order);
-  const balance = orderBalance(order);
-  const businessName = business?.businessName || business?.name || DEFAULT_BUSINESS_NAME;
-  const isPaid = balance <= 0;
-  const isInterState = order.isInterState || false;
-
-  let totalTaxableValue = 0;
-  let totalCgst = 0;
-  let totalSgst = 0;
-  let totalIgst = 0;
-
-  // Group items for HSN Tax breakdown table
-  const hsnMap: Record<
-    string,
-    { hsn: string; taxable: number; rate: number; cgst: number; sgst: number; igst: number }
-  > = {};
-
-  const itemRowsHtml = order.items
-    .map((item, idx) => {
-      const itemSub = item.qty * item.price;
-      const itemDisc = item.discount || 0;
-      const taxable = Math.max(0, itemSub - itemDisc);
-      const rate = item.taxRate || 0;
-      const taxAmt = (taxable * rate) / 100;
-      const hsn = item.hsnCode || 'N/A';
-
-      totalTaxableValue += taxable;
-
-      if (isInterState) {
-        totalIgst += taxAmt;
-      } else {
-        totalCgst += taxAmt / 2;
-        totalSgst += taxAmt / 2;
-      }
-
-      if (!hsnMap[hsn]) {
-        hsnMap[hsn] = {
-          hsn,
-          taxable: 0,
-          rate,
-          cgst: 0,
-          sgst: 0,
-          igst: 0,
-        };
-      }
-      hsnMap[hsn].taxable += taxable;
-      if (isInterState) {
-        hsnMap[hsn].igst += taxAmt;
-      } else {
-        hsnMap[hsn].cgst += taxAmt / 2;
-        hsnMap[hsn].sgst += taxAmt / 2;
-      }
-
-      return `
-    <tr>
-      <td style="border: 1px solid #000; padding: 6px; text-align: center; font-size: 11px;">${idx + 1}</td>
-      <td style="border: 1px solid #000; padding: 6px; font-weight: 700; font-size: 12px;">${item.name || 'Item'}</td>
-      <td style="border: 1px solid #000; padding: 6px; text-align: center; font-size: 11px;">${item.hsnCode || '-'}</td>
-      <td style="border: 1px solid #000; padding: 6px; text-align: center; font-size: 11px;">${item.qty} ${item.unit || 'pcs'}</td>
-      <td style="border: 1px solid #000; padding: 6px; text-align: right; font-size: 11px;">${formatCurrency(item.price)}</td>
-      <td style="border: 1px solid #000; padding: 6px; text-align: right; font-size: 11px;">${formatCurrency(taxable)}</td>
-      <td style="border: 1px solid #000; padding: 6px; text-align: center; font-size: 11px;">${rate}%</td>
-      <td style="border: 1px solid #000; padding: 6px; text-align: right; font-weight: 700; font-size: 11px;">${formatCurrency(
-        taxable + taxAmt
-      )}</td>
-    </tr>`;
-    })
-    .join('');
-
-  const hsnRowsHtml = Object.values(hsnMap)
-    .map(
-      (h) => `
-    <tr>
-      <td style="border: 1px solid #000; padding: 4px; text-align: center; font-size: 10px;">${h.hsn}</td>
-      <td style="border: 1px solid #000; padding: 4px; text-align: right; font-size: 10px;">${formatCurrency(h.taxable)}</td>
-      ${
-        isInterState
-          ? `<td style="border: 1px solid #000; padding: 4px; text-align: center; font-size: 10px;">${h.rate}%</td>
-             <td style="border: 1px solid #000; padding: 4px; text-align: right; font-size: 10px;">${formatCurrency(h.igst)}</td>`
-          : `<td style="border: 1px solid #000; padding: 4px; text-align: center; font-size: 10px;">${h.rate / 2}%</td>
-             <td style="border: 1px solid #000; padding: 4px; text-align: right; font-size: 10px;">${formatCurrency(h.cgst)}</td>
-             <td style="border: 1px solid #000; padding: 4px; text-align: center; font-size: 10px;">${h.rate / 2}%</td>
-             <td style="border: 1px solid #000; padding: 4px; text-align: right; font-size: 10px;">${formatCurrency(h.sgst)}</td>`
-      }
-      <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: 700; font-size: 10px;">${formatCurrency(
-        h.cgst + h.sgst + h.igst
-      )}</td>
-    </tr>`
-    )
-    .join('');
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GST Tax Invoice - ${order.orderNumber}</title>
-  <style>
-    @page { size: A4 portrait; margin: 8mm; }
-    @media print {
-      body { margin: 0; padding: 0; }
-      .gst-container { width: 100% !important; box-shadow: none !important; border: 2px solid #000 !important; }
-    }
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      color: #000000;
-      background: #F8FAFC;
-      margin: 0;
-      padding: 16px;
-    }
-    .gst-container {
-      max-width: 740px;
-      margin: 0 auto;
-      background: #FFFFFF;
-      border: 2px solid #000000;
-      padding: 0;
-    }
-    .gst-header {
-      text-align: center;
-      padding: 12px;
-      border-bottom: 2px solid #000000;
-      background: #F1F5F9;
-    }
-    .gst-title {
-      font-size: 18px;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      border-bottom: 1px solid #000000;
-    }
-    .grid-cell {
-      padding: 8px 12px;
-      font-size: 11px;
-      line-height: 1.4;
-    }
-    .grid-cell:first-child {
-      border-right: 1px solid #000000;
-    }
-    table.gst-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    table.gst-table th {
-      border: 1px solid #000000;
-      background: #E2E8F0;
-      padding: 6px;
-      font-size: 11px;
-      font-weight: 800;
-    }
-    @media screen and (max-width: 600px) {
-      body { padding: 4px !important; }
-      .grid-2 { grid-template-columns: 1fr !important; }
-      .grid-cell:first-child { border-right: none !important; border-bottom: 1px solid #000000 !important; }
-      .gst-header { padding: 8px !important; }
-      .gst-title { font-size: 15px !important; }
-    }
-  </style>
-</head>
-<body>
-  <div class="gst-container">
-    <div class="gst-header" style="display: flex; align-items: center; justify-content: center; gap: 12px; position: relative; padding: 12px;">
-      ${cfg.showLogo && business?.logoUri ? `<img src="${business.logoUri}" alt="Logo" style="width: 48px; height: 48px; object-fit: contain; position: absolute; left: 12px; top: 8px;" />` : ''}
-      <div>
-        <div class="gst-title">${cfg.invoiceTitle || 'TAX INVOICE'}</div>
-        <div style="font-size: 10px; margin-top: 2px;">(Issued under Section 31 of Central Goods and Services Tax Act, 2017)</div>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <div class="grid-cell">
-        <div style="font-weight: 800; font-size: 14px; text-transform: uppercase;">${businessName}</div>
-        <div>${business?.address || ''}</div>
-        <div>Phone: ${business?.phone || '-'} | Email: ${business?.email || '-'}</div>
-        <div style="font-weight: 800; margin-top: 4px;">GSTIN / UIN: ${business?.gstin || 'UNREGISTERED'}</div>
-        <div>State: Tamil Nadu (Code: 33)</div>
-      </div>
-      <div class="grid-cell">
-        <div><b>Invoice Number:</b> ${order.orderNumber}</div>
-        <div><b>Invoice Date:</b> ${formatDate(order.orderDate)}</div>
-        <div><b>Place of Supply:</b> ${isInterState ? 'Inter-State' : 'Intra-State (33)'}</div>
-        <div><b>Reverse Charge:</b> No</div>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <div class="grid-cell">
-        <div style="font-weight: 800; text-transform: uppercase; font-size: 11px; color: #475569;">DETAILS OF RECEIVER / BILLED TO:</div>
-        <div style="font-weight: 800; font-size: 13px;">${order.customerName || 'Walk-in Customer'}</div>
-        <div>Phone: ${order.phoneNumber || 'N/A'}</div>
-      </div>
-      <div class="grid-cell">
-        <div style="font-weight: 800; text-transform: uppercase; font-size: 11px; color: #475569;">PAYMENT SUMMARY:</div>
-        <div><b>Grand Total:</b> ${formatCurrency(total)}</div>
-        <div><b>Advance Paid:</b> ${formatCurrency(order.advance)}</div>
-        <div><b>Balance Due:</b> ${isPaid ? 'PAID IN FULL' : formatCurrency(balance)}</div>
-      </div>
-    </div>
-
-    <table class="gst-table">
-      <thead>
-        <tr>
-          <th style="width: 32px;">#</th>
-          <th>Description of Goods / Services</th>
-          <th style="width: 60px;">HSN/SAC</th>
-          <th style="width: 60px;">Qty</th>
-          <th style="width: 75px;">Rate</th>
-          <th style="width: 80px;">Taxable Value</th>
-          <th style="width: 50px;">GST %</th>
-          <th style="width: 90px;">Total (₹)</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${itemRowsHtml}
-      </tbody>
-    </table>
-
-    <div style="padding: 10px; border-top: 1px solid #000; background: #F8FAFC;">
-      <div style="font-size: 11px; font-weight: 800; margin-bottom: 4px;">HSN / SAC TAX SUMMARY:</div>
-      <table class="gst-table" style="background: #FFF;">
-        <thead>
-          <tr>
-            <th>HSN/SAC</th>
-            <th>Taxable Amount</th>
-            ${
-              isInterState
-                ? '<th>IGST Rate</th><th>IGST Amt</th>'
-                : '<th>CGST Rate</th><th>CGST Amt</th><th>SGST Rate</th><th>SGST Amt</th>'
-            }
-            <th>Total Tax</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${hsnRowsHtml}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="grid-2" style="border-top: 1px solid #000;">
-      <div class="grid-cell">
-        <div style="font-weight: 800; font-size: 10px;">BANK & PAYMENT DETAILS:</div>
-        <div>${business?.bankDetails || 'Bank Name: State Bank of India\nA/C No: Available on request'}</div>
-        ${business?.upiId ? `<div><b>UPI ID:</b> ${business.upiId}</div>` : ''}
-        <div style="margin-top: 6px; font-size: 9px; color: #555;">
-          <b>Declaration:</b> We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.
-        </div>
-      </div>
-      <div class="grid-cell" style="text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
-        <div style="font-weight: 800; font-size: 11px;">For ${businessName.toUpperCase()}</div>
-        <div style="border-bottom: 1px solid #000; width: 80%; margin: 30px auto 4px auto;"></div>
-        <div style="font-size: 10px; font-weight: 700;">Authorised Signatory</div>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
+  return generateStandardInvoiceHtml(order, business, {
+    ...cfg,
+    templateId: 'gst_tax_invoice',
+  });
 }
 
 /**

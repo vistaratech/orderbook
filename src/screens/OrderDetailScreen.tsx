@@ -340,13 +340,15 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
         <View style={styles.topHeaderInner}>
           <GlassBackButton label={t('common.back', 'Back')} />
           <View style={styles.topHeaderTitleWrap}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <Text style={styles.topHeaderTitle}>{order.orderNumber}</Text>
               <View style={[styles.statusChip, { backgroundColor: statusColor[order.status] || colors.clay }]}>
                 <Text style={styles.statusChipText}>{order.status}</Text>
               </View>
             </View>
-            <Text style={styles.topHeaderSub}>{formatDate(order.orderDate)} • {order.customerName}</Text>
+            <Text style={styles.topHeaderSub} numberOfLines={1}>
+              {formatDate(order.orderDate)} • {order.customerName}
+            </Text>
           </View>
 
           {/* Quick Header Action Buttons */}
@@ -495,7 +497,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        {/* ─── CARD 2: Dispatch & Payment Metadata ─── */}
+        {/* ─── CARD 2: Dispatch & Payment Metadata (Full 2x2 Grid) ─── */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={[styles.cardHeaderIcon, { backgroundColor: '#F3E8FF' }]}>
@@ -507,11 +509,11 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
             </View>
           </View>
 
-          <View style={[styles.metaGrid, { flexDirection: isDesktop ? 'row' : 'column' }]}>
+          <View style={styles.metaGrid}>
             <View style={styles.metaBox}>
               <Text style={styles.metaLabel}>Payment Mode</Text>
               <View style={styles.metaValueRow}>
-                <Ionicons name="card-outline" size={15} color={colors.inkSoft} />
+                <Ionicons name="card-outline" size={16} color={colors.inkSoft} />
                 <Text style={styles.metaValueText}>{order.paymentMethod || 'Cash'}</Text>
               </View>
             </View>
@@ -539,32 +541,38 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
             <View style={styles.metaBox}>
               <Text style={styles.metaLabel}>Dispatch Method</Text>
               <View style={styles.metaValueRow}>
-                <Ionicons name="paper-plane-outline" size={15} color={colors.inkSoft} />
+                <Ionicons name="paper-plane-outline" size={16} color={colors.inkSoft} />
                 <Text style={styles.metaValueText}>{order.dispatchMethod || 'Courier'}</Text>
               </View>
             </View>
-
-            {order.dispatchDate ? (
-              <View style={styles.metaBox}>
-                <Text style={styles.metaLabel}>Dispatch Date</Text>
-                <View style={styles.metaValueRow}>
-                  <Ionicons name="calendar-outline" size={15} color={colors.inkSoft} />
-                  <Text style={styles.metaValueText}>{order.dispatchDate}</Text>
-                </View>
-              </View>
-            ) : null}
 
             {order.trackingNumber ? (
               <View style={styles.metaBox}>
                 <Text style={styles.metaLabel}>Tracking Number</Text>
                 <View style={styles.metaValueRow}>
-                  <Ionicons name="barcode-outline" size={15} color={colors.inkSoft} />
+                  <Ionicons name="barcode-outline" size={16} color={colors.inkSoft} />
                   <Text style={[styles.metaValueText, { fontFamily: fonts.bodyBold }]}>
                     {order.trackingNumber}
                   </Text>
                 </View>
               </View>
-            ) : null}
+            ) : order.dispatchDate ? (
+              <View style={styles.metaBox}>
+                <Text style={styles.metaLabel}>Dispatch Date</Text>
+                <View style={styles.metaValueRow}>
+                  <Ionicons name="calendar-outline" size={16} color={colors.inkSoft} />
+                  <Text style={styles.metaValueText}>{order.dispatchDate}</Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.metaBox}>
+                <Text style={styles.metaLabel}>Order Date</Text>
+                <View style={styles.metaValueRow}>
+                  <Ionicons name="calendar-outline" size={16} color={colors.inkSoft} />
+                  <Text style={styles.metaValueText}>{formatDate(order.orderDate)}</Text>
+                </View>
+              </View>
+            )}
           </View>
         </View>
 
@@ -1149,19 +1157,20 @@ const styles = StyleSheet.create({
   topHeaderInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     maxWidth: 860,
     alignSelf: 'center',
     width: '100%',
   },
   topHeaderTitleWrap: {
     flex: 1,
+    minWidth: 0,
   },
   topHeaderTitle: {
     fontFamily: fonts.display,
-    fontSize: 20,
+    fontSize: 19,
     color: colors.ink,
-    lineHeight: 24,
+    lineHeight: 23,
   },
   topHeaderSub: {
     fontFamily: fonts.body,
@@ -1395,16 +1404,17 @@ const styles = StyleSheet.create({
     color: '#D97706',
   },
 
-  // ── Dispatch & Payment Grid ──
+  // ── Dispatch & Payment 2x2 Grid (Balanced Full-Width) ──
   metaGrid: {
-    gap: 10,
+    flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 10,
   },
   metaBox: {
     flex: 1,
-    minWidth: 130,
+    minWidth: '47%',
     backgroundColor: colors.paper,
-    padding: 10,
+    padding: 12,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,

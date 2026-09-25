@@ -14,6 +14,7 @@ import {
   StatusBar,
   Image,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -24,7 +25,6 @@ import { RootStackParamList } from '../navigation/types';
 import { Order, PaymentEntry, orderTotal, orderBalance } from '../types/order';
 import {
   getOrder,
-  getOrders,
   deleteOrder,
   setOrderStatus,
   saveOrder,
@@ -34,7 +34,7 @@ import { getAuthState, UserAccount } from '../storage/authStorage';
 import { getBusinessProfile, BusinessProfile } from '../storage/businessProfileStorage';
 import { addDataListener } from '../storage/firebaseSync';
 import { colors, fonts, radius, shadow, statusColor } from '../theme/theme';
-import { checkProStatus, checkBasicStatus } from '../storage/subscriptionStorage';
+import { checkProStatus } from '../storage/subscriptionStorage';
 import { assertSubscriptionLimit } from '../utils/subscriptionGuard';
 import { confirmAction } from '../utils/dialog';
 import { formatCurrency, formatDate, formatDateTime, todayIso } from '../utils/format';
@@ -61,6 +61,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'OrderDetail'>;
 
 export default function OrderDetailScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 640;
+
   const { orderId } = route.params;
   const { t } = useLanguage();
   const [order, setOrder] = useState<Order | null>(null);
@@ -79,7 +82,6 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
   const [selectedTemplate, setSelectedTemplate] = useState<InvoiceTemplateId>('modern_slate');
   const [templateConfig, setTemplateConfig] = useState<InvoiceTemplateConfig>(DEFAULT_INVOICE_TEMPLATE_CONFIG);
 
-  // Fetch logged in business profile, branding & invoice template config
   useEffect(() => {
     getAuthState().then((state) => {
       if (state.user) setUserProfile(state.user);
@@ -134,7 +136,6 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
 
   useFocusEffect(loadData);
 
-  // Subscribe to live Firestore updates
   useEffect(() => {
     const unsub = addDataListener(() => {
       loadData();
@@ -169,14 +170,14 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
   if (!order) {
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
-        <View style={styles.content}>
-          <View style={styles.topHeaderRow}>
+        <View style={styles.topHeaderContainer}>
+          <View style={styles.topHeaderInner}>
             <GlassBackButton label={t('common.back', 'Back')} />
           </View>
-          <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 60 }}>
-            <ActivityIndicator size="large" color={colors.clayDeep} />
-            <Text style={styles.loading}>{t('common.loading', 'Loading order details…')}</Text>
-          </View>
+        </View>
+        <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 60 }}>
+          <ActivityIndicator size="large" color={colors.clayDeep} />
+          <Text style={styles.loading}>{t('common.loading', 'Loading order details…')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -188,7 +189,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
   const handleDelete = () => {
     confirmAction({
       title: 'Delete order',
-      message: `Remove ${order.orderNumber} from the book?`,
+      message: `Remove ${order.orderNumber} from the book? This cannot be undone.`,
       confirmText: 'Delete',
       cancelText: 'Cancel',
       destructive: true,
@@ -217,6 +218,7 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
   const handleOpenPaymentModal = async () => {
     const allowed = await checkOrderModificationAllowed('record payments and track balances');
     if (!allowed) return;
+    setPayAmount(balance > 0 ? String(balance) : '');
     setShowPaymentModal(true);
   };
 
@@ -243,7 +245,6 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
     setIsSavingPayment(true);
     try {
       const nowIso = todayIso();
-      // Save payment entry with exact timestamp
       await addPayment({
         orderId: order.id,
         amount: amt,
@@ -252,7 +253,6 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
         note: payNote.trim() || undefined,
       });
 
-      // Update order advance & payment status
       const newAdvance = (order.advance || 0) + amt;
       const newStatus = newAdvance >= total ? 'Paid' : 'Partial';
 
@@ -274,31 +274,6 @@ export default function OrderDetailScreen({ navigation, route }: Props) {
     }
   };
 
-  const shareInvoice = async () => {
-    const isProTemplateAllowed = await checkTemplatePro();
-    if (!isProTemplateAllowed) return;
-
-    const itemsList = order.items
-      .map((it) => `• ${it.name} (${it.qty} × ₹${it.price}) = ${formatCurrency(it.qty * it.price)}`)
-      .join('\n');
-
-    const msg = `*ORDER RECEIPT — ${order.orderNumber}*
-Date: ${formatDate(order.orderDate)}
-Customer: ${order.customerName}
-${order.phoneNumber ? `Phone: ${order.phoneNumber}\n` : ''}
-*Items:*
-${itemsList}
-
-*Total:* ${formatCurrency(total)}
-*Advance Paid:* ${formatCurrency(order.advance)}
-*Balance Due:* ${formatCurrency(balance)}
-*Status:* ${order.status}
-${order.trackingNumber ? `*Tracking #:* ${order.trackingNumber}\n` : ''}
-Thank you for your business!`;
-
-    await Share.share({ message: msg });
-  };
-
   const callCustomer = () => {
     if (order.phoneNumber) Linking.openURL(`tel:${order.phoneNumber}`);
   };
@@ -312,7 +287,7 @@ Thank you for your business!`;
           'Your previously saved invoice template is a Pro feature. Please activate Pro to generate this invoice or customize it to use the default free template.',
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Activate Pro', onPress: () => (navigation as any).navigate('PaywallScreen') }
+            { text: 'Activate Pro', onPress: () => (navigation as any).navigate('PaywallScreen') },
           ]
         );
         return false;
@@ -359,327 +334,429 @@ Thank you for your business!`;
   };
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* ─── Static Top Header & Order Info ─── */}
-      <View style={styles.fixedHeaderContainer}>
-        {/* Top Header Bar Aligned Directly Above Cards */}
-        <View style={styles.topHeaderRow}>
+    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
+      {/* ─── Modern Top Header Bar ─── */}
+      <View style={styles.topHeaderContainer}>
+        <View style={styles.topHeaderInner}>
           <GlassBackButton label={t('common.back', 'Back')} />
           <View style={styles.topHeaderTitleWrap}>
-            <Text style={styles.topHeaderTitle}>{t('orders.orderDetailsTitle', 'Order Details')}</Text>
-            <Text style={styles.topHeaderSub}>{order.orderNumber} • {order.customerName}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={styles.topHeaderTitle}>{order.orderNumber}</Text>
+              <View style={[styles.statusChip, { backgroundColor: statusColor[order.status] || colors.clay }]}>
+                <Text style={styles.statusChipText}>{order.status}</Text>
+              </View>
+            </View>
+            <Text style={styles.topHeaderSub}>{formatDate(order.orderDate)} • {order.customerName}</Text>
+          </View>
+
+          {/* Quick Header Action Buttons */}
+          <View style={styles.topHeaderActions}>
+            <Pressable
+              style={styles.headerIconBtn}
+              onPress={handleEditOrder}
+              hitSlop={6}
+              accessibilityLabel="Edit Order"
+            >
+              <Ionicons name="pencil" size={17} color={colors.ink} />
+            </Pressable>
+            <Pressable
+              style={[styles.headerIconBtn, styles.headerDeleteIconBtn]}
+              onPress={handleDelete}
+              hitSlop={6}
+              accessibilityLabel="Delete Order"
+            >
+              <Ionicons name="trash-outline" size={17} color={colors.danger} />
+            </Pressable>
           </View>
         </View>
+      </View>
 
-        {/* Order Header / Hero Card */}
-        <View style={styles.heroHeaderCard}>
-          <View style={styles.heroTopRow}>
-            <View>
-              <Text style={styles.orderNumber}>{order.orderNumber}</Text>
-              <Text style={styles.heroDate}>Created on {formatDate(order.orderDate)}</Text>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: 110 + insets.bottom }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ─── HERO CARD: Financials & Status Progress ─── */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroFinancialsRow}>
+            <View style={styles.heroFinancialItem}>
+              <Text style={styles.heroFinancialLabel}>{t('orders.totalAmount', 'Total Bill')}</Text>
+              <Text style={styles.heroFinancialTotalVal}>{formatCurrency(total)}</Text>
             </View>
 
-            <View style={[styles.statusChip, { backgroundColor: statusColor[order.status] || colors.clay }]}>
-              <Text style={styles.statusChipText}>{t('status.' + order.status.toLowerCase(), order.status)}</Text>
-            </View>
-          </View>
+            <View style={styles.heroFinancialDivider} />
 
-          {/* Financial Highlights inside Hero */}
-          <View style={styles.heroStatsRow}>
-            <View style={styles.heroStatItem}>
-              <Text style={styles.heroStatLabel}>{t('orders.advancePaid')}</Text>
-              <Text style={[styles.heroStatValue, { color: colors.inflow }]}>
+            <View style={styles.heroFinancialItem}>
+              <Text style={styles.heroFinancialLabel}>{t('orders.advancePaid', 'Advance Paid')}</Text>
+              <Text style={[styles.heroFinancialVal, { color: colors.inflow }]}>
                 {formatCurrency(order.advance)}
               </Text>
             </View>
 
-            <View style={styles.heroStatDivider} />
+            <View style={styles.heroFinancialDivider} />
 
-            <View style={styles.heroStatItem}>
-              <Text style={styles.heroStatLabel}>{t('orders.balanceDue')}</Text>
+            <View style={styles.heroFinancialItem}>
+              <Text style={styles.heroFinancialLabel}>{t('orders.balanceDue', 'Balance Due')}</Text>
               <Text
                 style={[
-                  styles.heroStatValue,
+                  styles.heroFinancialVal,
+                  { color: balance > 0 ? colors.danger : colors.success },
+                ]}
+              >
+                {balance > 0 ? formatCurrency(balance) : 'Paid ✓'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Fulfillment Status Tracker inside Hero */}
+          <View style={styles.heroStatusTrackerWrap}>
+            <Text style={styles.heroTrackerLabel}>Fulfillment Progress:</Text>
+            <StatusTracker status={order.status} onChange={handleStatusChange} />
+          </View>
+        </View>
+
+        {/* ─── QUICK ACTION RIBBON (1-Tap Super Actions) ─── */}
+        <View style={styles.quickActionRibbon}>
+          <Pressable
+            style={({ pressed }) => [styles.quickActionBtn, styles.quickActionWhatsApp, pressed && { opacity: 0.85 }]}
+            onPress={whatsappCustomer}
+          >
+            <Ionicons name="logo-whatsapp" size={18} color={colors.white} />
+            <Text style={styles.quickActionBtnTextWhite}>WhatsApp Bill</Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.quickActionBtn, styles.quickActionPdf, pressed && { opacity: 0.85 }]}
+            onPress={sharePdfCustomer}
+          >
+            <Ionicons name="document-text-outline" size={18} color={colors.white} />
+            <Text style={styles.quickActionBtnTextWhite}>Share PDF</Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.quickActionBtn, styles.quickActionPreview, pressed && { opacity: 0.85 }]}
+            onPress={openPdfModal}
+          >
+            <Ionicons name="eye-outline" size={18} color={colors.clayDeep} />
+            <Text style={styles.quickActionBtnTextClay}>Preview</Text>
+          </Pressable>
+        </View>
+
+        {/* ─── CARD 1: Customer Details & Contact ─── */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardHeaderIcon, { backgroundColor: '#E0F2FE' }]}>
+              <Ionicons name="person" size={18} color="#0284C7" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>{t('orders.customerInfo', 'Customer Details')}</Text>
+              <Text style={styles.cardSubtitle}>Buyer identity and quick contact</Text>
+            </View>
+          </View>
+
+          <View style={styles.customerProfileRow}>
+            <View style={styles.customerAvatar}>
+              <Text style={styles.customerAvatarText}>
+                {(order.customerName || 'C').charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.customerNameText}>{order.customerName}</Text>
+              {order.phoneNumber ? (
+                <Text style={styles.customerPhoneText}>{order.phoneNumber}</Text>
+              ) : (
+                <Text style={styles.customerNoPhoneText}>No phone recorded</Text>
+              )}
+            </View>
+
+            {/* Quick Action Contact Buttons */}
+            {order.phoneNumber ? (
+              <View style={styles.contactActionButtons}>
+                <Pressable
+                  style={styles.contactCallBtn}
+                  onPress={callCustomer}
+                  hitSlop={6}
+                >
+                  <Ionicons name="call" size={15} color="#0284C7" />
+                  <Text style={styles.contactCallBtnText}>Call</Text>
+                </Pressable>
+
+                {balance > 0 && (
+                  <Pressable
+                    style={styles.contactRemindBtn}
+                    onPress={handleSendReminder}
+                    hitSlop={6}
+                  >
+                    <Ionicons name="notifications-outline" size={15} color="#D97706" />
+                    <Text style={styles.contactRemindBtnText}>Remind</Text>
+                  </Pressable>
+                )}
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        {/* ─── CARD 2: Dispatch & Payment Metadata ─── */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardHeaderIcon, { backgroundColor: '#F3E8FF' }]}>
+              <Ionicons name="cube" size={18} color="#9333EA" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Dispatch & Payment Mode</Text>
+              <Text style={styles.cardSubtitle}>Fulfillment method and payment terms</Text>
+            </View>
+          </View>
+
+          <View style={[styles.metaGrid, { flexDirection: isDesktop ? 'row' : 'column' }]}>
+            <View style={styles.metaBox}>
+              <Text style={styles.metaLabel}>Payment Mode</Text>
+              <View style={styles.metaValueRow}>
+                <Ionicons name="card-outline" size={15} color={colors.inkSoft} />
+                <Text style={styles.metaValueText}>{order.paymentMethod || 'Cash'}</Text>
+              </View>
+            </View>
+
+            <View style={styles.metaBox}>
+              <Text style={styles.metaLabel}>Payment Status</Text>
+              <View style={styles.metaValueRow}>
+                <View
+                  style={[
+                    styles.paymentStatusDot,
+                    {
+                      backgroundColor:
+                        order.paymentStatus === 'Paid'
+                          ? colors.success
+                          : order.paymentStatus === 'Partial'
+                          ? colors.pending
+                          : colors.danger,
+                    },
+                  ]}
+                />
+                <Text style={styles.metaValueText}>{order.paymentStatus || 'Pending'}</Text>
+              </View>
+            </View>
+
+            <View style={styles.metaBox}>
+              <Text style={styles.metaLabel}>Dispatch Method</Text>
+              <View style={styles.metaValueRow}>
+                <Ionicons name="paper-plane-outline" size={15} color={colors.inkSoft} />
+                <Text style={styles.metaValueText}>{order.dispatchMethod || 'Courier'}</Text>
+              </View>
+            </View>
+
+            {order.dispatchDate ? (
+              <View style={styles.metaBox}>
+                <Text style={styles.metaLabel}>Dispatch Date</Text>
+                <View style={styles.metaValueRow}>
+                  <Ionicons name="calendar-outline" size={15} color={colors.inkSoft} />
+                  <Text style={styles.metaValueText}>{order.dispatchDate}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {order.trackingNumber ? (
+              <View style={styles.metaBox}>
+                <Text style={styles.metaLabel}>Tracking Number</Text>
+                <View style={styles.metaValueRow}>
+                  <Ionicons name="barcode-outline" size={15} color={colors.inkSoft} />
+                  <Text style={[styles.metaValueText, { fontFamily: fonts.bodyBold }]}>
+                    {order.trackingNumber}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        {/* ─── CARD 3: Ordered Items (Modern Cards) ─── */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardHeaderIcon, { backgroundColor: '#FEF3C7' }]}>
+              <Ionicons name="basket" size={18} color="#D97706" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.cardTitle}>{t('orders.items', 'Order Items')}</Text>
+                <View style={styles.itemCountBadge}>
+                  <Text style={styles.itemCountBadgeText}>{order.items.length}</Text>
+                </View>
+              </View>
+              <Text style={styles.cardSubtitle}>Itemized breakdown and rates</Text>
+            </View>
+          </View>
+
+          {/* Items List */}
+          <View style={styles.itemsListContainer}>
+            {order.items.map((item, idx) => (
+              <View key={item.id || idx} style={styles.itemCardRow}>
+                <View style={styles.itemCardIndex}>
+                  <Text style={styles.itemCardIndexText}>#{idx + 1}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemCardName}>{item.name}</Text>
+                  <View style={styles.itemCardMetaRow}>
+                    <Text style={styles.itemCardQtyRate}>
+                      {item.qty} {item.unit || 'Pcs'} × {formatCurrency(item.price)}
+                    </Text>
+                    {/* Custom column tags */}
+                    {order.customColumns?.map((col) => {
+                      const val = item.customValues?.[col.id];
+                      if (!val) return null;
+                      return (
+                        <View key={col.id} style={styles.customAttrTag}>
+                          <Text style={styles.customAttrText}>
+                            {col.name}: {val}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+                <Text style={styles.itemCardTotalVal}>
+                  {formatCurrency(item.qty * item.price)}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Item Totals Summary Box */}
+          <View style={styles.itemsSummaryBox}>
+            <View style={styles.summaryLine}>
+              <Text style={styles.summaryLineLabel}>{t('orders.totalAmount', 'Subtotal')}</Text>
+              <Text style={styles.summaryLineVal}>{formatCurrency(total)}</Text>
+            </View>
+            <View style={styles.summaryLine}>
+              <Text style={styles.summaryLineLabel}>{t('orders.advancePaid', 'Advance Received')}</Text>
+              <Text style={[styles.summaryLineVal, { color: colors.inflow }]}>
+                {formatCurrency(order.advance)}
+              </Text>
+            </View>
+            <View style={[styles.summaryLine, styles.summaryTotalLine]}>
+              <Text style={styles.summaryTotalLabel}>{t('orders.balanceDue', 'Balance Due')}</Text>
+              <Text
+                style={[
+                  styles.summaryTotalAmount,
                   { color: balance > 0 ? colors.danger : colors.success },
                 ]}
               >
                 {formatCurrency(balance)}
               </Text>
             </View>
-
-            <View style={styles.heroStatDivider} />
-
-            <View style={styles.heroStatItem}>
-              <Text style={styles.heroStatLabel}>{t('orders.totalAmount')}</Text>
-              <Text style={styles.heroStatValue}>{formatCurrency(total)}</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      <ScrollView
-        style={styles.screen}
-        contentContainerStyle={[styles.content, { paddingBottom: 60 + insets.bottom }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ─── Premium Invoice & Receipt Action Card ─── */}
-        <View style={styles.invoiceActionCard}>
-          <View style={styles.invoiceActionCardHeader}>
-            <Ionicons name="receipt-outline" size={18} color={colors.clayDeep} />
-            <Text style={styles.invoiceActionCardTitle}>{t('invoice.templateTitle', 'Bill & Invoice Templates')}</Text>
-          </View>
-
-          {/* Primary PDF Document Action Banner */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.pdfBannerCard,
-              pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
-            ]}
-            onPress={sharePdfCustomer}
-          >
-            <View style={styles.pdfBannerLeft}>
-              <View style={styles.pdfIconBadge}>
-                <Ionicons name="document-text-outline" size={20} color={colors.white} />
-              </View>
-              <View style={styles.pdfBannerTextBlock}>
-                <Text style={styles.pdfBannerTitle}>{t('orders.downloadPdf')}</Text>
-                <Text style={styles.pdfBannerSubtitle}>
-                  {order.phoneNumber
-                    ? `${order.customerName || 'Customer'} (${order.phoneNumber})`
-                    : t('orders.shareInvoice')}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.pdfDownloadPill}>
-              <Ionicons name="download-outline" size={14} color={colors.white} />
-              <Text style={styles.pdfDownloadPillText}>PDF</Text>
-            </View>
-          </Pressable>
-
-          {/* Sub Action Buttons Row */}
-          <View style={styles.invoiceSubActionsRow}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.pdfActionBtn,
-                pressed && { opacity: 0.85 },
-              ]}
-              onPress={openPdfModal}
-            >
-              <Ionicons name="eye-outline" size={15} color={colors.clayDeep} />
-              <Text style={styles.pdfActionBtnText} numberOfLines={1} adjustsFontSizeToFit>
-                {t('common.details')}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.shareActionBtn,
-                pressed && { opacity: 0.85 },
-              ]}
-              onPress={whatsappCustomer}
-            >
-              <Ionicons name="logo-whatsapp" size={15} color="#2E7D32" />
-              <Text style={styles.shareActionBtnText} numberOfLines={1} adjustsFontSizeToFit>
-                WhatsApp
-              </Text>
-            </Pressable>
-
-            {order.phoneNumber && balance > 0 ? (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.shareActionBtn,
-                  { borderColor: '#F59E0B', backgroundColor: '#FFFBEB' },
-                  pressed && { opacity: 0.85 },
-                ]}
-                onPress={handleSendReminder}
-              >
-                <Ionicons name="notifications-outline" size={15} color="#B45309" />
-                <Text style={[styles.shareActionBtnText, { color: '#B45309' }]} numberOfLines={1} adjustsFontSizeToFit>
-                  Remind
-                </Text>
-              </Pressable>
-            ) : null}
-
-            {order.phoneNumber ? (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.callActionBtn,
-                  pressed && { opacity: 0.85 },
-                ]}
-                onPress={callCustomer}
-              >
-                <Ionicons name="call-outline" size={15} color={colors.duskDeep} />
-                <Text style={styles.callActionBtnText} numberOfLines={1} adjustsFontSizeToFit>
-                  {t('customers.call')}
-                </Text>
-              </Pressable>
-            ) : null}
           </View>
         </View>
 
-        {/* Attached Photos Gallery */}
+        {/* ─── CARD 4: Payment History Log (if any collections recorded) ─── */}
+        {payments.length > 0 && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardHeaderIcon, { backgroundColor: '#DCFCE7' }]}>
+                <Ionicons name="receipt" size={18} color="#16A34A" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>Payment Collection Log</Text>
+                <Text style={styles.cardSubtitle}>Audit trail of installments received</Text>
+              </View>
+            </View>
+
+            <View style={styles.paymentLogsList}>
+              {payments.map((p) => (
+                <View key={p.id} style={styles.paymentLogCard}>
+                  <View style={styles.payLogLeft}>
+                    <Text style={styles.payLogAmount}>+{formatCurrency(p.amount)}</Text>
+                    <Text style={styles.payLogDate}>
+                      {formatDateTime(p.createdAt || p.date)} • {p.method}
+                    </Text>
+                  </View>
+                  {p.note ? <Text style={styles.payLogNote}>{p.note}</Text> : null}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* ─── CARD 5: Attached Photos ─── */}
         {order.photos && order.photos.length > 0 && (
           <View style={styles.card}>
-            <View style={styles.cardHeaderRow}>
-              <Ionicons name="images-outline" size={18} color={colors.clayDeep} />
-              <Text style={styles.cardTitle}>Attached Photos ({order.photos.length})</Text>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardHeaderIcon, { backgroundColor: '#FEF3C7' }]}>
+                <Ionicons name="images" size={18} color="#D97706" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>Attached Photos ({order.photos.length})</Text>
+                <Text style={styles.cardSubtitle}>Reference photos, bills or design sketches</Text>
+              </View>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -4 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
               {order.photos.map((uri, idx) => (
                 <Image
                   key={idx}
                   source={{ uri }}
-                  style={{ width: 120, height: 120, borderRadius: 8, marginHorizontal: 4, backgroundColor: colors.line }}
+                  style={styles.photoThumb}
                 />
               ))}
             </ScrollView>
           </View>
         )}
 
-      {/* Fulfillment Status Tracker */}
-      <View style={styles.card}>
-        <View style={styles.cardHeaderRow}>
-          <Ionicons name="git-commit-outline" size={18} color={colors.clayDeep} />
-          <Text style={styles.cardTitle}>{t('orders.orderStatus')}</Text>
-        </View>
-        <StatusTracker status={order.status} onChange={handleStatusChange} />
-      </View>
-
-      {/* Customer Info */}
-      <View style={styles.card}>
-        <View style={styles.cardHeaderRow}>
-          <Ionicons name="person-outline" size={18} color={colors.clayDeep} />
-          <Text style={styles.cardTitle}>{t('orders.customerInfo')}</Text>
-        </View>
-        <DetailRow label={t('customers.name')} value={order.customerName} bold />
-        <DetailRow label={t('customers.phone')} value={order.phoneNumber || '—'} />
-        {order.trackingNumber ? <DetailRow label={t('orders.trackingNumber')} value={order.trackingNumber} /> : null}
-      </View>
-
-      {/* Payment & Dispatch Info */}
-      <View style={styles.card}>
-        <View style={styles.cardHeaderRow}>
-          <Ionicons name="card-outline" size={18} color={colors.duskDeep} />
-          <Text style={styles.cardTitle}>{t('orders.paymentDetails')}</Text>
-        </View>
-        <DetailRow label={t('orders.paymentMethod')} value={order.paymentMethod} />
-        <DetailRow label={t('orders.paymentStatus')} value={order.paymentStatus} />
-        {order.dispatchMethod ? <DetailRow label={t('orders.dispatchMethod')} value={order.dispatchMethod} /> : null}
-        {order.dispatchDate ? <DetailRow label={t('orders.dispatchDate')} value={order.dispatchDate} /> : null}
-      </View>
-
-      {/* Order Items Table */}
-      <View style={styles.card}>
-        <View style={styles.cardHeaderRow}>
-          <Ionicons name="basket-outline" size={18} color={colors.clayDeep} />
-          <Text style={styles.cardTitle}>{t('orders.items')} ({order.items.length})</Text>
-        </View>
-
-        <View style={styles.itemHeaderRow}>
-          <Text style={[styles.itemHeaderCell, { flex: order.customColumns?.length ? 2.2 : 3 }]}>{t('orders.itemName')}</Text>
-          <Text style={[styles.itemHeaderCell, { flex: 0.9, textAlign: 'center' }]}>{t('orders.quantity')}</Text>
-          {order.customColumns?.map((col) => (
-            <Text key={col.id} style={[styles.itemHeaderCell, { flex: 1, textAlign: 'center' }]} numberOfLines={1}>
-              {col.name}
-            </Text>
-          ))}
-          <Text style={[styles.itemHeaderCell, { flex: 1.2, textAlign: 'right' }]}>{t('common.total')}</Text>
-        </View>
-        {order.items.map((item) => (
-          <View key={item.id} style={styles.itemRow}>
-            <Text style={[styles.itemCell, { flex: order.customColumns?.length ? 2.2 : 3 }]}>{item.name}</Text>
-            <Text style={[styles.itemCell, { flex: 0.9, textAlign: 'center' }]}>
-              {item.qty}{item.unit ? ` ${item.unit}` : ''}
-            </Text>
-            {order.customColumns?.map((col) => {
-              const val =
-                item.customValues?.[col.id] ||
-                (col.name.toLowerCase() === 'unit' ? item.unit || '-' : '-');
-              return (
-                <Text key={col.id} style={[styles.itemCell, { flex: 1, textAlign: 'center', color: colors.inkSoft }]}>
-                  {val || '-'}
-                </Text>
-              );
-            })}
-            <Text style={[styles.itemCell, { flex: 1.2, textAlign: 'right', fontFamily: fonts.bodyBold }]}>
-              {formatCurrency(item.qty * item.price)}
-            </Text>
-          </View>
-        ))}
-
-        <View style={styles.divider} />
-        <DetailRow label={t('orders.totalAmount')} value={formatCurrency(total)} bold />
-        <DetailRow label={t('orders.advancePaid')} value={formatCurrency(order.advance)} />
-        <DetailRow
-          label={t('orders.balanceDue')}
-          value={formatCurrency(balance)}
-          bold
-          valueColor={balance > 0 ? colors.danger : colors.success}
-        />
-
-        {balance > 0 && (
-          <Pressable
-            style={({ pressed }) => [styles.recordPayBtn, pressed && { opacity: 0.85 }]}
-            onPress={handleOpenPaymentModal}
-          >
-            <Ionicons name="cash-outline" size={18} color={colors.white} />
-            <Text style={styles.recordPayBtnText}>+ {t('orders.markPaid')}</Text>
-          </Pressable>
-        )}
-      </View>
-
-      {/* Payment History Log */}
-      {payments.length > 0 && (
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Ionicons name="receipt-outline" size={18} color={colors.inflow} />
-            <Text style={styles.cardTitle}>{t('orders.orderTimeline')}</Text>
-          </View>
-          {payments.map((p) => (
-            <View key={p.id} style={styles.paymentLogRow}>
-              <View>
-                <Text style={styles.payLogAmount}>+{formatCurrency(p.amount)}</Text>
-                <Text style={styles.payLogDate}>
-                  {formatDateTime(p.createdAt || p.date)} • {p.method}
-                </Text>
+        {/* ─── CARD 6: Customer Notes ─── */}
+        {order.customerNote ? (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardHeaderIcon, { backgroundColor: '#F3F4F6' }]}>
+                <Ionicons name="document-text" size={18} color={colors.inkSoft} />
               </View>
-              {p.note ? <Text style={styles.payLogNote}>{p.note}</Text> : null}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{t('orders.customerNote', 'Customer Note')}</Text>
+                <Text style={styles.cardSubtitle}>Special customizations or remarks</Text>
+              </View>
             </View>
-          ))}
-        </View>
-      )}
-
-      {/* Customer Note */}
-      {order.customerNote ? (
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Ionicons name="document-text-outline" size={18} color={colors.inkSoft} />
-            <Text style={styles.cardTitle}>{t('orders.customerNote')}</Text>
+            <View style={styles.noteBox}>
+              <Text style={styles.noteText}>{order.customerNote}</Text>
+            </View>
           </View>
-          <Text style={styles.note}>{order.customerNote}</Text>
+        ) : null}
+      </ScrollView>
+
+      {/* ─── STICKY BOTTOM BAR (Action Center) ─── */}
+      <View style={[styles.stickyBottomBar, { paddingBottom: Math.max(12, insets.bottom + 6) }]}>
+        <View style={styles.stickyBottomContent}>
+          <View style={styles.stickyBottomInfo}>
+            <Text style={styles.stickyBottomLabel}>
+              {balance > 0 ? t('orders.balanceDue', 'Balance Due') : 'Payment Status'}
+            </Text>
+            <Text
+              style={[
+                styles.stickyBottomAmount,
+                { color: balance > 0 ? colors.danger : colors.success },
+              ]}
+            >
+              {balance > 0 ? formatCurrency(balance) : 'Paid in Full ✓'}
+            </Text>
+          </View>
+
+          <View style={styles.stickyBottomActions}>
+            {balance > 0 ? (
+              <Pressable
+                style={({ pressed }) => [styles.recordPayBtn, pressed && { opacity: 0.85 }]}
+                onPress={handleOpenPaymentModal}
+              >
+                <Ionicons name="cash-outline" size={17} color={colors.white} />
+                <Text style={styles.recordPayBtnText}>+ Collect ₹</Text>
+              </Pressable>
+            ) : null}
+
+            <Pressable
+              style={({ pressed }) => [styles.sharePdfBtn, pressed && { opacity: 0.85 }]}
+              onPress={sharePdfCustomer}
+            >
+              <Ionicons name="share-outline" size={17} color={colors.white} />
+              <Text style={styles.sharePdfBtnText}>Share Bill</Text>
+            </Pressable>
+          </View>
         </View>
-      ) : null}
-
-      {/* Edit / Delete Footer Buttons */}
-      <View style={styles.actionsRow}>
-        <Pressable
-          style={({ pressed }) => [styles.actionBtn, styles.editBtn, pressed && { opacity: 0.85 }]}
-          onPress={handleEditOrder}
-        >
-          <Ionicons name="pencil" size={16} color={colors.white} />
-          <Text style={styles.actionBtnText}>{t('common.edit')}</Text>
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [styles.actionBtn, styles.deleteBtn, pressed && { opacity: 0.85 }]}
-          onPress={handleDelete}
-        >
-          <Ionicons name="trash-outline" size={16} color={colors.danger} />
-          <Text style={[styles.actionBtnText, { color: colors.danger }]}>{t('common.delete')}</Text>
-        </Pressable>
       </View>
 
-      {/* In-Place Payment Collection Modal */}
+      {/* ─── MODAL 1: Payment Collection ─── */}
       <Modal
         visible={showPaymentModal}
         transparent
@@ -695,7 +772,12 @@ Thank you for your business!`;
             onPress={(e) => e.stopPropagation?.()}
           >
             <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Record Collection</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={[styles.cardHeaderIcon, { backgroundColor: '#DCFCE7' }]}>
+                  <Ionicons name="cash" size={18} color="#16A34A" />
+                </View>
+                <Text style={styles.modalTitle}>Record Payment</Text>
+              </View>
               <Pressable
                 onPress={() => setShowPaymentModal(false)}
                 hitSlop={8}
@@ -704,8 +786,9 @@ Thank you for your business!`;
                 <Ionicons name="close" size={20} color={colors.inkSoft} />
               </Pressable>
             </View>
+
             <Text style={styles.modalSub}>
-              Remaining balance due: {formatCurrency(balance)}
+              Remaining balance due: <Text style={{ fontFamily: fonts.bodyBold, color: colors.danger }}>{formatCurrency(balance)}</Text>
             </Text>
 
             <View style={styles.modalField}>
@@ -744,7 +827,7 @@ Thank you for your business!`;
                 style={styles.modalInput}
                 value={payNote}
                 onChangeText={setPayNote}
-                placeholder="e.g. GPay ref #1234"
+                placeholder="e.g. GPay ref #1234, cash in counter"
                 placeholderTextColor={colors.inkSoft}
               />
             </View>
@@ -773,7 +856,7 @@ Thank you for your business!`;
         </Pressable>
       </Modal>
 
-      {/* ─── PDF Invoice Printable Preview Modal ─── */}
+      {/* ─── MODAL 2: PDF Printable Invoice Preview ─── */}
       <Modal
         visible={showPdfModal}
         animationType="slide"
@@ -781,7 +864,6 @@ Thank you for your business!`;
         onRequestClose={() => setShowPdfModal(false)}
       >
         <SafeAreaView style={styles.pdfModalContainer} edges={['top', 'bottom']}>
-          {/* PDF Modal Top Bar */}
           <View
             style={[
               styles.pdfModalHeader,
@@ -831,7 +913,7 @@ Thank you for your business!`;
             </View>
           </View>
 
-          {/* Template Selector Chips Bar */}
+          {/* Template Selector Bar */}
           <View style={styles.templateSelectorBar}>
             <Text style={styles.templateBarLabel}>Select Template Style</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.templateChipsRow}>
@@ -865,7 +947,7 @@ Thank you for your business!`;
             </ScrollView>
           </View>
 
-          {/* Real Printable Invoice Preview */}
+          {/* Real Printable Invoice HTML Preview */}
           {Platform.OS === 'web' ? (
             <View style={styles.pdfWebContainer}>
               <iframe
@@ -887,7 +969,6 @@ Thank you for your business!`;
           ) : (
             <ScrollView contentContainerStyle={styles.pdfPageContent} showsVerticalScrollIndicator={false}>
               <View style={[styles.pdfPaperCard, { borderColor: selectedPreset.cardBorderColor || colors.line }]}>
-                {/* Dynamically styled header using the selected preset */}
                 <View
                   style={[
                     styles.pdfHeaderRow,
@@ -945,18 +1026,6 @@ Thank you for your business!`;
                             {activeBusinessProfile.address}
                           </Text>
                         </View>
-                      ) : null}
-                      {activeBusinessProfile.gstin ? (
-                        <Text
-                          style={{
-                            fontFamily: fonts.bodyBold,
-                            fontSize: 11,
-                            color: selectedPreset.primaryColor || colors.clayDeep,
-                            marginTop: 2,
-                          }}
-                        >
-                          GSTIN: {activeBusinessProfile.gstin}
-                        </Text>
                       ) : null}
                     </View>
                   </View>
@@ -1062,561 +1131,533 @@ Thank you for your business!`;
           )}
         </SafeAreaView>
       </Modal>
-    </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function DetailRow({
-  label,
-  value,
-  bold,
-  valueColor,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-  valueColor?: string;
-}) {
-  return (
-    <View style={styles.detailRow}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text
-        style={[
-          styles.detailValue,
-          bold && { fontFamily: fonts.bodyBold },
-          valueColor ? { color: valueColor } : null,
-        ]}
-      >
-        {value}
-      </Text>
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
-  fixedHeaderContainer: {
-    backgroundColor: colors.paper,
+  topHeaderContainer: {
+    backgroundColor: colors.paperCard,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    paddingHorizontal: 20,
-    paddingTop: Platform.select({ web: 6, default: 4 }),
-    paddingBottom: 12,
+    paddingHorizontal: 16,
+    paddingTop: Platform.select({ web: 10, default: 8 }),
+    paddingBottom: 10,
     zIndex: 10,
-    width: '100%',
-    maxWidth: 900,
-    alignSelf: 'center',
   },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 60,
-    width: '100%',
-    maxWidth: 900,
-    alignSelf: 'center',
-  },
-  topHeaderRow: {
+  topHeaderInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 10,
+    maxWidth: 860,
+    alignSelf: 'center',
+    width: '100%',
   },
   topHeaderTitleWrap: {
     flex: 1,
   },
   topHeaderTitle: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: 20,
     color: colors.ink,
-    lineHeight: 26,
+    lineHeight: 24,
   },
   topHeaderSub: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.inkSoft,
-    marginTop: 1,
+    marginTop: 2,
+  },
+  topHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  headerIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerDeleteIconBtn: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FECACA',
+  },
+  statusChip: {
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  statusChipText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.white,
+  },
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    width: '100%',
+    maxWidth: 860,
+    alignSelf: 'center',
   },
   loading: { fontFamily: fonts.body, color: colors.inkSoft, marginTop: 40, textAlign: 'center' },
 
-  // Hero Card
-  heroHeaderCard: {
+  // ── Hero Financial & Status Card ──
+  heroCard: {
     backgroundColor: colors.paperCard,
-    borderRadius: radius.md,
-    padding: 14,
-    marginBottom: 0,
-    borderWidth: 1,
-    borderColor: colors.line,
-    ...shadow.card,
-  },
-  heroTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  orderNumber: { fontFamily: fonts.display, fontSize: 20, color: colors.clayDeep, lineHeight: 30 },
-  heroDate: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft, marginTop: 2 },
-  pinnedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: colors.clayLight,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-  },
-  pinnedBadgeText: { fontFamily: fonts.bodyBold, fontSize: 9, color: colors.clayDeep },
-  statusChip: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5 },
-  statusChipText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.white },
-
-  heroStatsRow: {
-    flexDirection: 'row',
-    backgroundColor: colors.paper,
-    borderRadius: radius.md,
-    padding: 12,
-    alignItems: 'center',
-  },
-  heroStatItem: { flex: 1, alignItems: 'center' },
-  heroStatLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft, marginBottom: 2 },
-  heroStatValue: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
-  heroStatDivider: { width: 1, height: 24, backgroundColor: colors.line },
-
-  // Invoice & WhatsApp Action Card
-  invoiceActionCard: {
-    backgroundColor: colors.paperCard,
-    borderRadius: radius.md,
-    padding: 14,
+    borderRadius: radius.lg,
+    padding: 16,
     marginBottom: 14,
     borderWidth: 1,
     borderColor: colors.line,
     ...shadow.card,
   },
-  invoiceActionCardHeader: {
+  heroFinancialsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
-  },
-  invoiceActionCardTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 13,
-    color: colors.ink,
-  },
-  pdfBannerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.clayDeep,
-    borderRadius: radius.md,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    marginBottom: 12,
-    shadowColor: colors.clayDeep,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  pdfBannerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  pdfIconBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  pdfBannerTextBlock: {
-    flex: 1,
-  },
-  pdfBannerTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: colors.white,
-    letterSpacing: 0.3,
-  },
-  pdfBannerSubtitle: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.85)',
-    marginTop: 2,
-  },
-  pdfDownloadPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.35)',
-  },
-  pdfDownloadPillText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.white,
-    letterSpacing: 0.4,
-  },
-  invoiceSubActionsRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  pdfActionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
     backgroundColor: colors.paper,
-    borderRadius: radius.sm,
-    paddingVertical: 9,
-    paddingHorizontal: 4,
+    borderRadius: radius.md,
+    padding: 12,
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  heroFinancialItem: { flex: 1, alignItems: 'center' },
+  heroFinancialLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft, marginBottom: 2 },
+  heroFinancialTotalVal: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
+  heroFinancialVal: { fontFamily: fonts.bodyBold, fontSize: 15 },
+  heroFinancialDivider: { width: 1, height: 28, backgroundColor: colors.line },
+  heroStatusTrackerWrap: {
+    paddingTop: 4,
+  },
+  heroTrackerLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginBottom: 8,
+  },
+
+  // ── Quick Action Ribbon ──
+  quickActionRibbon: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  quickActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: radius.md,
+    minHeight: 46,
+    ...shadow.card,
+  },
+  quickActionWhatsApp: {
+    backgroundColor: '#16A34A',
+  },
+  quickActionPdf: {
+    backgroundColor: colors.clayDeep,
+  },
+  quickActionPreview: {
+    backgroundColor: colors.paperCard,
     borderWidth: 1,
     borderColor: colors.clayDeep,
   },
-  pdfActionBtnText: {
+  quickActionBtnTextWhite: {
     fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.clayDeep,
-  },
-  shareActionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: colors.paper,
-    borderRadius: radius.sm,
-    paddingVertical: 9,
-    paddingHorizontal: 4,
-    borderWidth: 1,
-    borderColor: '#2E7D32',
-  },
-  shareActionBtnText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: '#2E7D32',
-  },
-  callActionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: colors.paper,
-    borderRadius: radius.sm,
-    paddingVertical: 9,
-    paddingHorizontal: 4,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  callActionBtnText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.duskDeep,
-  },
-
-  // PDF Printable Preview Modal Styles
-  pdfModalContainer: {
-    flex: 1,
-    backgroundColor: colors.paper,
-  },
-  pdfModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 16) + 6 : 14,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    backgroundColor: colors.paperCard,
-  },
-  pdfModalCloseBtn: {
-    padding: 4,
-  },
-  pdfModalTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    color: colors.ink,
-  },
-  pdfModalPrintBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.clayDeep,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: radius.sm,
-  },
-  pdfModalPrintBtnText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
+    fontSize: 12.5,
     color: colors.white,
   },
-  pdfPageContent: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  pdfPaperCard: {
-    width: '100%',
-    maxWidth: 640,
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: colors.line,
-    minHeight: 520,
-    ...shadow.card,
-  },
-  pdfHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    borderBottomWidth: 2,
-    borderBottomColor: colors.clayDeep,
-    paddingBottom: 16,
-    marginBottom: 20,
-  },
-  pdfHeaderLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: colors.paper,
-  },
-  pdfBrandTitle: {
-    fontFamily: fonts.display,
-    fontSize: 22,
+  quickActionBtnTextClay: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12.5,
     color: colors.clayDeep,
-  },
-  pdfBrandSubtitle: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
-    marginTop: 2,
-  },
-  pdfStatusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 14,
-  },
-  pdfStatusBadgeText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-  },
-  pdfGridRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  pdfGridBox: {
-    flex: 1,
-  },
-  pdfGridLabel: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    color: colors.inkSoft,
-    marginBottom: 4,
-  },
-  pdfGridValue: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: colors.ink,
-  },
-  pdfGridSubValue: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
-  },
-  pdfTableWrap: {
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radius.sm,
-    overflow: 'hidden',
-  },
-  pdfTableHeader: {
-    flexDirection: 'row',
-    backgroundColor: colors.paper,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-  },
-  pdfTh: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    color: colors.inkSoft,
-  },
-  pdfTableRow: {
-    flexDirection: 'row',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-  },
-  pdfTd: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.ink,
-  },
-  pdfSummaryBox: {
-    alignSelf: 'flex-end',
-    width: 240,
-    backgroundColor: colors.paper,
-    padding: 12,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.line,
-    marginBottom: 20,
-  },
-  pdfSummaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  pdfSummaryLabel: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.inkSoft,
-  },
-  pdfSummaryVal: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.ink,
-  },
-  pdfSummaryTotalRow: {
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-    paddingTop: 6,
-    marginTop: 4,
-    marginBottom: 0,
-  },
-  pdfSummaryTotalLabel: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: colors.clayDeep,
-  },
-  pdfSummaryTotalVal: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: colors.clayDeep,
-  },
-  pdfFooter: {
-    alignItems: 'center',
-    marginTop: 10,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-  },
-  pdfFooterText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    color: colors.ink,
-  },
-  pdfFooterSubText: {
-    fontFamily: fonts.body,
-    fontSize: 10,
-    color: colors.inkSoft,
-    marginTop: 2,
   },
 
+  // ── Card Standard Structure ──
   card: {
     backgroundColor: colors.paperCard,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
     padding: 16,
     marginBottom: 14,
     ...shadow.card,
   },
-  cardHeaderRow: {
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     marginBottom: 12,
   },
-  cardTitle: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.ink },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    borderStyle: 'dashed' as any,
-  },
-  detailLabel: { fontFamily: fonts.body, fontSize: 13, color: colors.inkSoft },
-  detailValue: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.ink },
-  itemHeaderRow: { flexDirection: 'row', marginBottom: 8 },
-  itemHeaderCell: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.inkSoft },
-  itemRow: { flexDirection: 'row', paddingVertical: 6 },
-  itemCell: { fontFamily: fonts.body, fontSize: 13, color: colors.ink },
-  divider: { height: 0, borderTopWidth: 1, borderTopColor: colors.line, borderStyle: 'dashed' as any, marginVertical: 10 },
-  recordPayBtn: {
-    flexDirection: 'row',
+  cardHeaderIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.inflow,
-    borderRadius: radius.sm,
-    paddingVertical: 12,
-    marginTop: 12,
   },
-  recordPayBtnText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 13,
-    color: colors.white,
+  cardTitle: {
+    fontFamily: fonts.display,
+    fontSize: 16,
+    color: colors.ink,
   },
-  paymentLogRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    borderStyle: 'dashed' as any,
-  },
-  payLogAmount: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: colors.inflow,
-  },
-  payLogDate: {
+  cardSubtitle: {
     fontFamily: fonts.body,
-    fontSize: 11,
+    fontSize: 11.5,
     color: colors.inkSoft,
     marginTop: 1,
   },
-  payLogNote: {
+
+  // ── Customer Details ──
+  customerProfileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.paper,
+    padding: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  customerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.duskLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customerAvatarText: {
+    fontFamily: fonts.display,
+    fontSize: 17,
+    color: colors.duskDeep,
+  },
+  customerNameText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+    color: colors.ink,
+  },
+  customerPhoneText: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
+  customerNoPhoneText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    fontStyle: 'italic',
+  },
+  contactActionButtons: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  contactCallBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E0F2FE',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+  },
+  contactCallBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: '#0284C7',
+  },
+  contactRemindBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+  },
+  contactRemindBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: '#D97706',
+  },
+
+  // ── Dispatch & Payment Grid ──
+  metaGrid: {
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  metaBox: {
+    flex: 1,
+    minWidth: 130,
+    backgroundColor: colors.paper,
+    padding: 10,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  metaLabel: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.inkSoft,
+    marginBottom: 4,
+  },
+  metaValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metaValueText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.ink,
+  },
+  paymentStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+
+  // ── Items List ──
+  itemCountBadge: {
+    backgroundColor: colors.clayLight,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.pill,
+  },
+  itemCountBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.clayDeep,
+  },
+  itemsListContainer: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  itemCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.paper,
+    padding: 10,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  itemCardIndex: {
+    width: 26,
+    height: 26,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paperCard,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemCardIndexText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10.5,
+    color: colors.inkSoft,
+  },
+  itemCardName: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  itemCardMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  itemCardQtyRate: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.inkSoft,
   },
-  note: { fontFamily: fonts.body, fontSize: 13, color: colors.ink, lineHeight: 19 },
-  actionsRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  actionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
+  customAttrTag: {
+    backgroundColor: colors.clayLight,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.sm,
+  },
+  customAttrText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    color: colors.clayDeep,
+  },
+  itemCardTotalVal: {
+    fontFamily: fonts.display,
+    fontSize: 15,
+    color: colors.ink,
+  },
+
+  // Items Summary Box
+  itemsSummaryBox: {
+    backgroundColor: colors.paper,
     borderRadius: radius.md,
-    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 12,
+  },
+  summaryLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  summaryLineLabel: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.inkSoft,
+  },
+  summaryLineVal: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  summaryTotalLine: {
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    marginTop: 6,
+    paddingTop: 8,
+  },
+  summaryTotalLabel: {
+    fontFamily: fonts.display,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  summaryTotalAmount: {
+    fontFamily: fonts.display,
+    fontSize: 17,
+  },
+
+  // ── Payment History ──
+  paymentLogsList: {
+    gap: 8,
+  },
+  paymentLogCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.paper,
+    padding: 10,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  payLogLeft: { flex: 1 },
+  payLogAmount: { fontFamily: fonts.display, fontSize: 14, color: colors.inflow },
+  payLogDate: { fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft, marginTop: 2 },
+  payLogNote: { fontFamily: fonts.body, fontSize: 12, color: colors.ink, fontStyle: 'italic' },
+
+  // Photos & Notes
+  photoThumb: {
+    width: 100,
+    height: 100,
+    borderRadius: radius.md,
+    backgroundColor: colors.line,
+  },
+  noteBox: {
+    backgroundColor: colors.paper,
+    padding: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  noteText: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.ink,
+    lineHeight: 18,
+  },
+
+  // ── Sticky Bottom Action Bar ──
+  stickyBottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.paperCard,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingHorizontal: 16,
+    paddingTop: 10,
     ...shadow.card,
   },
-  editBtn: { backgroundColor: colors.clayDeep },
-  deleteBtn: { backgroundColor: colors.paperCard, borderWidth: 1, borderColor: colors.danger },
-  actionBtnText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.white },
+  stickyBottomContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    maxWidth: 860,
+    alignSelf: 'center',
+    width: '100%',
+    gap: 12,
+  },
+  stickyBottomInfo: {
+    flex: 1,
+    minWidth: 100,
+  },
+  stickyBottomLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  stickyBottomAmount: {
+    fontFamily: fonts.display,
+    fontSize: 18,
+    lineHeight: 22,
+  },
+  stickyBottomActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  recordPayBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#16A34A',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: radius.md,
+    ...shadow.card,
+  },
+  recordPayBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13.5,
+    color: colors.white,
+  },
+  sharePdfBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.clayDeep,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: radius.md,
+    ...shadow.card,
+  },
+  sharePdfBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13.5,
+    color: colors.white,
+  },
 
+  // ── Payment Modal ──
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1625,166 +1666,167 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalCard: {
-    width: '100%',
-    maxWidth: 440,
     backgroundColor: colors.paperCard,
     borderRadius: radius.lg,
-    padding: 22,
+    padding: 20,
+    width: '100%',
+    maxWidth: 420,
     borderWidth: 1,
     borderColor: colors.line,
-    alignSelf: 'center',
     ...shadow.card,
   },
   modalHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  modalCloseIconBtn: {
-    padding: 4,
-    borderRadius: 16,
-    backgroundColor: colors.paper,
-  },
-  modalTitle: {
-    fontFamily: fonts.display,
-    fontSize: 24,
-    color: colors.clayDeep,
-  },
-  modalSub: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.inkSoft,
-    marginTop: 2,
-    marginBottom: 14,
-  },
-  modalField: {
-    marginBottom: 14,
-  },
-  modalFieldLabel: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    color: colors.inkSoft,
-    marginBottom: 4,
-  },
+  modalTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
+  modalCloseIconBtn: { padding: 4 },
+  modalSub: { fontFamily: fonts.body, fontSize: 13, color: colors.inkSoft, marginBottom: 16 },
+  modalField: { marginBottom: 14 },
+  modalFieldLabel: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.inkSoft, marginBottom: 4 },
   modalInput: {
-    fontFamily: fonts.body,
-    fontSize: 15,
-    color: colors.ink,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    borderStyle: 'dashed' as any,
-    paddingVertical: 6,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  chip: {
+    backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: radius.sm,
     paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     backgroundColor: colors.paper,
   },
-  chipActive: {
-    backgroundColor: colors.inflow,
-    borderColor: colors.inflow,
-  },
-  chipText: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.ink,
-  },
-  chipTextActive: {
-    color: colors.white,
-    fontFamily: fonts.bodyBold,
-  },
-  modalBtnRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-  },
+  chipActive: { backgroundColor: colors.clayDeep, borderColor: colors.clayDeep },
+  chipText: { fontFamily: fonts.body, fontSize: 12, color: colors.ink },
+  chipTextActive: { color: colors.white, fontFamily: fonts.bodyBold },
+  modalBtnRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
   modalCancelBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.line,
+    borderRadius: radius.sm,
+    paddingVertical: 11,
     alignItems: 'center',
   },
-  modalCancelText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    color: colors.inkSoft,
-  },
+  modalCancelText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.inkSoft },
   modalSaveBtn: {
     flex: 1,
-    paddingVertical: 12,
+    backgroundColor: colors.clayDeep,
     borderRadius: radius.sm,
-    backgroundColor: colors.inflow,
+    paddingVertical: 11,
     alignItems: 'center',
   },
-  modalSaveText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: colors.white,
-  },
-  templateSelectorBar: {
-    backgroundColor: colors.paper,
+  modalSaveText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white },
+
+  // ── PDF Modal ──
+  pdfModalContainer: { flex: 1, backgroundColor: colors.paper },
+  pdfModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
+    backgroundColor: colors.paperCard,
   },
-  templateBarLabel: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    color: colors.inkSoft,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
-  templateChipsRow: {
+  pdfModalCloseBtn: { padding: 4 },
+  pdfModalTitle: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.ink },
+  pdfModalPrintBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    minHeight: 44,
-    paddingRight: 16,
+    gap: 4,
+    backgroundColor: colors.clayDeep,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radius.sm,
   },
+  pdfModalPrintBtnText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.white },
+  templateSelectorBar: {
+    backgroundColor: colors.paperCard,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  templateBarLabel: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.inkSoft, marginBottom: 6 },
+  templateChipsRow: { flexDirection: 'row', gap: 8 },
   templateChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radius.sm,
-    backgroundColor: colors.paperCard,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.line,
+    backgroundColor: colors.paper,
   },
-  templateChipActive: {
-    borderWidth: 1.5,
+  templateChipActive: { borderWidth: 1.5 },
+  templateDot: { width: 8, height: 8, borderRadius: 4 },
+  templateChipText: { fontFamily: fonts.body, fontSize: 12, color: colors.ink },
+  pdfWebContainer: { flex: 1, padding: 16 },
+  pdfPageContent: { padding: 16 },
+  pdfPaperCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    overflow: 'hidden',
+    ...shadow.card,
   },
-  templateDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  pdfHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 16,
+    borderBottomWidth: 2,
   },
-  templateChipText: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.ink,
+  pdfHeaderLogo: { width: 44, height: 44, borderRadius: 6 },
+  pdfBrandTitle: { fontFamily: fonts.display, fontSize: 16 },
+  pdfBrandSubtitle: { fontFamily: fonts.body, fontSize: 11, marginTop: 1 },
+  pdfStatusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.sm },
+  pdfStatusBadgeText: { fontFamily: fonts.bodyBold, fontSize: 10 },
+  pdfGridRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
   },
-  pdfWebContainer: {
-    flex: 1,
-    width: '100%',
-    maxWidth: 720,
-    alignSelf: 'center',
+  pdfGridBox: { flex: 1 },
+  pdfGridLabel: { fontFamily: fonts.bodyBold, fontSize: 10, marginBottom: 2 },
+  pdfGridValue: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.ink },
+  pdfGridSubValue: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft },
+  pdfTableWrap: { padding: 16 },
+  pdfTableHeader: { flexDirection: 'row', padding: 8, borderRadius: 4, marginBottom: 4 },
+  pdfTh: { fontFamily: fonts.bodyBold, fontSize: 11 },
+  pdfTableRow: { flexDirection: 'row', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  pdfTd: { fontFamily: fonts.body, fontSize: 12, color: colors.ink },
+  pdfSummaryBox: {
+    margin: 16,
+    marginTop: 0,
     padding: 12,
-    paddingBottom: 24,
-    minHeight: 620,
+    borderRadius: radius.sm,
+    borderWidth: 1,
   },
+  pdfSummaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
+  pdfSummaryLabel: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft },
+  pdfSummaryVal: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.ink },
+  pdfSummaryTotalRow: { borderTopWidth: 1, marginTop: 4, paddingTop: 6 },
+  pdfSummaryTotalLabel: { fontFamily: fonts.display, fontSize: 14 },
+  pdfSummaryTotalVal: { fontFamily: fonts.display, fontSize: 16 },
+  pdfFooter: { padding: 16, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#EEEEEE' },
+  pdfFooterText: { fontFamily: fonts.bodyBold, fontSize: 11, color: colors.ink },
+  pdfFooterSubText: { fontFamily: fonts.body, fontSize: 10, color: colors.inkSoft, marginTop: 2 },
 });
